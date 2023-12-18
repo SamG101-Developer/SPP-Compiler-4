@@ -90,14 +90,14 @@ FunctionArgumentAst = (
 
 
 @dataclass
-class FunctionArgumentGroupAst:
+class FunctionArgumentGroupAst(Ast):
     paren_l_token: TokenAst
     arguments: List[FunctionArgumentAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class FunctionParameterSelfAst:
+class FunctionParameterSelfAst(Ast):
     is_mutable: Optional[TokenAst]
     identifier: IdentifierAst
     convention: Optional[ConventionAst]
@@ -128,14 +128,14 @@ FunctionParameterAst = (
 
 
 @dataclass
-class FunctionParameterGroupAst:
+class FunctionParameterGroupAst(Ast):
     paren_l_token: TokenAst
     parameters: List[FunctionParameterAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class FunctionPrototypeAst:
+class FunctionPrototypeAst(Ast):
 
     @dataclass
     class ReturnTypeAst:
@@ -153,7 +153,7 @@ class FunctionPrototypeAst:
 
 
 @dataclass
-class GenericArgumentNormalAst:
+class GenericArgumentNormalAst(Ast):
     type: TypeAst
 
 
@@ -169,20 +169,20 @@ GenericArgumentAst = (
 
 
 @dataclass
-class GenericArgumentGroupAst:
+class GenericArgumentGroupAst(Ast):
     bracket_l_token: TokenAst
     arguments: List[GenericArgumentAst]
     bracket_r_token: TokenAst
 
 
 @dataclass
-class GenericIdentifierAst:
+class GenericIdentifierAst(Ast):
     identifier: IdentifierAst
     generic_arguments: GenericArgumentGroupAst
 
 
 @dataclass
-class GenericParameterRequiredAst:
+class GenericParameterRequiredAst(Ast):
     identifier: TypeAst
     inline_constraints: List[GenericParameterInlineConstraintAst]
 
@@ -205,20 +205,21 @@ GenericParameterAst = (
 
 
 @dataclass
-class GenericParameterGroupAst:
+class GenericParameterGroupAst(Ast):
     bracket_l_token: TokenAst
     parameters: List[GenericParameterAst]
     bracket_r_token: TokenAst
 
 
 @dataclass
-class GenericParameterInlineConstraintAst:
-    ...
+class GenericParameterInlineConstraintAst(Ast):
+    colon_token: TokenAst
+    constraints: List[TypeAst]
 
 
 @dataclass
-class IdentifierAst:
-    ...
+class IdentifierAst(Ast):
+    identifier: str
 
 
 @dataclass
