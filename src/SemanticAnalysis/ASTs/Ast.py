@@ -136,7 +136,6 @@ class FunctionParameterGroupAst(Ast):
 
 @dataclass
 class FunctionPrototypeAst(Ast):
-
     @dataclass
     class ReturnTypeAst:
         colon_token: TokenAst
@@ -223,38 +222,135 @@ class IdentifierAst(Ast):
 
 
 @dataclass
-class IfExpressionAst:
-    ...
+class IfExpressionAst(Ast):
+    if_keyword: TokenAst
+    condition: ExpressionAst
+    comp_operator: TokenAst
+    branches: List[PatternBlockAst]
 
 
 @dataclass
-class InnerScopeAst:
-    ...
+class InnerScopeAst(Ast):
+    brace_l_token: TokenAst
+    members: List[ModuleMemberAst]
+    brace_r_token: TokenAst
 
 
 @dataclass
-class LambdaCaptureBlockAst:
-    ...
+class LambdaCaptureBlockAst(Ast):
+    with_keyword: TokenAst
+    bracket_l_token: TokenAst
+    items: List[LambdaCaptureItemAst]
+    bracket_r_token: TokenAst
 
 
 @dataclass
 class LambdaCaptureItemAst:
+    convention: Optional[ConventionAst]
+    identifier: IdentifierAst
+
+
+@dataclass
+class LambdaPrototypeAst(FunctionPrototypeAst):
     ...
 
 
 @dataclass
-class LambdaPrototypeAst:
-    ...
+class LetStatementInitializedAst(Ast):
+    let_keyword: TokenAst
+    assign_to: LocalVariableAst
+    assign_token: TokenAst
+    value: ExpressionAst
+    residual: Optional[ResidualAst]
 
 
 @dataclass
-class LetStatementAst:
-    ...
+class LetStatementUninitializedAst(Ast):
+    let_keyword: TokenAst
+    assign_to: LocalVariableAst
+    colon_token: TokenAst
+    type_declaration: TypeAst
+
+
+LetStatementAst = (
+        LetStatementInitializedAst |
+        LetStatementUninitializedAst)
 
 
 @dataclass
-class LiteralAst:
-    ...
+class LiteralNumberBase10Ast(Ast):
+    sign: Optional[TokenAst]
+    integer: TokenAst
+    decimal: Optional[TokenAst]
+    primitive_type: Optional[IdentifierAst]  # TypeAst?
+
+
+@dataclass
+class LiteralNumberBase2Ast(Ast):
+    integer: TokenAst
+    primitive_type: Optional[IdentifierAst]
+
+
+@dataclass
+class LiteralNumberBase16Ast(Ast):
+    integer: TokenAst
+    primitive_type: Optional[IdentifierAst]
+
+
+LiteralNumberAst = (
+        LiteralNumberBase10Ast |
+        LiteralNumberBase2Ast |
+        LiteralNumberBase16Ast)
+
+
+@dataclass
+class LiteralStringAst(Ast):
+    string: TokenAst
+
+
+@dataclass
+class LiteralArrayNonEmptyAst(Ast):
+    bracket_l_token: TokenAst
+    items: List[ExpressionAst]
+    bracket_r_token: TokenAst
+
+
+@dataclass
+class LiteralArrayEmptyAst(Ast):
+    bracket_l_token: TokenAst
+    element_type: TypeAst
+    bracket_r_token: TokenAst
+
+
+LiteralArrayAst = (
+        LiteralArrayNonEmptyAst |
+        LiteralArrayEmptyAst)
+
+
+@dataclass
+class LiteralTupleAst(Ast):
+    paren_l_token: TokenAst
+    items: List[ExpressionAst]
+    paren_r_token: TokenAst
+
+
+@dataclass
+class LiteralBooleanAst(Ast):
+    boolean: TokenAst
+
+
+@dataclass
+class LiteralRegexAst(Ast):
+    regex: TokenAst
+
+
+LiteralAst = (
+        LiteralNumberAst |
+        LiteralStringAst |
+        LiteralArrayAst |
+        LiteralTupleAst |
+        LiteralBooleanAst |
+        LiteralRegexAst)
 
 
 @dataclass
@@ -443,8 +539,8 @@ class YieldStatementAst:
 
 
 ExpressionAst = (
-        BinaryExpressionAst  |
-        UnaryExpressionAst   |
+        BinaryExpressionAst |
+        UnaryExpressionAst |
         PostfixExpressionAst |
         PrimaryExpressionAst |
         TokenAst)
