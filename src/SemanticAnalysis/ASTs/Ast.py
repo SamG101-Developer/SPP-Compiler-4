@@ -467,7 +467,7 @@ PatternAst = (
 
 
 @dataclass
-class PatternBlockAst:
+class PatternBlockAst(Ast):
     comp_operator: TokenAst
     patterns: List[PatternAst]
     guard: Optional[PatternGuardAst]
@@ -475,13 +475,13 @@ class PatternBlockAst:
 
 
 @dataclass
-class PatternGuardAst:
+class PatternGuardAst(Ast):
     guard_token: TokenAst
     expression: ExpressionAst
 
 
 @dataclass
-class PostfixExpressionAst:
+class PostfixExpressionAst(Ast):
     lhs: ExpressionAst
     op: PostfixExpressionOperatorAst
 
@@ -515,19 +515,19 @@ PostfixMemberPartAst = (
 
 
 @dataclass
-class ProgramAst:
+class ProgramAst(Ast):
     module: ModulePrototypeAst
     eof_token: TokenAst
 
 
 @dataclass
-class ResidualAst:
+class ResidualAst(Ast):
     else_keyword: TokenAst
     body: InnerScopeAst[StatementAst]
 
 
 @dataclass
-class ReturnStatementAst:
+class ReturnStatementAst(Ast):
     return_keyword: TokenAst
     expression: Optional[ExpressionAst]
 
@@ -538,7 +538,7 @@ class SupMethodPrototypeAst(FunctionPrototypeAst):
 
 
 @dataclass
-class SupPrototypeNormalAst:
+class SupPrototypeNormalAst(Ast):
     sup_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
     identifier: IdentifierAst
@@ -553,7 +553,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
 
 
 @dataclass
-class TypedefStatementAst:
+class TypedefStatementAst(Ast):
     typedef_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
     old_type: TypeAst
@@ -568,24 +568,24 @@ class SupTypedefAst(TypedefStatementAst):
 
 
 @dataclass
-class TokenAst:
+class TokenAst(Ast):
     token: Token
 
 
 @dataclass
-class TypeNormalAst:
+class TypeNormalAst(Ast):
     parts: List[TypePartAst]
 
 
 @dataclass
-class TypeTupleAst:
+class TypeTupleAst(Ast):
     paren_l_token: TokenAst
     items: List[TypeAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class TypeUnionAst:
+class TypeUnionAst(Ast):
     items: List[TypeAst]
 
 
@@ -601,7 +601,7 @@ TypePartAst = (
 
 
 @dataclass
-class UnaryExpressionAst:
+class UnaryExpressionAst(Ast):
     op: UnaryOperatorAst
     rhs: ExpressionAst
 
@@ -610,27 +610,27 @@ UnaryOperatorAst = TokenAst
 
 
 @dataclass
-class WhereBlockAst:
+class WhereBlockAst(Ast):
     where_keyword: TokenAst
     constraint_group: WhereConstraintsGroupAst
 
 
 @dataclass
-class WhereConstraintsGroupAst:
+class WhereConstraintsGroupAst(Ast):
     paren_l_token: TokenAst
     constraints: List[WhereConstraintsAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class WhereConstraintsAst:
+class WhereConstraintsAst(Ast):
     types_to_constrain: List[TypeAst]
     colon_token: TokenAst
     constraints: List[TypeAst]
 
 
 @dataclass
-class WhileExpressionAst:
+class WhileExpressionAst(Ast):
     while_keyword: TokenAst
     condition: ExpressionAst
     body: InnerScopeAst[StatementAst]
@@ -638,13 +638,13 @@ class WhileExpressionAst:
 
 
 @dataclass
-class WithExpressionAliasAst:
+class WithExpressionAliasAst(Ast):
     variable: LocalVariableAst
     assign_token: TokenAst
 
 
 @dataclass
-class WithExpressionAst:
+class WithExpressionAst(Ast):
     with_keyword: TokenAst
     alias: Optional[WithExpressionAliasAst]
     expression: ExpressionAst
@@ -652,7 +652,7 @@ class WithExpressionAst:
 
 
 @dataclass
-class YieldStatementAst:
+class YieldStatementAst(Ast):
     yield_keyword: TokenAst
     convention: Optional[ConventionAst]
     expression: ExpressionAst
