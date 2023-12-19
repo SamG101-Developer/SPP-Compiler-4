@@ -1,7 +1,8 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import List, Optional
 
-from dataclasses import dataclass
+from src.LexicalAnalysis.Tokens import Token
 
 
 @dataclass
@@ -46,7 +47,7 @@ class ClassPrototypeAst(Ast):
     identifier: IdentifierAst
     generic_parameters: GenericParameterGroupAst
     where_block: WhereBlockAst
-    body: InnerScopeAst
+    body: InnerScopeAst[ClassAttributeAst]
 
 
 @dataclass
@@ -148,7 +149,7 @@ class FunctionPrototypeAst(Ast):
     parameters: FunctionParameterGroupAst
     return_type: ReturnTypeAst
     where_block: WhereBlockAst
-    body: InnerScopeAst
+    body: InnerScopeAst[StatementAst]
 
 
 @dataclass
@@ -230,9 +231,9 @@ class IfExpressionAst(Ast):
 
 
 @dataclass
-class InnerScopeAst(Ast):
+class InnerScopeAst[T](Ast):
     brace_l_token: TokenAst
-    members: List[ModuleMemberAst]
+    members: List[T]
     brace_r_token: TokenAst
 
 
@@ -354,189 +355,322 @@ LiteralAst = (
 
 
 @dataclass
-class LocalVariableAst:
-    ...
+class LocalVariableSingleAst(Ast):
+    is_mutable: Optional[TokenAst]
+    unpack_token: Optional[TokenAst]
+    identifier: IdentifierAst
 
 
 @dataclass
-class ModuleIdentifierAst:
-    ...
+class LocalVariableMultipleAst(Ast):
+    paren_l_token: TokenAst
+    items: List[LocalVariableSingleAst]
+    paren_r_token: TokenAst
 
 
 @dataclass
-class ModuleMemberAst:
-    ...
+class LocalVariableDestructuredAst(Ast):
+    class_type: TypeAst
+    bracket_l_token: TokenAst
+    items: List[LocalVariableSingleAst]
+    bracket_r_token: TokenAst
+
+
+LocalVariableAst = (
+        LocalVariableSingleAst |
+        LocalVariableMultipleAst |
+        LocalVariableDestructuredAst)
 
 
 @dataclass
-class ModulePrototypeAst:
-    ...
+class ModuleIdentifierAst(Ast):
+    parts: List[IdentifierAst]
 
 
 @dataclass
-class ObjectInitializerArgumentAst:
-    ...
+class ModulePrototypeAst(Ast):
+    annotations: List[AnnotationAst]
+    module_keyword: TokenAst
+    identifier: ModuleIdentifierAst
+    body: List[ModuleMemberAst]
 
 
 @dataclass
-class ObjectInitializerArgumentGroupAst:
-    ...
+class ObjectInitializerArgumentAst(Ast):
+    identifier: IdentifierAst
+    assignment_token: Optional[TokenAst]
+    value: Optional[ExpressionAst]
 
 
 @dataclass
-class ObjectInitializerAst:
-    ...
+class ObjectInitializerArgumentGroupAst(Ast):
+    brace_l_token: TokenAst
+    arguments: List[ObjectInitializerArgumentAst]
+    brace_r_token: TokenAst
 
 
 @dataclass
-class ParenthesizedExpressionAst:
-    ...
+class ObjectInitializerAst(Ast):
+    class_type: TypeAst
+    arguments: ObjectInitializerArgumentGroupAst
 
 
 @dataclass
-class PatternAst:
-    ...
+class ParenthesizedExpressionAst(Ast):
+    paren_l_token: TokenAst
+    expression: ExpressionAst
+    paren_r_token: TokenAst
+
+
+@dataclass
+class PatternTypeTupleAst(Ast):
+    paren_l_token: TokenAst
+    items: List[PatternAst]
+    paren_r_token: TokenAst
+
+
+@dataclass
+class PatternTypeDestructureAst(Ast):
+    class_type: TypeAst
+    bracket_l_token: TokenAst
+    items: List[PatternAst]
+    bracket_r_token: TokenAst
+
+
+@dataclass
+class PatternTypeVariableAst(Ast):
+    variable: LocalVariableSingleAst
+
+
+@dataclass
+class PatternTypeLiteralAst(Ast):
+    literal: LiteralAst
+
+
+@dataclass
+class PatternTypeBoolMember(Ast):
+    expression: PostfixExpressionAst
+
+
+@dataclass
+class PatternTypeElseAst(Ast):
+    else_token: TokenAst
+
+
+PatternAst = (
+        PatternTypeTupleAst |
+        PatternTypeDestructureAst |
+        PatternTypeVariableAst |
+        PatternTypeLiteralAst |
+        PatternTypeBoolMember |
+        PatternTypeElseAst)
 
 
 @dataclass
 class PatternBlockAst:
-    ...
+    comp_operator: TokenAst
+    patterns: List[PatternAst]
+    guard: Optional[PatternGuardAst]
+    body: InnerScopeAst[StatementAst]
 
 
 @dataclass
 class PatternGuardAst:
-    ...
+    guard_token: TokenAst
+    expression: ExpressionAst
 
 
 @dataclass
 class PostfixExpressionAst:
-    ...
+    lhs: ExpressionAst
+    op: PostfixExpressionOperatorAst
 
 
 @dataclass
-class PostfixExpressionVariantAst:
-    ...
+class PostfixExpressionOperatorFunctionCallAst(Ast):
+    generic_arguments: GenericArgumentGroupAst
+    arguments: FunctionArgumentGroupAst
+    fold_token: Optional[TokenAst]
 
 
 @dataclass
-class PostfixMemberPartAst:
-    ...
+class PostfixExpressionOperatorMemberAccess(Ast):
+    dot_token: TokenAst
+    identifier: PostfixMemberPartAst
 
 
 @dataclass
-class PrimaryExpressionAst:
-    ...
+class PostfixExpressionOperatorEarlyReturn(Ast):
+    return_token: TokenAst
+
+
+PostfixExpressionOperatorAst = (
+        PostfixExpressionOperatorFunctionCallAst |
+        PostfixExpressionOperatorMemberAccess |
+        PostfixExpressionOperatorEarlyReturn)
+
+PostfixMemberPartAst = (
+        IdentifierAst |
+        LiteralNumberBase10Ast)
 
 
 @dataclass
 class ProgramAst:
-    ...
+    module: ModulePrototypeAst
+    eof_token: TokenAst
 
 
 @dataclass
 class ResidualAst:
-    ...
+    else_keyword: TokenAst
+    body: InnerScopeAst[StatementAst]
 
 
 @dataclass
 class ReturnStatementAst:
-    ...
+    return_keyword: TokenAst
+    expression: Optional[ExpressionAst]
 
 
 @dataclass
-class StatementAst:
-    ...
-
-
-@dataclass
-class SupMemberAst:
-    ...
-
-
-@dataclass
-class SupMethodPrototypeAst:
-    ...
-
-
-@dataclass
-class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
+class SupMethodPrototypeAst(FunctionPrototypeAst):
     ...
 
 
 @dataclass
 class SupPrototypeNormalAst:
-    ...
+    sup_keyword: TokenAst
+    generic_parameters: GenericParameterGroupAst
+    identifier: IdentifierAst
+    where_block: WhereBlockAst
+    body: InnerScopeAst[SupMemberAst]
 
 
 @dataclass
-class SupTypedefAst:
-    ...
-
-
-@dataclass
-class TokenAst:
-    ...
-
-
-@dataclass
-class TypeAst:
-    ...
-
-
-@dataclass
-class TypePartAst:
-    ...
-
-
-@dataclass
-class TypeReductionStatementAst:
-    ...
+class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
+    inherited_type: TypeAst
+    on_keyword: TokenAst
 
 
 @dataclass
 class TypedefStatementAst:
-    ...
+    typedef_keyword: TokenAst
+    generic_parameters: GenericParameterGroupAst
+    old_type: TypeAst
+    where_block: WhereBlockAst
+    as_keyword: TokenAst
+    new_type: TypeAst
+
+
+@dataclass
+class SupTypedefAst(TypedefStatementAst):
+    annotations: List[AnnotationAst]
+
+
+@dataclass
+class TokenAst:
+    token: Token
+
+
+@dataclass
+class TypeNormalAst:
+    parts: List[TypePartAst]
+
+
+@dataclass
+class TypeTupleAst:
+    paren_l_token: TokenAst
+    items: List[TypeAst]
+    paren_r_token: TokenAst
+
+
+@dataclass
+class TypeUnionAst:
+    items: List[TypeAst]
+
+
+TypeAst = (
+        TypeNormalAst |
+        TypeTupleAst |
+        TypeUnionAst)
+
+TypePartAst = (
+        IdentifierAst |
+        GenericIdentifierAst |
+        LiteralNumberBase10Ast)
 
 
 @dataclass
 class UnaryExpressionAst:
-    ...
+    op: UnaryOperatorAst
+    rhs: ExpressionAst
 
 
-@dataclass
-class UnaryExpressionVariantAst:
-    ...
+UnaryOperatorAst = TokenAst
 
 
 @dataclass
 class WhereBlockAst:
-    ...
+    where_keyword: TokenAst
+    constraint_group: WhereConstraintsGroupAst
+
+
+@dataclass
+class WhereConstraintsGroupAst:
+    paren_l_token: TokenAst
+    constraints: List[WhereConstraintsAst]
+    paren_r_token: TokenAst
 
 
 @dataclass
 class WhereConstraintsAst:
-    ...
+    types_to_constrain: List[TypeAst]
+    colon_token: TokenAst
+    constraints: List[TypeAst]
 
 
 @dataclass
 class WhileExpressionAst:
-    ...
+    while_keyword: TokenAst
+    condition: ExpressionAst
+    body: InnerScopeAst[StatementAst]
+    else_block: Optional[ResidualAst]
 
 
 @dataclass
 class WithExpressionAliasAst:
-    ...
+    variable: LocalVariableAst
+    assign_token: TokenAst
 
 
 @dataclass
 class WithExpressionAst:
-    ...
+    with_keyword: TokenAst
+    alias: Optional[WithExpressionAliasAst]
+    expression: ExpressionAst
+    body: InnerScopeAst[StatementAst]
 
 
 @dataclass
 class YieldStatementAst:
-    ...
+    yield_keyword: TokenAst
+    convention: Optional[ConventionAst]
+    expression: ExpressionAst
 
+
+PrimaryExpressionAst = (
+        LiteralAst |
+        IdentifierAst |
+        LambdaPrototypeAst |
+        ParenthesizedExpressionAst |
+        ObjectInitializerAst |
+        TypeAst |
+        IfExpressionAst |
+        WhileExpressionAst |
+        WithExpressionAst |
+        YieldStatementAst |
+        InnerScopeAst |  # [StatementAst]
+        TokenAst)
 
 ExpressionAst = (
         BinaryExpressionAst |
@@ -544,3 +678,25 @@ ExpressionAst = (
         PostfixExpressionAst |
         PrimaryExpressionAst |
         TokenAst)
+
+StatementAst = (
+        TypedefStatementAst |
+        ReturnStatementAst |
+        AssignmentStatementAst |
+        LetStatementAst |
+        ExpressionAst)
+
+SupMemberAst = (
+        SupMethodPrototypeAst |
+        SupTypedefAst |
+        ClassPrototypeAst |
+        LetStatementAst |
+        SupPrototypeInheritanceAst)
+
+ModuleMemberAst = (
+        ClassPrototypeAst |
+        FunctionPrototypeAst |
+        TypedefStatementAst |
+        SupPrototypeNormalAst |
+        SupPrototypeInheritanceAst |
+        LetStatementAst)
