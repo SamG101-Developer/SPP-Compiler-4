@@ -25,6 +25,13 @@ class Parser:
     _err_fmt: ErrorFormatter
     _errors: List[ParserError]
 
+    # print when any function is called
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if callable(attr):
+            print(f"Called {name}")
+        return attr
+
     def __init__(self, tokens: List[Token], file_name: str) -> None:
         self._tokens = tokens
         self._index = 0
@@ -50,9 +57,10 @@ class Parser:
                 if current_error.pos > final_error.pos:
                     final_error = current_error
 
-            error_message = str(final_error).replace("$", str(final_error.expected_tokens))
+            all_expected_tokens = ", ".join(final_error.expected_tokens)
+            error_message = str(final_error).replace("$", all_expected_tokens)
             error_message = self._err_fmt.error(final_error.pos, message=error_message)
-            raise ParserError(error_message) from None
+            raise SystemExit(error_message) from None
 
     # ===== PROGRAM =====
 
@@ -164,7 +172,7 @@ class Parser:
     def parse_sup_typedef(self) -> SupTypedefAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
-        p2 = self.parse_statement_typedef().parse_once()
+        p2 = self.parse_typedef_statement().parse_once()
         return SupTypedefAst(**p2.__dict__, pos=c1, annotations=p1)
 
     @parser_rule
@@ -178,7 +186,7 @@ class Parser:
     def parse_function_prototype(self) -> FunctionPrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
-        p2 = self.parse_token(TokenType.KwFn).parse_once()
+        p2 = self.parse_token(TokenType.KwFun).parse_once()
         p3 = self.parse_identifier().parse_once()
         p4 = self.parse_generic_parameters().parse_optional()
         p5 = self.parse_function_parameters().parse_once()
@@ -358,6 +366,7 @@ class Parser:
         p1 = self.parse_type().parse_one_or_more(TokenType.TkComma)
         p2 = self.parse_token(TokenType.TkColon).parse_once()
         p3 = self.parse_type().parse_one_or_more(TokenType.TkBitAnd)
+        return WhereConstraintsAst(c1, p1, p2, p3)
 
     # ===== ANNOTATIONS =====
 
@@ -388,6 +397,7 @@ class Parser:
 
     @parser_rule
     def parse_binary_expression_precedence_level_1(self) -> ExpressionAst:
+        print("Called parse_binary_expression_precedence_level_1")
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_2,
             self.parse_binary_op_precedence_level_1,
@@ -1021,7 +1031,7 @@ class Parser:
     @parser_rule
     def parse_type_single(self) -> TypeSingleAst:
         c1 = self.current_pos()
-        p1 = self.parse_type_namespace().parse_optional() or []
+        p1 = self.parse_type_namespace().parse_optional() or TypeNamespaceAst(c1, [])
         p2 = self.parse_type_part().parse_one_or_more(TokenType.TkDot)
         return TypeSingleAst(c1, p1.items + p2)
 
@@ -1056,9 +1066,10 @@ class Parser:
     def parse_type_part(self) -> TypePartAst:
         c1 = self.current_pos()
         p1 = self.parse_generic_identifier().for_alt()
-        p2 = self.parse_number_integer().for_alt()
+        p2 = self.parse_literal_number_b10_integer().for_alt()
         p3 = self.parse_self_type_keyword().for_alt()
         p4 = (p1 | p2 | p3).parse_once()
+        return p4
 
     @parser_rule
     def parse_self_type_keyword(self) -> GenericIdentifierAst:
@@ -1271,17 +1282,15 @@ class Parser:
         if p1.token.token_metadata == characters:
             return p1
         else:
-            new_error = ParserError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
+            new_error = ParserError(self.current_pos(), f"Expected '{characters}', got '{p1.token.token_metadata}'")
             self._errors.append(new_error)
-            print("0")
             raise new_error
 
     @parser_rule
     def parse_token(self, token_type: TokenType) -> TokenAst:
         if self._index > len(self._tokens) - 1:
-            new_error = ParserError(self.current_pos(), f"Expected {token_type}, got EOF")
+            new_error = ParserError(self.current_pos(), f"Expected '{token_type}', got <EOF>")
             self._errors.append(new_error)
-            print("1")
             raise new_error
 
         while token_type != TokenType.TkNewLine and self.current_tok().token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
@@ -1292,16 +1301,14 @@ class Parser:
         if self.current_tok().token_type != token_type:
             if any([error.pos == self.current_pos() for error in self._errors]):
                 existing_error = next(error for error in self._errors if error.pos == self.current_pos())
-                existing_error.expected_tokens.append(str(token_type))
-                print("2")
+                existing_error.expected_tokens.add(token_type.value)
                 raise existing_error
 
             else:
-                new_error = ParserError(f"Expected $, got {self.current_tok().token_metadata}")
+                new_error = ParserError(f"Expected $, got '{self.current_tok().token_metadata}'")
                 new_error.pos = self.current_pos()
-                new_error.expected_tokens.append(str(token_type))
+                new_error.expected_tokens.add(token_type.value)
                 self._errors.append(new_error)
-                print("3")
                 raise new_error
 
         # self._errors.clear()
