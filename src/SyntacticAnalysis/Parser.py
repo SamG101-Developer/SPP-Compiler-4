@@ -153,10 +153,9 @@ class Parser:
         p5 = self.parse_function_parameters().parse_once()
         p6 = self.parse_token(TokenType.TkArrowR).parse_once()
         p7 = self.parse_type().parse_once()
-        p8 = self.parse_lambda_capture_block().parse_optional()
-        p9 = self.parse_where_block().parse_optional()
-        p10 = self.parse_inner_scope(self.parse_statement).parse_once()
-        return FunctionPrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
+        p8 = self.parse_where_block().parse_optional()
+        p9 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return FunctionPrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9)
 
     @parser_rule
     def parse_function_call_arguments(self) -> FunctionArgumentGroupAst:
@@ -449,6 +448,131 @@ class Parser:
         p1 = self.parse_token(TokenType.KwSelf).parse_once()
         return IdentifierAst(c1, p1.token.token_metadata)
 
+    # ===== EXPRESSION STATEMENTS =====
+
+    @parser_rule
+    def parse_if_expression(self) -> IfExpressionAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwIf).parse_once()
+        p2 = self.parse_expression().parse_once()
+        p3 = self.parse_pattern_comp_op().parse_optional()
+        p4 = self.parse_pattern_statement().parse_one_or_more()
+        return IfExpressionAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_while_expression(self) -> WhileExpressionAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwWhile).parse_once()
+        p2 = self.parse_expression().parse_once()
+        p3 = self.parse_inner_scope(self.parse_statement).parse_once()
+        p4 = self.parse_residual_block().parse_optional()
+        return WhileExpressionAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_yield_expression(self) -> YieldExpressionAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwYield).parse_once()
+        p2 = self.parse_convention().parse_once()
+        p3 = self.parse_expression().parse_once()
+        return YieldExpressionAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_with_expression(self) -> WithExpressionAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwWith).parse_once()
+        p2 = self.parse_with_expression_lhs_alias().parse_optional()
+        p3 = self.parse_expression().parse_once()
+        p4 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return WithExpressionAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_with_expression_lhs_alias(self) -> WithExpressionAliasAst:
+        c1 = self.current_pos()
+        p1 = self.parse_local_variable_single().parse_once()
+        p2 = self.parse_token(TokenType.TkAssign).parse_once()
+        return WithExpressionAliasAst(c1, p1, p2)
+
+    # ===== PATTERNS =====
+
+    @parser_rule
+    def parse_pattern_statement(self) -> PatternBlockAst:
+        c1 = self.current_pos()
+        p1 = self.parse_pattern_comp_op().parse_optional()
+        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkBitOr)
+        p3 = self.parse_pattern_guard().parse_optional()
+        p4 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return PatternBlockAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_pattern_comp_op(self) -> TokenAst:
+        p1 = self.parse_token(TokenType.TkEq).for_alt()
+        p2 = self.parse_token(TokenType.TkNe).for_alt()
+        p3 = self.parse_token(TokenType.TkLe).for_alt()
+        p4 = self.parse_token(TokenType.TkGe).for_alt()
+        p5 = self.parse_token(TokenType.TkLt).for_alt()
+        p6 = self.parse_token(TokenType.TkGt).for_alt()
+        p8 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p8
+
+    @parser_rule
+    def parse_pattern_guard(self) -> PatternGuardAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkLogicalAnd).parse_once()
+        p2 = self.parse_expression().parse_once()
+        return PatternGuardAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_pattern_variant(self) -> PatternVariantAst:
+        p1 = self.parse_pattern_variant_tuple().for_alt()
+        p2 = self.parse_pattern_variant_destructure().for_alt()
+        p3 = self.parse_pattern_variant_variable().for_alt()
+        p4 = self.parse_pattern_variant_literal().for_alt()
+        p5 = self.parse_pattern_variant_bool_member().for_alt()
+        p6 = self.parse_pattern_variant_else().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
+
+    @parser_rule
+    def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_pattern_variant().parse_zero_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return PatternVariantTupleAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p3 = self.parse_pattern_variant().parse_zero_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkBraceR).parse_once()
+        return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_pattern_variant_variable(self) -> PatternVariantVariableAst:
+        c1 = self.current_pos()
+        p1 = self.parse_local_variable_single().parse_once()
+        return PatternVariantVariableAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
+        c1 = self.current_pos()
+        p1 = self.parse_literal().parse_once()
+        return PatternVariantLiteralAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_bool_member(self) -> PatternVariantBoolMemberAst:
+        c1 = self.current_pos()
+        p1 = self.parse_postfix_expression().parse_once()
+        return PatternVariantBoolMemberAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_else(self) -> PatternVariantElseAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwElse).parse_once()
+        return PatternVariantElseAst(c1, p1)
+
     # ===== OPERATORS =====
 
     @parser_rule
@@ -571,9 +695,128 @@ class Parser:
     def parse_object_initializer_argument_normal(self) -> ObjectInitializerArgumentNormalAst:
         c1 = self.current_pos()
         p1 = self.parse_identifier().parse_once()
+        return ObjectInitializerArgumentNormalAst(c1, p1)
+
+    @parser_rule
+    def parse_object_initializer_argument_named(self) -> ObjectInitializerArgumentNamedAst:
+        c1 = self.current_pos()
+        p1 = self.parse_object_initializer_argument_named_key().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         p3 = self.parse_expression().parse_once()
-        return ObjectInitializerArgumentNormalAst(c1, p1, p2, p3)
+        return ObjectInitializerArgumentNamedAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_object_initializer_argument_named_key(self) -> IdentifierAst | TokenAst:
+        p1 = self.parse_identifier().for_alt()
+        p2 = self.parse_token(TokenType.KwElse)
+        p3 = self.parse_token(TokenType.KwSup)
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    # ===== LAMBDAS =====
+
+    @parser_rule
+    def parse_lambda_prototype(self) -> LambdaPrototypeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_annotation().parse_zero_or_more()
+        p2 = self.parse_token(TokenType.KwFn).parse_once()
+        p3 = self.parse_generic_parameters().parse_optional()
+        p4 = self.parse_function_parameters().parse_once()
+        p5 = self.parse_token(TokenType.TkArrowR).parse_once()
+        p6 = self.parse_type().parse_once()
+        p7 = self.parse_lambda_capture_block().parse_optional()
+        p8 = self.parse_where_block().parse_optional()
+        p9 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return LambdaPrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9)
+
+    @parser_rule
+    def parse_lambda_capture_block(self) -> LambdaCaptureBlockAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwWith).parse_once()
+        p2 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p3 = self.parse_lambda_capture_item().parse_one_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return LambdaCaptureBlockAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_lambda_capture_item(self) -> LambdaCaptureItemAst:
+        p1 = self.parse_lambda_capture_item_named().for_alt()
+        p2 = self.parse_lambda_capture_item_normal().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_lambda_capture_item_normal(self):
+        c1 = self.current_pos()
+        p1 = self.parse_convention().parse_once()
+        p2 = self.parse_identifier().parse_once()
+        return LambdaCaptureItemNormalAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_lambda_capture_item_named(self):
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_once()
+        p2 = self.parse_token(TokenType.TkAssign).parse_once()
+        p3 = self.parse_convention().parse_once()
+        p4 = self.parse_identifier().parse_once()
+        return LambdaCaptureItemNamedAst(c1, p1, p2, p3, p4)
+
+    # ===== TYPES =====
+
+    @parser_rule
+    def parse_type(self) -> TypeAst:
+        p1 = self.parse_type_single().for_alt()
+        p2 = self.parse_type_tuple().for_alt()
+        p3 = self.parse_type_union().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_type_single(self) -> TypeSingleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_namespace().parse_optional() or []
+        p2 = self.parse_type_part().one_or_more(TokenType.TkDot)
+        return TypeSingleAst(c1, p1.items + p2)
+
+    @parser_rule
+    def parse_type_tuple(self) -> TypeTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_type().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return TypeTupleAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_type_non_union(self) -> TypeAst:
+        p1 = self.parse_type_single().for_alt()
+        p2 = self.parse_type_tuple().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_type_union(self) -> TypeUnionAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkBitOr)
+        return TypeUnionAst(c1, p1)
+
+    @parser_rule
+    def parse_type_namespace(self) -> TypeNamespaceAst:
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDot)
+        return TypeNamespaceAst(c1, p1)
+
+    @parser_rule
+    def parse_type_part(self) -> TypePartAst:
+        c1 = self.current_pos()
+        p1 = self.parse_generic_identifier().for_alt()
+        p2 = self.parse_number_integer().for_alt()
+        p3 = self.parse_self_type_keyword().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+
+    @parser_rule
+    def parse_self_type_keyword(self) -> GenericIdentifierAst:
+        p1 = self.parse_token(TokenType.KwSelfType).parse_once()
+        return GenericIdentifierAst(**p1.__dict__, generic_arguments=None, identifier=p1.token.token_metadata)
 
     # ===== PLACEHOLDERS (FOR NOW) =====
 
@@ -583,6 +826,14 @@ class Parser:
 
     @parser_rule
     def parse_annotation(self) -> AnnotationAst:
+        ...
+
+    @parser_rule
+    def parse_identifier(self) -> IdentifierAst:
+        ...
+
+    @parser_rule
+    def parse_convention(self) -> ConventionAst:
         ...
 
     @parser_rule

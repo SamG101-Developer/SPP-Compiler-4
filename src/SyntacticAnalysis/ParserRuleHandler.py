@@ -52,6 +52,11 @@ class ParserRuleHandler[T]:
         self._for_alternate = True
         return self
 
+    def and_then(self, wrapper_function) -> ParserRuleHandler:
+        new_parser_rule_handler = ParserRuleHandler(self._parser, self._rule)
+        new_parser_rule_handler._rule = lambda: wrapper_function(self._rule())
+        return new_parser_rule_handler
+
     def __or__(self, that: ParserRuleHandler) -> ParserAlternateRulesHandler:
         if not (self._for_alternate and that._for_alternate):
             raise ParserError("Cannot use '|' operator on a non-alternate rule.")

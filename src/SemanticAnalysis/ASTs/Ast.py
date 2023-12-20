@@ -159,8 +159,7 @@ class FunctionPrototypeAst(Ast):
     parameters: FunctionParameterGroupAst
     arrow_token: TokenAst
     return_type: TypeAst
-    where_block: WhereBlockAst
-    lambda_capture_block: Optional[LambdaCaptureBlockAst]
+    where_block: Optional[WhereBlockAst]
     body: InnerScopeAst[StatementAst]
 
 
@@ -258,14 +257,35 @@ class LambdaCaptureBlockAst(Ast):
 
 
 @dataclass
-class LambdaCaptureItemAst:
+class LambdaCaptureItemNormalAst(Ast):
     convention: Optional[ConventionAst]
-    identifier: IdentifierAst
+    value: IdentifierAst
 
 
 @dataclass
-class LambdaPrototypeAst(FunctionPrototypeAst):
-    ...
+class LambdaCaptureItemNamedAst(Ast):
+    identifier: IdentifierAst
+    assignment_token: TokenAst
+    convention: Optional[ConventionAst]
+    value: IdentifierAst
+
+
+LambdaCaptureItemAst = (
+        LambdaCaptureItemNormalAst |
+        LambdaCaptureItemNamedAst)
+
+
+@dataclass
+class LambdaPrototypeAst(Ast):
+    annotations: List[AnnotationAst]
+    fun_token: TokenAst
+    generic_parameters: GenericParameterGroupAst
+    parameters: FunctionParameterGroupAst
+    arrow_token: TokenAst
+    return_type: TypeAst
+    where_block: Optional[WhereBlockAst]
+    lambda_capture_block: Optional[LambdaCaptureBlockAst]
+    body: InnerScopeAst[StatementAst]
 
 
 @dataclass
@@ -414,7 +434,7 @@ class ObjectInitializerArgumentNormalAst(Ast):
 
 @dataclass
 class ObjectInitializerArgumentNamedAst(Ast):
-    identifier: IdentifierAst
+    identifier: IdentifierAst | TokenAst
     assignment_token: TokenAst
     value: ExpressionAst
 
@@ -445,53 +465,53 @@ class ParenthesizedExpressionAst(Ast):
 
 
 @dataclass
-class PatternTypeTupleAst(Ast):
+class PatternVariantTupleAst(Ast):
     paren_l_token: TokenAst
-    items: List[PatternAst]
+    items: List[PatternVariantAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class PatternTypeDestructureAst(Ast):
+class PatternVariantDestructureAst(Ast):
     class_type: TypeAst
     bracket_l_token: TokenAst
-    items: List[PatternAst]
+    items: List[PatternVariantAst]
     bracket_r_token: TokenAst
 
 
 @dataclass
-class PatternTypeVariableAst(Ast):
+class PatternVariantVariableAst(Ast):
     variable: LocalVariableSingleAst
 
 
 @dataclass
-class PatternTypeLiteralAst(Ast):
+class PatternVariantLiteralAst(Ast):
     literal: LiteralAst
 
 
 @dataclass
-class PatternTypeBoolMember(Ast):
+class PatternVariantBoolMemberAst(Ast):
     expression: PostfixExpressionAst
 
 
 @dataclass
-class PatternTypeElseAst(Ast):
+class PatternVariantElseAst(Ast):
     else_token: TokenAst
 
 
-PatternAst = (
-        PatternTypeTupleAst |
-        PatternTypeDestructureAst |
-        PatternTypeVariableAst |
-        PatternTypeLiteralAst |
-        PatternTypeBoolMember |
-        PatternTypeElseAst)
+PatternVariantAst = (
+        PatternVariantTupleAst |
+        PatternVariantDestructureAst |
+        PatternVariantVariableAst |
+        PatternVariantLiteralAst |
+        PatternVariantBoolMemberAst |
+        PatternVariantElseAst)
 
 
 @dataclass
 class PatternBlockAst(Ast):
     comp_operator: TokenAst
-    patterns: List[PatternAst]
+    patterns: List[PatternVariantAst]
     guard: Optional[PatternGuardAst]
     body: InnerScopeAst[StatementAst]
 
@@ -600,7 +620,7 @@ class TokenAst(Ast):
 
 
 @dataclass
-class TypeNormalAst(Ast):
+class TypeSingleAst(Ast):
     parts: List[TypePartAst]
 
 
@@ -617,7 +637,7 @@ class TypeUnionAst(Ast):
 
 
 TypeAst = (
-        TypeNormalAst |
+        TypeSingleAst |
         TypeTupleAst |
         TypeUnionAst)
 
@@ -625,6 +645,11 @@ TypePartAst = (
         IdentifierAst |
         GenericIdentifierAst |
         LiteralNumberBase10Ast)
+
+
+@dataclass
+class TypeNamespaceAst(Ast):
+    items: List[TypePartAst]
 
 
 @dataclass
@@ -679,7 +704,7 @@ class WithExpressionAst(Ast):
 
 
 @dataclass
-class YieldStatementAst(Ast):
+class YieldExpressionAst(Ast):
     yield_keyword: TokenAst
     convention: Optional[ConventionAst]
     expression: ExpressionAst
@@ -694,8 +719,8 @@ PrimaryExpressionAst = (
         TypeAst |
         IfExpressionAst |
         WhileExpressionAst |
+        YieldExpressionAst |
         WithExpressionAst |
-        YieldStatementAst |
         InnerScopeAst |  # [StatementAst]
         TokenAst)
 
