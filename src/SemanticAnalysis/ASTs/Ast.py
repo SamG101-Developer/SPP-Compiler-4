@@ -601,10 +601,38 @@ class SupPrototypeInheritanceAst(Ast):
 
 @dataclass
 class TypedefStatementAst(Ast):
-    typedef_keyword: TokenAst
+    use_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
+    old_type_namespace: Optional[TypeNamespaceAst]
+    items: TypedefStatementItemAst
+
+
+@dataclass
+class TypedefStatementSpecificItemAst(Ast):
     old_type: TypeAst
-    where_block: WhereBlockAst
+    alias: Optional[TypedefStatementSpecificItemAliasAst]
+
+
+@dataclass
+class TypedefStatementSpecificItemsAst(Ast):
+    brace_l_token: TokenAst
+    aliases: List[TypedefStatementSpecificItemAst]
+    brace_r_token: TokenAst
+
+
+@dataclass
+class TypedefStatementAllItemsAst(Ast):
+    all_token: TokenAst
+
+
+TypedefStatementItemAst = (
+        TypedefStatementSpecificItemAst |
+        TypedefStatementSpecificItemsAst |
+        TypedefStatementAllItemsAst)
+
+
+@dataclass
+class TypedefStatementSpecificItemAliasAst(Ast):
     as_keyword: TokenAst
     new_type: TypeAst
 

@@ -492,6 +492,60 @@ class Parser:
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         return WithExpressionAliasAst(c1, p1, p2)
 
+    # ===== STATEMENTS =====
+
+    @parser_rule
+    def parse_return_statement(self) -> ReturnStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwRet).parse_once()
+        p2 = self.parse_expression().parse_optional()
+        return ReturnStatementAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_typedef_statement(self) -> TypedefStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwUse).parse_once()
+        p2 = self.parse_generic_parameters().parse_optional()
+        p3 = self.parse_type_namespace().parse_once()
+        p4 = self.parse_typedef_item().parse_once()
+        return TypedefStatementAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_typedef_item(self) -> TypedefStatementItemAst:
+        p1 = self.parse_typedef_statement_specific_item().for_alt()
+        p1 = self.parse_typedef_statement_specific_items().for_alt()
+        p2 = self.parse_typedef_statement_all_items().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_typedef_statement_specific_item(self) -> TypedefStatementSpecificItemAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_typedef_statement_specific_item_alias().parse_optional()
+        return TypedefStatementSpecificItemAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_typedef_statement_specific_items(self) -> TypedefStatementSpecificItemsAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p2 = self.parse_typedef_statement_specific_item().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkBraceR).parse_once()
+        return TypedefStatementSpecificItemsAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_typedef_statement_all_items(self) -> TypedefStatementAllItemsAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkMul).parse_once()
+        return TypedefStatementAllItemsAst(c1, p1)
+
+    @parser_rule
+    def parse_typedef_statement_specific_item_alias(self) -> TypedefStatementSpecificItemAliasAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkAs).parse_once()
+        p2 = self.parse_upper_identifier().parse_once()
+        return TypedefStatementSpecificItemAliasAst(c1, p1, p2)
+
     # ===== PATTERNS =====
 
     @parser_rule
