@@ -74,15 +74,17 @@ ConventionAst = (
 
 @dataclass
 class FunctionArgumentNormalAst(Ast):
-    value: ExpressionAst
     convention: Optional[ConventionAst]
     unpack_token: Optional[TokenAst]
+    value: ExpressionAst
 
 
 @dataclass
-class FunctionArgumentNamedAst(FunctionArgumentNormalAst):
+class FunctionArgumentNamedAst(Ast):
     identifier: Optional[IdentifierAst]
     assignment_token: Optional[TokenAst]
+    convention: Optional[ConventionAst]
+    value: ExpressionAst
 
 
 FunctionArgumentAst = (
@@ -100,25 +102,38 @@ class FunctionArgumentGroupAst(Ast):
 @dataclass
 class FunctionParameterSelfAst(Ast):
     is_mutable: Optional[TokenAst]
-    identifier: IdentifierAst
     convention: Optional[ConventionAst]
+    identifier: TokenAst
 
 
 @dataclass
-class FunctionParameterRequiredAst(FunctionParameterSelfAst):
+class FunctionParameterRequiredAst(Ast):
+    is_mutable: Optional[TokenAst]
+    identifier: IdentifierAst
     colon_token: TokenAst
+    convention: Optional[ConventionAst]
     type_declaration: TypeAst
 
 
 @dataclass
-class FunctionParameterOptionalAst(FunctionParameterRequiredAst):
+class FunctionParameterOptionalAst(Ast):
+    is_mutable: Optional[TokenAst]
+    identifier: IdentifierAst
+    colon_token: TokenAst
+    convention: Optional[ConventionAst]
+    type_declaration: TypeAst
     assignment_token: TokenAst
     default_value: ExpressionAst
 
 
 @dataclass
-class FunctionParameterVariadicAst(FunctionParameterRequiredAst):
+class FunctionParameterVariadicAst(Ast):
+    is_mutable: Optional[TokenAst]
     variadic_token: TokenAst
+    identifier: IdentifierAst
+    colon_token: TokenAst
+    convention: Optional[ConventionAst]
+    type_declaration: TypeAst
 
 
 FunctionParameterAst = (
@@ -137,18 +152,15 @@ class FunctionParameterGroupAst(Ast):
 
 @dataclass
 class FunctionPrototypeAst(Ast):
-    @dataclass
-    class ReturnTypeAst:
-        colon_token: TokenAst
-        type_declaration: TypeAst
-
     annotations: List[AnnotationAst]
     fun_token: TokenAst
     identifier: IdentifierAst
     generic_parameters: GenericParameterGroupAst
     parameters: FunctionParameterGroupAst
-    return_type: ReturnTypeAst
+    arrow_token: TokenAst
+    return_type: TypeAst
     where_block: WhereBlockAst
+    lambda_capture_block: Optional[LambdaCaptureBlockAst]
     body: InnerScopeAst[StatementAst]
 
 
@@ -396,10 +408,20 @@ class ModulePrototypeAst(Ast):
 
 
 @dataclass
-class ObjectInitializerArgumentAst(Ast):
+class ObjectInitializerArgumentNormalAst(Ast):
     identifier: IdentifierAst
-    assignment_token: Optional[TokenAst]
-    value: Optional[ExpressionAst]
+
+
+@dataclass
+class ObjectInitializerArgumentNamedAst(Ast):
+    identifier: IdentifierAst
+    assignment_token: TokenAst
+    value: ExpressionAst
+
+
+ObjectInitializerArgumentAst = (
+        ObjectInitializerArgumentNormalAst |
+        ObjectInitializerArgumentNamedAst)
 
 
 @dataclass
@@ -494,20 +516,20 @@ class PostfixExpressionOperatorFunctionCallAst(Ast):
 
 
 @dataclass
-class PostfixExpressionOperatorMemberAccess(Ast):
+class PostfixExpressionOperatorMemberAccessAst(Ast):
     dot_token: TokenAst
     identifier: PostfixMemberPartAst
 
 
 @dataclass
-class PostfixExpressionOperatorEarlyReturn(Ast):
+class PostfixExpressionOperatorEarlyReturnAst(Ast):
     return_token: TokenAst
 
 
 PostfixExpressionOperatorAst = (
         PostfixExpressionOperatorFunctionCallAst |
-        PostfixExpressionOperatorMemberAccess |
-        PostfixExpressionOperatorEarlyReturn)
+        PostfixExpressionOperatorMemberAccessAst |
+        PostfixExpressionOperatorEarlyReturnAst)
 
 PostfixMemberPartAst = (
         IdentifierAst |
@@ -547,9 +569,14 @@ class SupPrototypeNormalAst(Ast):
 
 
 @dataclass
-class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
-    inherited_type: TypeAst
+class SupPrototypeInheritanceAst(Ast):
+    sup_keyword: TokenAst
+    generic_parameters: GenericParameterGroupAst
+    super_class: TypeAst
     on_keyword: TokenAst
+    identifier: TypeAst
+    where_block: WhereBlockAst
+    body: InnerScopeAst[SupMemberAst]
 
 
 @dataclass
