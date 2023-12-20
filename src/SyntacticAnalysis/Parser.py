@@ -465,7 +465,7 @@ class Parser:
         p1 = self.parse_token(TokenType.KwWhile).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_inner_scope(self.parse_statement).parse_once()
-        p4 = self.parse_residual_block().parse_optional()
+        p4 = self.parse_residual_inner_scope().parse_optional()
         return WhileExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
@@ -500,6 +500,33 @@ class Parser:
         p1 = self.parse_token(TokenType.KwRet).parse_once()
         p2 = self.parse_expression().parse_optional()
         return ReturnStatementAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_inner_scope(self, rule) -> InnerScopeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p2 = rule().parse_zero_or_more()
+        p3 = self.parse_token(TokenType.TkBraceR).parse_once()
+        return InnerScopeAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_residual_inner_scope(self) -> ResidualInnerScopeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwElse).parse_once()
+        p2 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return ResidualInnerScopeAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_statement(self):
+        p1 = self.parse_typedef_statement().for_alt()
+        p2 = self.parse_let_statement().for_alt()
+        p3 = self.parse_return_statement().for_alt()
+        p4 = self.parse_assignment_statement().for_alt()
+        p5 = self.parse_expression().for_alt()
+        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        return p6
+
+    # ===== TYPEDEFS =====
 
     @parser_rule
     def parse_typedef_statement(self) -> TypedefStatementAst:
@@ -545,6 +572,92 @@ class Parser:
         p1 = self.parse_token(TokenType.TkAs).parse_once()
         p2 = self.parse_upper_identifier().parse_once()
         return TypedefStatementSpecificItemAliasAst(c1, p1, p2)
+
+    # ===== LET-DECLARATIONS =====
+
+    @parser_rule
+    def parse_let_statement(self) -> LetStatementAst:
+        p1 = self.parse_let_statement_initialized().for_alt()
+        p2 = self.parse_let_statement_uninitialized().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_let_statement_initialized(self) -> LetStatementInitializedAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwLet).parse_once()
+        p2 = self.parse_local_variable().parse_once()
+        p3 = self.parse_token(TokenType.TkAssign).parse_once()
+        p4 = self.parse_expression().parse_once()
+        p5 = self.parse_residual_inner_scope().parse_optional()
+        return LetStatementInitializedAst(c1, p1, p2, p3, p4, p5)
+
+    @parser_rule
+    def parse_let_statement_uninitialized(self) -> LetStatementUninitializedAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwLet).parse_once()
+        p2 = self.parse_local_variable().parse_once()
+        p3 = self.parse_token(TokenType.TkColon).parse_once()
+        p4 = self.parse_type().parse_once()
+        return LetStatementUninitializedAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_local_variable(self) -> LocalVariableAst:
+        p1 = self.parse_local_variable_single().for_alt()
+        p2 = self.parse_local_variable_tuple().for_alt()
+        p3 = self.parse_local_variable_destructure().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_local_variable_single(self) -> LocalVariableSingleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwMut).parse_optional()
+        p2 = self.parse_token(TokenType.TkVariadic).parse_optional()
+        p3 = self.parse_identifier().parse_once()
+        return LocalVariableSingleAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_local_variable_tuple(self) -> LocalVariableTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_local_variable().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LocalVariableTupleAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_local_variable_destructure(self) -> LocalVariableDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p3 = self.parse_local_variable().parse_one_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkBraceR).parse_once()
+        return LocalVariableDestructureAst(c1, p1, p2, p3, p4)
+
+    # ===== ASSIGNMENT =====
+
+    @parser_rule
+    def parse_assignment_statement(self) -> AssignmentStatementAst:
+        p1 = self.parse_assignment_statement_single().for_alt()
+        p2 = self.parse_assignment_statement_multi().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_assignment_statement_single(self) -> AssignmentStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_expression().parse_once()
+        p2 = self.parse_assignment_op().parse_once()
+        p3 = self.parse_expression().parse_once()
+        return AssignmentStatementAst(c1, [p1], p2, p3)
+
+    @parser_rule
+    def parse_assignment_statement_multi(self) -> AssignmentStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
+        p2 = self.parse_token(TokenType.TkAssign).parse_once()
+        p3 = self.parse_expression().parse_once()
+        return AssignmentStatementAst(c1, p1, p2, p3)
 
     # ===== PATTERNS =====
 
@@ -721,6 +834,54 @@ class Parser:
         p1 = self.parse_token(TokenType.TkQst).parse_once()
         return PostfixExpressionOperatorEarlyReturnAst(c1, p1)
 
+    @parser_rule
+    def parse_assignment_op(self) -> TokenAst:
+        p1 = self.parse_token(TokenType.TkLogicalOrAssign).for_alt()
+        p2 = self.parse_token(TokenType.TkLogicalAndAssign).for_alt()
+        p3 = self.parse_token(TokenType.TkBitOrAssign).for_alt()
+        p4 = self.parse_token(TokenType.TkBitXorAssign).for_alt()
+        p5 = self.parse_token(TokenType.TkBitAndAssign).for_alt()
+        p6 = self.parse_token(TokenType.TkBitShiftLAssign).for_alt()
+        p7 = self.parse_token(TokenType.TkBitShiftRAssign).for_alt()
+        p8 = self.parse_token(TokenType.TkBitRotateLAssign).for_alt()
+        p9 = self.parse_token(TokenType.TkBitRotateRAssign).for_alt()
+        p10 = self.parse_token(TokenType.TkAddAssign).for_alt()
+        p11 = self.parse_token(TokenType.TkSubAssign).for_alt()
+        p12 = self.parse_token(TokenType.TkMulAssign).for_alt()
+        p13 = self.parse_token(TokenType.TkDivAssign).for_alt()
+        p14 = self.parse_token(TokenType.TkRemAssign).for_alt()
+        p15 = self.parse_token(TokenType.TkModAssign).for_alt()
+        p16 = self.parse_token(TokenType.TkExpAssign).for_alt()
+        p17 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16).parse_once()
+
+    # ===== CONVENTIONS =====
+
+    @parser_rule
+    def parse_convention_mov(self) -> ConventionMovAst:
+        c1 = self.current_pos()
+        return ConventionMovAst(c1)
+
+    @parser_rule
+    def parse_convention_ref(self) -> ConventionRefAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
+        return ConventionRefAst(c1, p1)
+
+    @parser_rule
+    def parse_convention_mut(self) -> ConventionMutAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
+        p2 = self.parse_token(TokenType.KwMut).parse_once()
+        return ConventionMutAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_convention(self) -> ConventionAst:
+        p1 = self.parse_convention_mut().for_alt()
+        p2 = self.parse_convention_ref().for_alt()
+        p3 = self.parse_convention_mov().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
     # ===== OBJECT INITIALIZATION =====
 
     @parser_rule
@@ -872,18 +1033,31 @@ class Parser:
         p1 = self.parse_token(TokenType.KwSelfType).parse_once()
         return GenericIdentifierAst(**p1.__dict__, generic_arguments=None, identifier=p1.token.token_metadata)
 
-    # ===== PLACEHOLDERS (FOR NOW) =====
-
-    @parser_rule
-    def parse_statement_typedef(self) -> TypedefStatementAst:
-        ...
-
-    @parser_rule
-    def parse_annotation(self) -> AnnotationAst:
-        ...
+    # ===== IDENTIFIERS =====
 
     @parser_rule
     def parse_identifier(self) -> IdentifierAst:
+        c1 = self.current_pos()
+        p1 = self.parse_lexeme(TokenType.LxIdentifier).parse_once()
+        return IdentifierAst(c1, p1)
+
+    @parser_rule
+    def parse_upper_identifier(self) -> IdentifierAst:
+        c1 = self.current_pos()
+        p1 = self.parse_lexeme(TokenType.LxUpperIdentifier).parse_once()
+        return IdentifierAst(c1, p1)
+
+    @parser_rule
+    def parse_generic_identifier(self) -> IdentifierAst:
+        c1 = self.current_pos()
+        p1 = self.parse_upper_identifier().parse_once()
+        p2 = self.parse_generic_arguments().parse_optional()
+        return GenericIdentifierAst(c1, p1, p2)
+
+    # ===== PLACEHOLDERS (FOR NOW) =====
+
+    @parser_rule
+    def parse_annotation(self) -> AnnotationAst:
         ...
 
     @parser_rule
