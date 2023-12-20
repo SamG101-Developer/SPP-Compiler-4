@@ -1,5 +1,5 @@
 from typing import List
-from src.LexicalAnalysis.Tokens import Token
+from src.LexicalAnalysis.Tokens import Token, TokenType
 
 
 class ErrorFormatter:
@@ -11,8 +11,8 @@ class ErrorFormatter:
         self._file_path = file_path
 
     def error(self, start_pos: int, end_pos: int = -1, message: str = ""):
-        error_line_start_pos = str(self._tokens[:start_pos]).rfind("\n") + 1
-        error_line_end_pos = str(self._tokens[start_pos:]).find("\n") + start_pos
+        error_line_start_pos = [i for i, x in enumerate(self._tokens[:start_pos]) if x.token_type == TokenType.TkNewLine][-1] + 1
+        error_line_end_pos = [i for i, x in enumerate(self._tokens[start_pos:]) if x.token_type == TokenType.TkNewLine][0] + start_pos
         error_line_tokens = self._tokens[error_line_start_pos:error_line_end_pos]
 
         error_line_number = str(self._tokens[:start_pos]).count("\n") + 1
@@ -20,7 +20,7 @@ class ErrorFormatter:
 
         carets = "^" * len(error_line_tokens)
         carets_line_as_string = f"{carets} <- "
-        carets_line_as_string = " " * len(error_line_as_string) + carets_line_as_string
+        carets_line_as_string = " " * (sum([len(str(token)) for token in self._tokens[:start_pos]]) - 1) + carets_line_as_string
 
         formatted_message = ""
         current_line = ""

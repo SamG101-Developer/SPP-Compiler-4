@@ -1271,22 +1271,29 @@ class Parser:
         if p1.token.token_metadata == characters:
             return p1
         else:
-            raise ParserError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
+            new_error = ParserError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
+            self._errors.append(new_error)
+            print("0")
+            raise new_error
 
     @parser_rule
     def parse_token(self, token_type: TokenType) -> TokenAst:
         if self._index > len(self._tokens) - 1:
-            raise ParserError(self.current_pos(), f"Expected {token_type}, got EOF")
+            new_error = ParserError(self.current_pos(), f"Expected {token_type}, got EOF")
+            self._errors.append(new_error)
+            print("1")
+            raise new_error
 
         while token_type != TokenType.TkNewLine and self.current_tok().token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
             self._index += 1
         while token_type == TokenType.TkNewLine and self.current_tok().token_type == TokenType.TkWhitespace:
             self._index += 1
 
-        if self.current_tok().token_type == token_type:
+        if self.current_tok().token_type != token_type:
             if any([error.pos == self.current_pos() for error in self._errors]):
                 existing_error = next(error for error in self._errors if error.pos == self.current_pos())
                 existing_error.expected_tokens.append(str(token_type))
+                print("2")
                 raise existing_error
 
             else:
@@ -1294,8 +1301,9 @@ class Parser:
                 new_error.pos = self.current_pos()
                 new_error.expected_tokens.append(str(token_type))
                 self._errors.append(new_error)
+                print("3")
                 raise new_error
 
-        self._errors.clear()
+        # self._errors.clear()
         self._index += 1
         return TokenAst(self.current_pos(), self.current_tok())
