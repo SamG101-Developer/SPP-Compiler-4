@@ -189,7 +189,7 @@ class GenericArgumentGroupAst(Ast):
 @dataclass
 class GenericIdentifierAst(Ast):
     identifier: IdentifierAst
-    generic_arguments: GenericArgumentGroupAst
+    generic_arguments: Optional[GenericArgumentGroupAst]
 
 
 @dataclass
@@ -294,7 +294,7 @@ class LetStatementInitializedAst(Ast):
     assign_to: LocalVariableAst
     assign_token: TokenAst
     value: ExpressionAst
-    residual: Optional[ResidualAst]
+    residual: Optional[ResidualInnerScopeAst]
 
 
 @dataclass
@@ -394,14 +394,14 @@ class LocalVariableSingleAst(Ast):
 
 
 @dataclass
-class LocalVariableMultipleAst(Ast):
+class LocalVariableTupleAst(Ast):
     paren_l_token: TokenAst
     items: List[LocalVariableSingleAst]
     paren_r_token: TokenAst
 
 
 @dataclass
-class LocalVariableDestructuredAst(Ast):
+class LocalVariableDestructureAst(Ast):
     class_type: TypeAst
     bracket_l_token: TokenAst
     items: List[LocalVariableSingleAst]
@@ -410,8 +410,8 @@ class LocalVariableDestructuredAst(Ast):
 
 LocalVariableAst = (
         LocalVariableSingleAst |
-        LocalVariableMultipleAst |
-        LocalVariableDestructuredAst)
+        LocalVariableTupleAst |
+        LocalVariableDestructureAst)
 
 
 @dataclass
@@ -563,7 +563,7 @@ class ProgramAst(Ast):
 
 
 @dataclass
-class ResidualAst(Ast):
+class ResidualInnerScopeAst(Ast):
     else_keyword: TokenAst
     body: InnerScopeAst[StatementAst]
 
@@ -714,7 +714,7 @@ class WhileExpressionAst(Ast):
     while_keyword: TokenAst
     condition: ExpressionAst
     body: InnerScopeAst[StatementAst]
-    else_block: Optional[ResidualAst]
+    else_block: Optional[ResidualInnerScopeAst]
 
 
 @dataclass
