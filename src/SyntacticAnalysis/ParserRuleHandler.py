@@ -2,9 +2,8 @@ from __future__ import annotations
 from typing import Callable, List, Optional
 
 from src.LexicalAnalysis.Tokens import TokenType
-from src.SyntacticAnalysis.Ast import Ast
-from src.SyntacticAnalysis.Parser import Parser
-from src.SyntacticAnalysis.ParserAlternateRulesHandler import ParserAlternateRulesHandler
+# from src.SyntacticAnalysis.Parser import Parser
+
 from src.SyntacticAnalysis.ParserError import ParserError
 
 
@@ -58,6 +57,8 @@ class ParserRuleHandler[T]:
         return new_parser_rule_handler
 
     def __or__(self, that: ParserRuleHandler) -> ParserAlternateRulesHandler:
+        from src.SyntacticAnalysis.ParserAlternateRulesHandler import ParserAlternateRulesHandler
+
         if not (self._for_alternate and that._for_alternate):
             raise ParserError("Cannot use '|' operator on a non-alternate rule.")
 

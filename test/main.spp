@@ -1,0 +1,7 @@
+fun main() -> Void {
+    let a = "hello world"
+    let b = 123
+    let c = a * b
+
+    std.io.console.out.println(c)
+}

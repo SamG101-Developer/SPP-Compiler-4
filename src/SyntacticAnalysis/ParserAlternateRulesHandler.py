@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import List
 
-from src.SyntacticAnalysis.Ast import Ast
-from src.SyntacticAnalysis.Parser import Parser
+from src.SemanticAnalysis.ASTs import Ast
+# from src.SyntacticAnalysis.Parser import Parser
 from src.SyntacticAnalysis.ParserError import ParserError
 from src.SyntacticAnalysis.ParserRuleHandler import ParserRuleHandler
 

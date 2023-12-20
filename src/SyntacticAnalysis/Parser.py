@@ -3,32 +3,58 @@ from __future__ import annotations
 import functools
 from typing import Callable, Tuple
 
-from SyntacticAnalysis.ParserRuleHandler import ParserRuleHandler
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.SyntacticAnalysis.ParserRuleHandler import ParserRuleHandler
+from src.SyntacticAnalysis.ParserError import ParserError
 from src.SemanticAnalysis.ASTs.Ast import *
+
+from src.Utils.ErrorFormatter import ErrorFormatter
 
 
 # Decorator that wraps the function in a ParserRuleHandler
-def parser_rule[T](rule: ParserRuleHandler.ParserRule[T]) -> Callable[[], ParserRuleHandler[T]]:
-    def wrapper(self, *args) -> ParserRuleHandler[T]:
-        return ParserRuleHandler(self, rule)
+def parser_rule(func):
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        return ParserRuleHandler(self, functools.partial(func, self, *args))
     return wrapper
 
 
 class Parser:
     _tokens: List[Token]
     _index: int
+    _err_fmt: ErrorFormatter
+    _errors: List[ParserError]
+
+    def __init__(self, tokens: List[Token], file_name: str) -> None:
+        self._tokens = tokens
+        self._index = 0
+        self._err_fmt = ErrorFormatter(self._tokens, file_name)
+        self._errors = []
 
     def current_pos(self) -> int:
         return self._index
 
-    # ===== PROGRAM =====
+    def current_tok(self) -> Token:
+        return self._tokens[self._index]
 
-    @parser_rule
-    def parse_eof(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkEOF).parse_once()
-        return p1
+    # ===== PARSING =====
+
+    def parse(self) -> ProgramAst:
+        try:
+            return self.parse_program().parse_once()
+
+        except ParserError as e:
+            final_error = self._errors[0]
+
+            for current_error in self._errors:
+                if current_error.pos > final_error.pos:
+                    final_error = current_error
+
+            error_message = str(final_error).replace("$", str(final_error.expected_tokens))
+            error_message = self._err_fmt.error(final_error.pos, message=error_message)
+            raise ParserError(error_message) from None
+
+    # ===== PROGRAM =====
 
     @parser_rule
     def parse_program(self) -> ProgramAst:
@@ -36,6 +62,11 @@ class Parser:
         p1 = self.parse_module_prototype().parse_once()
         p2 = self.parse_eof().parse_once()
         return ProgramAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_eof(self) -> TokenAst:
+        p1 = self.parse_token(TokenType.TkEOF).parse_once()
+        return p1
 
     # ===== MODULES =====
 
@@ -331,8 +362,9 @@ class Parser:
     # ===== ANNOTATIONS =====
 
     @parser_rule
-    def parse_annotations(self) -> AnnotationAst:
-        raise NotImplementedError("Annotations won't be supported until compiler is self-hosting.")
+    def parse_annotation(self) -> AnnotationAst:
+        return None
+        # raise NotImplementedError("Annotations won't be supported until compiler is self-hosting.")
 
     # ===== EXPRESSIONS =====
 
@@ -505,7 +537,7 @@ class Parser:
     def parse_inner_scope(self, rule) -> InnerScopeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBraceL).parse_once()
-        p2 = rule().parse_zero_or_more()
+        p2 = rule().parse_zero_or_more(TokenType.TkNewLine)
         p3 = self.parse_token(TokenType.TkBraceR).parse_once()
         return InnerScopeAst(c1, p1, p2, p3)
 
@@ -1239,8 +1271,31 @@ class Parser:
         if p1.token.token_metadata == characters:
             return p1
         else:
-            raise ParseError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
+            raise ParserError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
 
     @parser_rule
     def parse_token(self, token_type: TokenType) -> TokenAst:
-        ...
+        if self._index > len(self._tokens) - 1:
+            raise ParserError(self.current_pos(), f"Expected {token_type}, got EOF")
+
+        while token_type != TokenType.TkNewLine and self.current_tok().token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
+            self._index += 1
+        while token_type == TokenType.TkNewLine and self.current_tok().token_type == TokenType.TkWhitespace:
+            self._index += 1
+
+        if self.current_tok().token_type == token_type:
+            if any([error.pos == self.current_pos() for error in self._errors]):
+                existing_error = next(error for error in self._errors if error.pos == self.current_pos())
+                existing_error.expected_tokens.append(str(token_type))
+                raise existing_error
+
+            else:
+                new_error = ParserError(f"Expected $, got {self.current_tok().token_metadata}")
+                new_error.pos = self.current_pos()
+                new_error.expected_tokens.append(str(token_type))
+                self._errors.append(new_error)
+                raise new_error
+
+        self._errors.clear()
+        self._index += 1
+        return TokenAst(self.current_pos(), self.current_tok())
