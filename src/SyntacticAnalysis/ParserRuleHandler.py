@@ -28,8 +28,9 @@ class ParserRuleHandler[T]:
     def parse_optional(self, save=True) -> Optional[T]:
         parser_index = self._parser._index
         try:
-            if save: self._result = self._rule()
-            return self._result
+            ast = self._rule()
+            if save: self._result = ast
+            return ast
         except ParserError:
             self._parser._index = parser_index
             return None
@@ -38,13 +39,13 @@ class ParserRuleHandler[T]:
         self._result = []
         while ast := self.parse_optional(save=False):
             self._result.append(ast)
-            sep and self._parser.parse_token(sep).parse_once()
+            sep and self._parser.parse_token(sep).parse_optional()
         return self._result
 
     def parse_one_or_more(self, sep: TokenType = None) -> List[T]:
         self.parse_zero_or_more(sep)
         if not self._result:
-            new_error = ParserError(f"Expected one or more {self._rule}.")
+            new_error = ParserError(f"Expected one or more.")
             new_error.pos = self._parser._index
             self._parser._errors.append(new_error)
             raise new_error
