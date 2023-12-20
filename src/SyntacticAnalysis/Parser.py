@@ -857,6 +857,14 @@ class Parser:
     # ===== CONVENTIONS =====
 
     @parser_rule
+    def parse_convention(self) -> ConventionAst:
+        p1 = self.parse_convention_mut().for_alt()
+        p2 = self.parse_convention_ref().for_alt()
+        p3 = self.parse_convention_mov().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
     def parse_convention_mov(self) -> ConventionMovAst:
         c1 = self.current_pos()
         return ConventionMovAst(c1)
@@ -873,14 +881,6 @@ class Parser:
         p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
         p2 = self.parse_token(TokenType.KwMut).parse_once()
         return ConventionMutAst(c1, p1, p2)
-
-    @parser_rule
-    def parse_convention(self) -> ConventionAst:
-        p1 = self.parse_convention_mut().for_alt()
-        p2 = self.parse_convention_ref().for_alt()
-        p3 = self.parse_convention_mov().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
-        return p4
 
     # ===== OBJECT INITIALIZATION =====
 
@@ -990,7 +990,7 @@ class Parser:
     def parse_type_single(self) -> TypeSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_type_namespace().parse_optional() or []
-        p2 = self.parse_type_part().one_or_more(TokenType.TkDot)
+        p2 = self.parse_type_part().parse_one_or_more(TokenType.TkDot)
         return TypeSingleAst(c1, p1.items + p2)
 
     @parser_rule
@@ -1048,21 +1048,198 @@ class Parser:
         return IdentifierAst(c1, p1)
 
     @parser_rule
-    def parse_generic_identifier(self) -> IdentifierAst:
+    def parse_generic_identifier(self) -> GenericIdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_upper_identifier().parse_once()
         p2 = self.parse_generic_arguments().parse_optional()
         return GenericIdentifierAst(c1, p1, p2)
 
-    # ===== PLACEHOLDERS (FOR NOW) =====
+    # ===== LITERALS =====
 
     @parser_rule
-    def parse_annotation(self) -> AnnotationAst:
-        ...
+    def parse_literal(self) -> LiteralAst:
+        p1 = self.parse_literal_number().for_alt()
+        p2 = self.parse_literal_string().for_alt()
+        p3 = self.parse_literal_array().for_alt()
+        p4 = self.parse_literal_tuple().for_alt()
+        p5 = self.parse_literal_regex().for_alt()
+        p6 = self.parse_literal_boolean().for_alt()
+        p9 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p9
 
     @parser_rule
-    def parse_convention(self) -> ConventionAst:
-        ...
+    def parse_literal_number(self) -> LiteralNumberAst:
+        p1 = self.parse_literal_number_b10().for_alt()
+        p2 = self.parse_literal_number_b02().for_alt()
+        p3 = self.parse_literal_number_b16().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_literal_string(self) -> LiteralStringAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.LxDoubleQuoteStr).parse_once()
+        return LiteralStringAst(c1, p1)
+
+    @parser_rule
+    def parse_literal_array(self) -> LiteralArrayAst:
+        p1 = self.parse_literal_array_empty().for_alt()
+        p2 = self.parse_literal_array_non_empty().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_literal_tuple(self) -> LiteralTupleAst:
+        p1 = self.parse_literal_tuple_0_items().for_alt()
+        p2 = self.parse_literal_tuple_1_items().for_alt()
+        p3 = self.parse_literal_tuple_n_items().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_literal_regex(self) -> LiteralRegexAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.LxRegex).parse_once()
+        return LiteralRegexAst(c1, p1)
+
+    @parser_rule
+    def parse_literal_boolean(self) -> LiteralBooleanAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwTrue).for_alt()
+        p2 = self.parse_token(TokenType.KwFalse).for_alt()
+        p3 = (p1 | p2).parse_once()
+        return LiteralBooleanAst(c1, p3.token.token_metadata == "true")
+
+    # ===== NUMBERS =====
+
+    @parser_rule
+    def parse_literal_number_b10(self) -> LiteralNumberBase10Ast:
+        c1 = self.current_pos()
+        p1 = self.parse_literal_number_b10_integer().for_alt()
+        p2 = self.parse_literal_number_b10_float().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_literal_number_b10_integer(self) -> LiteralNumberBase10Ast:
+        c1 = self.current_pos()
+        p1 = self.parse_numeric_prefix_op().parse_optional()
+        p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
+        p3 = self.parse_numeric_postfix_type().parse_optional()
+        return LiteralNumberBase10Ast(c1, p1, p2, None, p3)
+
+    @parser_rule
+    def parse_literal_number_b10_float(self) -> LiteralNumberBase10Ast:
+        c1 = self.current_pos()
+        p1 = self.parse_numeric_prefix_op().parse_optional()
+        p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
+        p3 = self.parse_token(TokenType.TkDot).parse_once()
+        p4 = self.parse_token(TokenType.LxDecDigits).parse_once()
+        p5 = self.parse_numeric_postfix_type().parse_optional()
+        return LiteralNumberBase10Ast(c1, p1, p2, p4, p5)
+
+    @parser_rule
+    def parse_literal_number_b02(self) -> LiteralNumberBase02Ast:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.LxBinDigits).parse_once()
+        p2 = self.parse_numeric_postfix_type().parse_optional()
+        return LiteralNumberBase02Ast(c1, p1, p2)
+
+    @parser_rule
+    def parse_literal_number_b16(self) -> LiteralNumberBase16Ast:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.LxHexDigits).parse_once()
+        p2 = self.parse_numeric_postfix_type().parse_optional()
+        return LiteralNumberBase16Ast(c1, p1, p2)
+
+    @parser_rule
+    def parse_numeric_prefix_op(self) -> TokenAst:
+        p1 = self.parse_token(TokenType.TkSub).for_alt()
+        p2 = self.parse_token(TokenType.TkAdd).for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_numeric_postfix_type(self) -> TokenType:
+        p1 = self.parse_characters("i8").for_alt()
+        p2 = self.parse_characters("i16").for_alt()
+        p3 = self.parse_characters("i32").for_alt()
+        p4 = self.parse_characters("i64").for_alt()
+        p5 = self.parse_characters("i128").for_alt()
+        p6 = self.parse_characters("i256").for_alt()
+        p7 = self.parse_characters("u8").for_alt()
+        p8 = self.parse_characters("u16").for_alt()
+        p9 = self.parse_characters("u32").for_alt()
+        p10 = self.parse_characters("u64").for_alt()
+        p11 = self.parse_characters("u128").for_alt()
+        p12 = self.parse_characters("u256").for_alt()
+        p13 = self.parse_characters("f8").for_alt()
+        p14 = self.parse_characters("f16").for_alt()
+        p15 = self.parse_characters("f32").for_alt()
+        p16 = self.parse_characters("f64").for_alt()
+        p17 = self.parse_characters("f128").for_alt()
+        p18 = self.parse_characters("f256").for_alt()
+        p19 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16 | p17 | p18).parse_once()
+        return p19
+
+    # ===== ARRAYS =====
+
+    @parser_rule
+    def parse_literal_array_empty(self) -> LiteralArrayEmptyAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p2 = self.parse_type().parse_once()
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return LiteralArrayEmptyAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_literal_array_non_empty(self) -> LiteralArrayNonEmptyAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p2 = self.parse_literal().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return LiteralArrayNonEmptyAst(c1, p1, p2, p3)
+
+    # ===== TUPLES =====
+
+    @parser_rule
+    def parse_literal_tuple_0_items(self) -> LiteralTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LiteralTupleAst(c1, p1, [], p2)
+
+    @parser_rule
+    def parse_literal_tuple_1_items(self) -> LiteralTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_expression().parse_once()
+        p3 = self.parse_token(TokenType.TkComma).parse_once()
+        p4 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LiteralTupleAst(c1, p1, [p2], p4)
+
+    @parser_rule
+    def parse_literal_tuple_n_items(self) -> LiteralTupleAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LiteralTupleAst(c1, p1, p2, p3)
+
+    # ===== TOKENS, KEYWORDS, & LEXEMES =====
+
+    @parser_rule
+    def parse_lexeme(self, lexeme: TokenType) -> TokenAst:
+        p1 = self.parse_token(lexeme).parse_once()
+        return p1
+
+    @parser_rule
+    def parse_characters(self, characters: str) -> TokenAst:
+        p1 = self.parse_identifier().parse_once()
+        if p1.token.token_metadata == characters:
+            return p1
+        else:
+            raise ParseError(self.current_pos(), f"Expected {characters}, got {p1.token.token_metadata}")
 
     @parser_rule
     def parse_token(self, token_type: TokenType) -> TokenAst:
