@@ -11,16 +11,19 @@ class ErrorFormatter:
         self._file_path = file_path
 
     def error(self, start_pos: int, end_pos: int = -1, message: str = ""):
+        # Get the tokens at the start and end of the line containing the error. Skip the leading newline.
         error_line_start_pos = [i for i, x in enumerate(self._tokens[:start_pos]) if x.token_type == TokenType.TkNewLine][-1] + 1
         error_line_end_pos = [i for i, x in enumerate(self._tokens[start_pos:]) if x.token_type == TokenType.TkNewLine][0] + start_pos
         error_line_tokens = self._tokens[error_line_start_pos:error_line_end_pos]
-
-        error_line_number = str(self._tokens[:start_pos]).count("\n") + 1
         error_line_as_string = "".join([str(token) for token in error_line_tokens])
 
-        carets = "^" * len(error_line_tokens)
+        # Get the line number of the error
+        error_line_number = str(self._tokens[:start_pos]).count("\n") + 1
+
+        # The number of "^" is the length of the token data where the error is.
+        carets = "^" * len(self._tokens[start_pos].token_metadata)
         carets_line_as_string = f"{carets} <- "
-        carets_line_as_string = " " * (sum([len(str(token)) for token in self._tokens[:start_pos]]) - 1) + carets_line_as_string
+        carets_line_as_string = " " * (sum([len(str(token)) for token in self._tokens[error_line_start_pos : start_pos]]) - 1) + carets_line_as_string
 
         formatted_message = ""
         current_line = ""
