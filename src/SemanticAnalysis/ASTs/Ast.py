@@ -319,7 +319,7 @@ class LiteralNumberBase10Ast(Ast):
 
 
 @dataclass
-class LiteralNumberBase2Ast(Ast):
+class LiteralNumberBase02Ast(Ast):
     integer: TokenAst
     primitive_type: Optional[IdentifierAst]
 
@@ -332,7 +332,7 @@ class LiteralNumberBase16Ast(Ast):
 
 LiteralNumberAst = (
         LiteralNumberBase10Ast |
-        LiteralNumberBase2Ast |
+        LiteralNumberBase02Ast |
         LiteralNumberBase16Ast)
 
 
