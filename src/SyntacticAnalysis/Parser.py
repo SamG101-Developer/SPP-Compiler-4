@@ -202,6 +202,7 @@ class Parser:
     # ===== FUNCTIONS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_function_prototype(self) -> FunctionPrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
@@ -273,6 +274,7 @@ class Parser:
         return FunctionParameterSelfAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_function_parameter_required(self) -> FunctionParameterRequiredAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
@@ -290,6 +292,7 @@ class Parser:
         return FunctionParameterOptionalAst(**p1.__dict__, assignment_token=p2, default_value=p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_function_parameter_variadic(self) -> FunctionParameterVariadicAst:
         p1 = self.parse_token(TokenType.TkVariadic).parse_optional()
         p2 = self.parse_function_parameter_required().parse_once()
@@ -380,7 +383,7 @@ class Parser:
     def parse_where_block(self) -> WhereBlockAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwWhere).parse_once()
-        p2 = self.parse_where_block_constraints_group().parse_optional()
+        p2 = self.parse_where_block_constraints_group().parse_once()
         return WhereBlockAst(c1, p1, p2)
 
     @parser_rule
@@ -926,6 +929,7 @@ class Parser:
     # ===== CONVENTIONS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_convention(self) -> ConventionAst:
         p1 = self.parse_convention_mut().for_alt()
         p2 = self.parse_convention_ref().for_alt()
@@ -934,17 +938,20 @@ class Parser:
         return p4
 
     @parser_rule
+    @tested_parser_rule
     def parse_convention_mov(self) -> ConventionMovAst:
         c1 = self.current_pos()
         return ConventionMovAst(c1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_convention_ref(self) -> ConventionRefAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
         return ConventionRefAst(c1, p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_convention_mut(self) -> ConventionMutAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
