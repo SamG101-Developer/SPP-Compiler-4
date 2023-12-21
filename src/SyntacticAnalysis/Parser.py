@@ -120,8 +120,8 @@ class Parser:
     def parse_module_member(self) -> ModuleMemberAst:
         p1 = self.parse_function_prototype().for_alt()
         p2 = self.parse_class_prototype().for_alt()
-        p3 = self.parse_sup_prototype_normal().for_alt()
-        p4 = self.parse_sup_prototype_inheritance().for_alt()
+        p3 = self.parse_sup_prototype_inheritance().for_alt()
+        p4 = self.parse_sup_prototype_normal().for_alt()
         p5 = self.parse_typedef_statement().for_alt()
         p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
         return p6
@@ -195,6 +195,7 @@ class Parser:
         return SupTypedefAst(**p2.__dict__, pos=c1, annotations=p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_sup_method_prototype(self) -> SupMethodPrototypeAst:
         p1 = self.parse_function_prototype().parse_once()
         return SupMethodPrototypeAst(**p1.__dict__)
@@ -285,6 +286,7 @@ class Parser:
         return FunctionParameterRequiredAst(c1, p1, p2, p3, p4, p5)
 
     @parser_rule
+    @failed_parser_rule
     def parse_function_parameter_optional(self) -> FunctionParameterOptionalAst:
         p1 = self.parse_function_parameter_required().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
