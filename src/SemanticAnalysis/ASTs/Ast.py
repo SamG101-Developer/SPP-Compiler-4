@@ -230,7 +230,7 @@ class GenericParameterInlineConstraintAst(Ast):
 
 @dataclass
 class IdentifierAst(Ast):
-    identifier: str
+    value: str
 
 
 @dataclass
