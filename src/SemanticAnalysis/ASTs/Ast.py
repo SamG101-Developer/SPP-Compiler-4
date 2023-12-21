@@ -2,7 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
 
+from src.SemanticAnalysis.PreProcessor import PreProcessor
 from src.LexicalAnalysis.Tokens import Token
+from src.Utils.Sequence import Seq
 
 
 @dataclass
@@ -41,13 +43,16 @@ class ClassAttributeAst(Ast):
 
 
 @dataclass
-class ClassPrototypeAst(Ast):
+class ClassPrototypeAst(Ast, PreProcessor):
     annotations: List[AnnotationAst]
     class_token: TokenAst
-    identifier: IdentifierAst
+    identifier: TypeAst
     generic_parameters: GenericParameterGroupAst
     where_block: WhereBlockAst
     body: InnerScopeAst[ClassAttributeAst]
+
+    def process(self, text: str, context: ModulePrototypeAst) -> None:
+        Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
 
 
 @dataclass
@@ -188,7 +193,7 @@ class GenericArgumentGroupAst(Ast):
 
 @dataclass
 class GenericIdentifierAst(Ast):
-    identifier: IdentifierAst
+    identifier: str
     generic_arguments: Optional[GenericArgumentGroupAst]
 
 
@@ -591,6 +596,11 @@ class SupPrototypeInheritanceAst(Ast):
     identifier: TypeAst
     where_block: WhereBlockAst
     body: InnerScopeAst[SupMemberAst]
+
+
+SupPrototypeAst = (
+        SupPrototypeNormalAst |
+        SupPrototypeInheritanceAst)
 
 
 @dataclass
