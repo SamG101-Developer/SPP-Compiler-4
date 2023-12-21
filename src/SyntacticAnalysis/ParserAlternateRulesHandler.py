@@ -28,3 +28,9 @@ class ParserAlternateRulesHandler(ParserRuleHandler):
                 self._parser._index = parser_index
                 continue
         raise ParserError(self._parser._index, "Expected one of the alternatives.")
+
+    def __or__(self, that) -> ParserAlternateRulesHandler:
+        if not (self._for_alternate and that._for_alternate):
+            raise ParserError("Cannot use '|' operator on a non-alternate rule.")
+
+        return self.add_parser_rule_handler(that)
