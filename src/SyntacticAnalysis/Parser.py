@@ -117,6 +117,7 @@ class Parser:
         return ModulePrototypeAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_module_member(self) -> ModuleMemberAst:
         p1 = self.parse_function_prototype().for_alt()
         p2 = self.parse_class_prototype().for_alt()
@@ -127,6 +128,7 @@ class Parser:
         return p6
 
     @parser_rule
+    @tested_parser_rule
     def parse_module_identifier(self) -> ModuleIdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDot)
@@ -422,12 +424,14 @@ class Parser:
         return p1
 
     @parser_rule
+    @tested_parser_rule
     def parse_binary_expression_precedence_level_n_rhs(self, op, rhs) -> Tuple[TokenAst, ExpressionAst]:
         p1 = op().parse_once()
         p2 = rhs().parse_once()
         return (p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_binary_expression_precedence_level_n(self, lhs, op, rhs) -> BinaryExpressionAst:
         c1 = self.current_pos()
         p1 = lhs().parse_once()
@@ -477,6 +481,7 @@ class Parser:
             self.parse_binary_expression_precedence_level_7)
 
     @parser_rule
+    @tested_parser_rule
     def parse_unary_expression(self) -> ExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_unary_op().parse_zero_or_more()
@@ -568,6 +573,7 @@ class Parser:
     # ===== STATEMENTS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_return_statement(self) -> ReturnStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwRet).parse_once()
@@ -575,6 +581,7 @@ class Parser:
         return ReturnStatementAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_inner_scope(self, rule) -> InnerScopeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBraceL).parse_once()
@@ -583,6 +590,7 @@ class Parser:
         return InnerScopeAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_residual_inner_scope(self) -> ResidualInnerScopeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
@@ -590,6 +598,7 @@ class Parser:
         return ResidualInnerScopeAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_statement(self):
         p1 = self.parse_typedef_statement().for_alt()
         p2 = self.parse_let_statement().for_alt()
@@ -602,24 +611,26 @@ class Parser:
     # ===== TYPEDEFS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_typedef_statement(self) -> TypedefStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwUse).parse_once()
         p2 = self.parse_generic_parameters().parse_optional()
-        p3 = self.parse_type_namespace().parse_once()
+        p3 = self.parse_type_namespace().parse_optional()
         p4 = self.parse_typedef_item().parse_once()
         return TypedefStatementAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_typedef_item(self) -> TypedefStatementItemAst:
         p1 = self.parse_typedef_statement_specific_item().for_alt()
-        p1 = self.parse_typedef_statement_specific_items().for_alt()
-        p2 = self.parse_typedef_statement_all_items().for_alt()
-        p3 = (p1 | p2).parse_once()
+        p2 = self.parse_typedef_statement_specific_items().for_alt()
+        p3 = self.parse_typedef_statement_all_items().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
         return p3
 
     @parser_rule
-    @failed_parser_rule
+    @tested_parser_rule
     def parse_typedef_statement_specific_item(self) -> TypedefStatementSpecificItemAst:
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
@@ -647,7 +658,7 @@ class Parser:
     def parse_typedef_statement_specific_item_alias(self) -> TypedefStatementSpecificItemAliasAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwAs).parse_once()
-        p2 = self.parse_upper_identifier().parse_once()
+        p2 = self.parse_generic_identifier().parse_once()
         return TypedefStatementSpecificItemAliasAst(c1, p1, p2)
 
     # ===== LET-DECLARATIONS =====
@@ -660,6 +671,7 @@ class Parser:
         return p3
 
     @parser_rule
+    @tested_parser_rule
     def parse_let_statement_initialized(self) -> LetStatementInitializedAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwLet).parse_once()
@@ -670,6 +682,7 @@ class Parser:
         return LetStatementInitializedAst(c1, p1, p2, p3, p4, p5)
 
     @parser_rule
+    @tested_parser_rule
     def parse_let_statement_uninitialized(self) -> LetStatementUninitializedAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwLet).parse_once()
@@ -679,6 +692,7 @@ class Parser:
         return LetStatementUninitializedAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_local_variable(self) -> LocalVariableAst:
         p1 = self.parse_local_variable_single().for_alt()
         p2 = self.parse_local_variable_tuple().for_alt()
@@ -687,6 +701,8 @@ class Parser:
         return p4
 
     @parser_rule
+    @tested_parser_rule
+    @tested_parser_rule
     def parse_local_variable_single(self) -> LocalVariableSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
@@ -695,6 +711,7 @@ class Parser:
         return LocalVariableSingleAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_local_variable_tuple(self) -> LocalVariableTupleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
@@ -704,6 +721,10 @@ class Parser:
 
     @parser_rule
     def parse_local_variable_destructure(self) -> LocalVariableDestructureAst:
+        # TODO : allow for ".." to represent "the rest of the tuple"
+        # TODO : allow this ".." to be unnamed (adjust parse_local_variable_single to allow for unnamed variables)
+        # TODO : use semantic analysis to only allow unnamed variables in certain places
+
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
         p2 = self.parse_token(TokenType.TkBraceL).parse_once()
@@ -714,6 +735,7 @@ class Parser:
     # ===== ASSIGNMENT =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_assignment_statement(self) -> AssignmentStatementAst:
         p1 = self.parse_assignment_statement_single().for_alt()
         p2 = self.parse_assignment_statement_multi().for_alt()
@@ -721,6 +743,7 @@ class Parser:
         return p3
 
     @parser_rule
+    @tested_parser_rule
     def parse_assignment_statement_single(self) -> AssignmentStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_expression().parse_once()
@@ -729,6 +752,7 @@ class Parser:
         return AssignmentStatementAst(c1, [p1], p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_assignment_statement_multi(self) -> AssignmentStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
@@ -1314,17 +1338,21 @@ class Parser:
     # ===== TOKENS, KEYWORDS, & LEXEMES =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_lexeme(self, lexeme: TokenType) -> TokenAst:
         p1 = self.parse_token(lexeme).parse_once()
         return p1
 
     @parser_rule
+    @tested_parser_rule
     def parse_characters(self, characters: str) -> TokenAst:
+        # TODO : these rules don't come up u the error for failed alternate parsing (see number postfix types)
+
         p1 = self.parse_identifier().parse_once()
-        if p1.token.token_metadata == characters:
+        if p1.value.token.token_metadata == characters:
             return p1
         else:
-            new_error = ParserError(self.current_pos(), f"Expected '{characters}', got '{p1.token.token_metadata}'")
+            new_error = ParserError(self.current_pos(), f"Expected '{characters}', got '{p1.value}'")
             self._errors.append(new_error)
             raise new_error
 
@@ -1354,7 +1382,7 @@ class Parser:
                 self._errors.append(new_error)
                 raise new_error
 
-        self._errors.clear()
+        # self._errors.clear()
         r = TokenAst(self.current_pos(), self.current_tok())
         self._index += 1
         return r
