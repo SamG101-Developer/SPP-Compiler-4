@@ -1022,7 +1022,7 @@ class Parser:
     @parser_rule
     def parse_object_initializer_argument_normal(self) -> ObjectInitializerArgumentNormalAst:
         c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_once()
+        p1 = self.parse_object_initializer_argument_named_key().parse_once()
         return ObjectInitializerArgumentNormalAst(c1, p1)
 
     @parser_rule
@@ -1036,8 +1036,8 @@ class Parser:
     @parser_rule
     def parse_object_initializer_argument_named_key(self) -> IdentifierAst | TokenAst:
         p1 = self.parse_identifier().for_alt()
-        p2 = self.parse_token(TokenType.KwElse)
-        p3 = self.parse_token(TokenType.KwSup)
+        p2 = self.parse_token(TokenType.KwElse).for_alt()
+        p3 = self.parse_token(TokenType.KwSup).for_alt()
         p4 = (p1 | p2 | p3).parse_once()
         return p4
 
