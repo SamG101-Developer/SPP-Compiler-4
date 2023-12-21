@@ -1,3 +1,6 @@
+from dataclasses import asdict
+from pprint import pprint
+
 from src.Compiler.Compiler import Compiler
 
 
@@ -7,7 +10,9 @@ def main():
         code = file.read()
     compiler = Compiler(code, file_path)
     ast = compiler.compile()
-    print(ast)
+
+    print("\n\nAST:")
+    pprint(asdict(ast))
 
 
 if __name__ == "__main__":

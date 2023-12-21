@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 from typing import Callable, Tuple
+from warnings import warn
 
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.SyntacticAnalysis.ParserRuleHandler import ParserRuleHandler
@@ -17,6 +18,16 @@ def parser_rule(func):
     def wrapper(self, *args):
         return ParserRuleHandler(self, functools.partial(func, self, *args))
     return wrapper
+
+
+def tested_parser_rule(func):
+    func.__tested__ = True
+    return func
+
+
+def failed_parser_rule(func):
+    func.__tested__ = False
+    return func
 
 
 class Parser:
@@ -36,6 +47,16 @@ class Parser:
 
     def current_tok(self) -> Token:
         return self._tokens[self._index]
+
+    # Modify all function calls
+    def __getattribute__(self, item):
+        attr = super().__getattribute__(item)
+        if callable(attr) and item.startswith("parse_"):
+            if not hasattr(attr, "__tested__"):
+                print(f"[+] Parser function '{item}' has not been tested yet.")
+            if hasattr(attr, "__tested__") and not attr.__tested__:
+                print(f"[!] Parser function '{item}' is not working correctly.")
+        return attr
 
     # ===== PARSING =====
 
@@ -58,6 +79,7 @@ class Parser:
     # ===== PROGRAM =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_program(self) -> ProgramAst:
         c1 = self.current_pos()
         p1 = self.parse_module_prototype().parse_once()
@@ -65,6 +87,7 @@ class Parser:
         return ProgramAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_eof(self) -> TokenAst:
         p1 = self.parse_token(TokenType.TkEOF).parse_once()
         return p1
@@ -72,6 +95,7 @@ class Parser:
     # ===== MODULES =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_module_prototype(self) -> ModulePrototypeAst:
         """
         [ModulePrototype] => [Annotation]* [Tok("mod")] [ModuleIdentifier] [ModuleMember]*
@@ -111,6 +135,7 @@ class Parser:
     # ===== CLASSES =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_class_prototype(self) -> ClassPrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
@@ -122,6 +147,7 @@ class Parser:
         return ClassPrototypeAst(c1, p1, p2, p3, p4, p5, p6)
 
     @parser_rule
+    @tested_parser_rule
     def parse_class_attribute(self) -> ClassAttributeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
@@ -317,6 +343,7 @@ class Parser:
         return p4
 
     @parser_rule
+    @tested_parser_rule
     def parse_generic_parameter_required(self) -> GenericParameterRequiredAst:
         c1 = self.current_pos()
         p1 = self.parse_upper_identifier().parse_once()
@@ -324,6 +351,7 @@ class Parser:
         return GenericParameterRequiredAst(c1, p1, p2)
 
     @parser_rule
+    @failed_parser_rule
     def parse_generic_parameter_optional(self) -> GenericParameterOptionalAst:
         p1 = self.parse_generic_parameter_required().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
@@ -331,14 +359,24 @@ class Parser:
         return GenericParameterOptionalAst(**p1.__dict__, assignment_token=p2, default_value=p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_generic_parameter_variadic(self) -> GenericParameterVariadicAst:
         p1 = self.parse_token(TokenType.TkVariadic).parse_optional()
         p2 = self.parse_generic_parameter_required().parse_once()
         return GenericParameterVariadicAst(**p2.__dict__, variadic_token=p1)
 
+    @parser_rule
+    @tested_parser_rule
+    def parse_generic_inline_constraints(self) -> GenericParameterInlineConstraintAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkColon).parse_once()
+        p2 = self.parse_type().parse_one_or_more(TokenType.TkBitAnd)
+        return GenericParameterInlineConstraintAst(c1, p1, p2)
+
     # ===== WHERE =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_where_block(self) -> WhereBlockAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwWhere).parse_once()
@@ -346,14 +384,16 @@ class Parser:
         return WhereBlockAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_where_block_constraints_group(self) -> WhereConstraintsGroupAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
         p2 = self.parse_where_block_constraints().parse_one_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkBraceR).parse_once()
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
         return WhereConstraintsGroupAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_where_block_constraints(self) -> WhereConstraintsAst:
         c1 = self.current_pos()
         p1 = self.parse_type().parse_one_or_more(TokenType.TkComma)
@@ -364,6 +404,7 @@ class Parser:
     # ===== ANNOTATIONS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_annotation(self) -> AnnotationAst:
         return None
         # raise NotImplementedError("Annotations won't be supported until compiler is self-hosting.")
@@ -1065,12 +1106,14 @@ class Parser:
     # ===== IDENTIFIERS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_identifier(self) -> IdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_lexeme(TokenType.LxIdentifier).parse_once()
         return IdentifierAst(c1, p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_upper_identifier(self) -> IdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_lexeme(TokenType.LxUpperIdentifier).parse_once()
@@ -1273,6 +1316,7 @@ class Parser:
             raise new_error
 
     @parser_rule
+    @tested_parser_rule
     def parse_token(self, token_type: TokenType) -> TokenAst:
         if self._index > len(self._tokens) - 1:
             new_error = ParserError(self.current_pos(), f"Expected '{token_type}', got <EOF>")
