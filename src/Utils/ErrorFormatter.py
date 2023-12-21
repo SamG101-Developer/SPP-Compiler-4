@@ -23,7 +23,7 @@ class ErrorFormatter:
         # The number of "^" is the length of the token data where the error is.
         carets = "^" * len(self._tokens[start_pos].token_metadata)
         carets_line_as_string = f"{carets} <- "
-        carets_line_as_string = " " * (sum([len(str(token)) for token in self._tokens[error_line_start_pos : start_pos]]) - 1) + carets_line_as_string
+        carets_line_as_string = " " * sum([len(str(token)) for token in self._tokens[error_line_start_pos : start_pos]]) + carets_line_as_string
 
         formatted_message = ""
         current_line = ""
@@ -31,7 +31,7 @@ class ErrorFormatter:
         for word in message.split(" "):
             if current_line_length + len(word) > 80:
                 formatted_message += f"{current_line}\n"
-                current_line = " " * len(carets_line_as_string)
+                current_line = " " * (len(carets_line_as_string) + len(" <- "))
                 current_line_length = 0
             current_line += f"{word} "
             current_line_length += len(word) + 1
