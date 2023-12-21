@@ -65,7 +65,7 @@ class ParserRuleHandler[T]:
         from src.SyntacticAnalysis.ParserAlternateRulesHandler import ParserAlternateRulesHandler
 
         if not (self._for_alternate and that._for_alternate):
-            raise ParserError("Cannot use '|' operator on a non-alternate rule.")
+            raise SystemExit("Cannot use '|' operator on a non-alternate rule.")
 
         return (ParserAlternateRulesHandler(self._parser).for_alt()
                 .add_parser_rule_handler(self)
