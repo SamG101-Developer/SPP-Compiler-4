@@ -25,13 +25,6 @@ class Parser:
     _err_fmt: ErrorFormatter
     _errors: List[ParserError]
 
-    # print when any function is called
-    def __getattribute__(self, name):
-        attr = object.__getattribute__(self, name)
-        if callable(attr):
-            print(f"Called {name}")
-        return attr
-
     def __init__(self, tokens: List[Token], file_name: str) -> None:
         self._tokens = tokens
         self._index = 0
@@ -57,7 +50,7 @@ class Parser:
                 if current_error.pos > final_error.pos:
                     final_error = current_error
 
-            all_expected_tokens = ", ".join(final_error.expected_tokens)
+            all_expected_tokens = ", ".join(final_error.expected_tokens).replace("\n", "\\n")
             error_message = str(final_error).replace("$", all_expected_tokens)
             error_message = self._err_fmt.error(final_error.pos, message=error_message)
             raise SystemExit(error_message) from None
@@ -395,50 +388,42 @@ class Parser:
         p2 = self.parse_binary_expression_precedence_level_n_rhs(op, rhs).parse_optional()
         return BinaryExpressionAst(c1, p1, p2[0], p2[1]) if p2 else p1
 
-    @parser_rule
     def parse_binary_expression_precedence_level_1(self) -> ExpressionAst:
-        print("Called parse_binary_expression_precedence_level_1")
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_2,
             self.parse_binary_op_precedence_level_1,
             self.parse_binary_expression_precedence_level_1)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_2(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_3,
             self.parse_binary_op_precedence_level_2,
             self.parse_binary_expression_precedence_level_2)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_3(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_4,
             self.parse_binary_op_precedence_level_3,
             self.parse_binary_expression_precedence_level_3)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_4(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_5,
             self.parse_binary_op_precedence_level_4,
             self.parse_binary_expression_precedence_level_4)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_5(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_6,
             self.parse_binary_op_precedence_level_5,
             self.parse_binary_expression_precedence_level_5)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_6(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_7,
             self.parse_binary_op_precedence_level_6,
             self.parse_binary_expression_precedence_level_6)
 
-    @parser_rule
     def parse_binary_expression_precedence_level_7(self) -> ExpressionAst:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_unary_expression,
@@ -866,7 +851,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkDot).parse_once()
         p2 = self.parse_identifier().for_alt()
-        p3 = self.parse_number_integer().for_alt()
+        p3 = self.parse_literal_number_b10_integer().for_alt()
         p4 = (p2 | p3).parse_once()
         return PostfixExpressionOperatorMemberAccessAst(c1, p1, p4)
 
@@ -895,6 +880,7 @@ class Parser:
         p15 = self.parse_token(TokenType.TkModAssign).for_alt()
         p16 = self.parse_token(TokenType.TkExpAssign).for_alt()
         p17 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16).parse_once()
+        return p17
 
     # ===== CONVENTIONS =====
 
@@ -976,7 +962,7 @@ class Parser:
     def parse_lambda_prototype(self) -> LambdaPrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
-        p2 = self.parse_token(TokenType.KwFn).parse_once()
+        p2 = self.parse_token(TokenType.KwFun).parse_once()
         p3 = self.parse_generic_parameters().parse_optional()
         p4 = self.parse_function_parameters().parse_once()
         p5 = self.parse_token(TokenType.TkArrowR).parse_once()
@@ -1311,6 +1297,7 @@ class Parser:
                 self._errors.append(new_error)
                 raise new_error
 
-        # self._errors.clear()
+        self._errors.clear()
+        r = TokenAst(self.current_pos(), self.current_tok())
         self._index += 1
-        return TokenAst(self.current_pos(), self.current_tok())
+        return r
