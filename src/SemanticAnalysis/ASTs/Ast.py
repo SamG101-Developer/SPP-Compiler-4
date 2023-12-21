@@ -313,8 +313,7 @@ LetStatementAst = (
 @dataclass
 class LiteralNumberBase10Ast(Ast):
     sign: Optional[TokenAst]
-    integer: TokenAst
-    decimal: Optional[TokenAst]
+    number: TokenAst
     primitive_type: Optional[IdentifierAst]  # TypeAst?
 
 
@@ -466,17 +465,12 @@ class ParenthesizedExpressionAst(Ast):
 
 @dataclass
 class PatternVariantTupleAst(Ast):
-    paren_l_token: TokenAst
-    items: List[PatternVariantAst]
-    paren_r_token: TokenAst
+    variable: LocalVariableTupleAst
 
 
 @dataclass
 class PatternVariantDestructureAst(Ast):
-    class_type: TypeAst
-    bracket_l_token: TokenAst
-    items: List[PatternVariantAst]
-    bracket_r_token: TokenAst
+    variable: LocalVariableDestructureAst
 
 
 @dataclass
