@@ -557,12 +557,14 @@ class Parser:
     # ===== EXPRESSION STATEMENTS =====
 
     @parser_rule
+    @tested_parser_rule
     def parse_if_expression(self) -> IfExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwIf).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_pattern_comp_op().parse_optional()
-        p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
+        # p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
+        p4 = self.parse_inner_scope(self.parse_pattern_statement).parse_once()
         return IfExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
@@ -824,52 +826,54 @@ class Parser:
         return PatternGuardAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_pattern_variant(self) -> PatternVariantAst:
         p1 = self.parse_pattern_variant_tuple().for_alt()
         p2 = self.parse_pattern_variant_destructure().for_alt()
         p3 = self.parse_pattern_variant_variable().for_alt()
         p4 = self.parse_pattern_variant_literal().for_alt()
-        p5 = self.parse_pattern_variant_bool_member().for_alt()
+        # p5 = self.parse_pattern_variant_bool_member().for_alt()
         p6 = self.parse_pattern_variant_else().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
         return p7
 
     @parser_rule
+    @tested_parser_rule
     def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_pattern_variant().parse_zero_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkParenR).parse_once()
-        return PatternVariantTupleAst(c1, p1, p2, p3)
+        p1 = self.parse_local_variable_tuple().parse_once()
+        return PatternVariantTupleAst(c1, p1)
 
     @parser_rule
+    @failed_parser_rule
     def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
         c1 = self.current_pos()
-        p1 = self.parse_type_single().parse_once()
-        p2 = self.parse_token(TokenType.TkBraceL).parse_once()
-        p3 = self.parse_pattern_variant().parse_zero_or_more(TokenType.TkComma)
-        p4 = self.parse_token(TokenType.TkBraceR).parse_once()
-        return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
+        p1 = self.parse_local_variable_destructure().parse_once()
+        return PatternVariantDestructureAst(c1, p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_pattern_variant_variable(self) -> PatternVariantVariableAst:
         c1 = self.current_pos()
         p1 = self.parse_local_variable_single().parse_once()
         return PatternVariantVariableAst(c1, p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
         c1 = self.current_pos()
         p1 = self.parse_literal().parse_once()
         return PatternVariantLiteralAst(c1, p1)
 
     @parser_rule
+    @failed_parser_rule
     def parse_pattern_variant_bool_member(self) -> PatternVariantBoolMemberAst:
         c1 = self.current_pos()
-        p1 = self.parse_postfix_expression().parse_once()
-        return PatternVariantBoolMemberAst(c1, p1)
+        p1 = self.parse_postfix_op().parse_zero_or_more()
+        return PatternVariantBoolMemberAst(c1, functools.reduce(lambda acc, x: PostfixExpressionAst(c1, acc, x), p1, None))
 
     @parser_rule
+    @tested_parser_rule
     def parse_pattern_variant_else(self) -> PatternVariantElseAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
@@ -1296,7 +1300,7 @@ class Parser:
         return p4
 
     @parser_rule
-    @failed_parser_rule
+    @tested_parser_rule
     def parse_literal_regex(self) -> LiteralRegexAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.LxRegex).parse_once()
@@ -1329,17 +1333,16 @@ class Parser:
         p1 = self.parse_numeric_prefix_op().parse_optional()
         p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
         p3 = self.parse_numeric_postfix_type().parse_optional()
-        return LiteralNumberBase10Ast(c1, p1, p2, None, p3)
+        return LiteralNumberBase10Ast(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_literal_number_b10_float(self) -> LiteralNumberBase10Ast:
         c1 = self.current_pos()
         p1 = self.parse_numeric_prefix_op().parse_optional()
-        p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
-        p3 = self.parse_token(TokenType.TkDot).parse_once()
-        p4 = self.parse_token(TokenType.LxDecDigits).parse_once()
-        p5 = self.parse_numeric_postfix_type().parse_optional()
-        return LiteralNumberBase10Ast(c1, p1, p2, p4, p5)
+        p2 = self.parse_token(TokenType.LxDecFloat).parse_once()
+        p3 = self.parse_numeric_postfix_type().parse_optional()
+        return LiteralNumberBase10Ast(c1, p1, p2, p3)
 
     @parser_rule
     @tested_parser_rule
