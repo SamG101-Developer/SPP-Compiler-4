@@ -619,6 +619,7 @@ class Parser:
         return p3
 
     @parser_rule
+    @failed_parser_rule
     def parse_typedef_statement_specific_item(self) -> TypedefStatementSpecificItemAst:
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
@@ -626,6 +627,7 @@ class Parser:
         return TypedefStatementSpecificItemAst(c1, p1, p2)
 
     @parser_rule
+    @tested_parser_rule
     def parse_typedef_statement_specific_items(self) -> TypedefStatementSpecificItemsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBraceL).parse_once()
@@ -634,15 +636,17 @@ class Parser:
         return TypedefStatementSpecificItemsAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_typedef_statement_all_items(self) -> TypedefStatementAllItemsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkMul).parse_once()
         return TypedefStatementAllItemsAst(c1, p1)
 
     @parser_rule
+    @tested_parser_rule
     def parse_typedef_statement_specific_item_alias(self) -> TypedefStatementSpecificItemAliasAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkAs).parse_once()
+        p1 = self.parse_token(TokenType.KwAs).parse_once()
         p2 = self.parse_upper_identifier().parse_once()
         return TypedefStatementSpecificItemAliasAst(c1, p1, p2)
 
