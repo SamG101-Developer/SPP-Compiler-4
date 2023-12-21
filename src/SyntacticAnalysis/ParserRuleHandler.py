@@ -37,9 +37,10 @@ class ParserRuleHandler[T]:
 
     def parse_zero_or_more(self, sep: TokenType = None) -> List[T]:
         self._result = []
-        while ast := self.parse_optional(save=False):
+        sep_ast = True
+        while sep_ast and (ast := self.parse_optional(save=False)):
             self._result.append(ast)
-            sep and self._parser.parse_token(sep).parse_optional()
+            sep and (sep_ast := self._parser.parse_token(sep).parse_optional())
         return self._result
 
     def parse_one_or_more(self, sep: TokenType = None) -> List[T]:
