@@ -15,7 +15,7 @@ from src.Utils.ErrorFormatter import ErrorFormatter
 # Decorator that wraps the function in a ParserRuleHandler
 def parser_rule(func):
     @functools.wraps(func)
-    def wrapper(self, *args):
+    def wrapper(self=None, *args):
         return ParserRuleHandler(self, functools.partial(func, self, *args))
     return wrapper
 
@@ -71,7 +71,7 @@ class Parser:
                 if current_error.pos > final_error.pos:
                     final_error = current_error
 
-            all_expected_tokens = ", ".join(final_error.expected_tokens).replace("\n", "\\n")
+            all_expected_tokens = "['" + "' | '".join(final_error.expected_tokens).replace("\n", "\\n") + "']"
             error_message = str(final_error).replace("$", all_expected_tokens)
             error_message = self._err_fmt.error(final_error.pos, message=error_message)
             raise SystemExit(error_message) from None
@@ -298,7 +298,7 @@ class Parser:
     @parser_rule
     @tested_parser_rule
     def parse_function_parameter_variadic(self) -> FunctionParameterVariadicAst:
-        p1 = self.parse_token(TokenType.TkVariadic).parse_optional()
+        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
         p2 = self.parse_function_parameter_required().parse_once()
         return FunctionParameterVariadicAst(**p2.__dict__, variadic_token=p1)
 
@@ -368,7 +368,7 @@ class Parser:
     @parser_rule
     @tested_parser_rule
     def parse_generic_parameter_variadic(self) -> GenericParameterVariadicAst:
-        p1 = self.parse_token(TokenType.TkVariadic).parse_optional()
+        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
         p2 = self.parse_generic_parameter_required().parse_once()
         return GenericParameterVariadicAst(**p2.__dict__, variadic_token=p1)
 
@@ -997,6 +997,7 @@ class Parser:
     # ===== OBJECT INITIALIZATION =====
 
     @parser_rule
+    @failed_parser_rule
     def parse_object_initialization(self) -> ObjectInitializerAst:
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
