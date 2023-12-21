@@ -115,6 +115,7 @@ class TokenType(Enum):
 
     # Unknown token to shift error to ErrFmt
     ERR = "Unknown"
+    NO_TOK = ""
 
 
 @dataclass

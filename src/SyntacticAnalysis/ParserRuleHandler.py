@@ -35,15 +35,15 @@ class ParserRuleHandler[T]:
             self._parser._index = parser_index
             return None
 
-    def parse_zero_or_more(self, sep: TokenType = None) -> List[T]:
+    def parse_zero_or_more(self, sep: TokenType = TokenType.NO_TOK) -> List[T]:
         self._result = []
-        sep_ast = True
-        while sep_ast and (ast := self.parse_optional(save=False)):
+        while ast := self.parse_optional(save=False):
             self._result.append(ast)
-            sep and (sep_ast := self._parser.parse_token(sep).parse_optional())
+            sep_ast = self._parser.parse_token(sep).parse_optional()
+            if not sep_ast: break
         return self._result
 
-    def parse_one_or_more(self, sep: TokenType = None) -> List[T]:
+    def parse_one_or_more(self, sep: TokenType = TokenType.NO_TOK) -> List[T]:
         self.parse_zero_or_more(sep)
         if not self._result:
             new_error = ParserError(f"Expected one or more.")
