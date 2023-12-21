@@ -18,7 +18,7 @@ class ErrorFormatter:
         error_line_as_string = "".join([str(token) for token in error_line_tokens])
 
         # Get the line number of the error
-        error_line_number = str(self._tokens[:start_pos]).count("\n") + 1
+        error_line_number = len([x for x in self._tokens[:start_pos] if x.token_type == TokenType.TkNewLine])
 
         # The number of "^" is the length of the token data where the error is.
         carets = "^" * len(self._tokens[start_pos].token_metadata)
