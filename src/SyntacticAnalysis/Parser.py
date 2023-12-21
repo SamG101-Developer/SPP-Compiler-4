@@ -146,7 +146,7 @@ class Parser:
         p4 = self.parse_generic_parameters().parse_optional()
         p5 = self.parse_where_block().parse_optional()
         p6 = self.parse_inner_scope(self.parse_class_attribute).parse_once()
-        return ClassPrototypeAst(c1, p1, p2, p3, p4, p5, p6)
+        return ClassPrototypeAst(c1, p1, p2, TypeSingleAst(p3.pos, [GenericIdentifierAst(p3.pos, p3.value, None)]), p4, p5, p6)
 
     @parser_rule
     @tested_parser_rule
@@ -1226,7 +1226,7 @@ class Parser:
     def parse_self_type_keyword(self) -> GenericIdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwSelfType).parse_once()
-        return GenericIdentifierAst(c1, IdentifierAst(c1, p1.token.token_metadata), None)
+        return GenericIdentifierAst(c1, p1.token.token_metadata, None)
 
     # ===== IDENTIFIERS =====
 
@@ -1235,14 +1235,14 @@ class Parser:
     def parse_identifier(self) -> IdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_lexeme(TokenType.LxIdentifier).parse_once()
-        return IdentifierAst(c1, p1)
+        return IdentifierAst(c1, p1.token.token_metadata)
 
     @parser_rule
     @tested_parser_rule
     def parse_upper_identifier(self) -> IdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_lexeme(TokenType.LxUpperIdentifier).parse_once()
-        return IdentifierAst(c1, p1)
+        return IdentifierAst(c1, p1.token.token_metadata)
 
     @parser_rule
     @tested_parser_rule
@@ -1250,7 +1250,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_upper_identifier().parse_once()
         p2 = self.parse_generic_arguments().parse_optional()
-        return GenericIdentifierAst(c1, p1, p2)
+        return GenericIdentifierAst(c1, p1.value, p2)
 
     # ===== LITERALS =====
 
