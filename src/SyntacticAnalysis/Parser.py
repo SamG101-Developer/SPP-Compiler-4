@@ -534,10 +534,11 @@ class Parser:
         p1 = self.parse_token(TokenType.KwIf).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_pattern_comp_op().parse_optional()
-        p4 = self.parse_pattern_statement().parse_one_or_more()
+        p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
         return IfExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_while_expression(self) -> WhileExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwWhile).parse_once()
@@ -547,14 +548,16 @@ class Parser:
         return WhileExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_yield_expression(self) -> YieldExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwYield).parse_once()
         p2 = self.parse_convention().parse_once()
-        p3 = self.parse_expression().parse_once()
+        p3 = self.parse_expression().parse_optional()
         return YieldExpressionAst(c1, p1, p2, p3)
 
     @parser_rule
+    @tested_parser_rule
     def parse_with_expression(self) -> WithExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwWith).parse_once()
@@ -564,6 +567,7 @@ class Parser:
         return WithExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
+    @tested_parser_rule
     def parse_with_expression_lhs_alias(self) -> WithExpressionAliasAst:
         c1 = self.current_pos()
         p1 = self.parse_local_variable_single().parse_once()
@@ -927,7 +931,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkDot).parse_once()
         p2 = self.parse_identifier().for_alt()
-        p3 = self.parse_literal_number_b10_integer().for_alt()
+        p3 = self.parse_token(TokenType.LxDecDigits).for_alt()
         p4 = (p2 | p3).parse_once()
         return PostfixExpressionOperatorMemberAccessAst(c1, p1, p4)
 
@@ -1098,7 +1102,7 @@ class Parser:
     def parse_type_single(self) -> TypeSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_type_namespace().parse_optional() or TypeNamespaceAst(c1, [])
-        p2 = self.parse_type_part().parse_one_or_more(TokenType.TkDot)
+        p2 = self.parse_type_parts().parse_once()
         return TypeSingleAst(c1, p1.items + p2)
 
     @parser_rule
@@ -1129,13 +1133,27 @@ class Parser:
         return TypeNamespaceAst(c1, p1)
 
     @parser_rule
+    def parse_type_parts(self) -> List[TypePartAst]:
+        p1 = self.parse_type_part_first().parse_once()
+        p2 = self.parse_type_part().parse_zero_or_more()
+        return [p1] + p2
+
+    @parser_rule
     def parse_type_part(self) -> TypePartAst:
         c1 = self.current_pos()
-        p1 = self.parse_generic_identifier().for_alt()
-        p2 = self.parse_literal_number_b10_integer().for_alt()
-        p3 = self.parse_self_type_keyword().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
+        p1 = self.parse_token(TokenType.TkDot).parse_once()
+        p2 = self.parse_generic_identifier().for_alt()
+        p3 = self.parse_token(TokenType.LxDecDigits).for_alt()
+        p4 = (p2 | p3).parse_once()
         return p4
+
+    @parser_rule
+    def parse_type_part_first(self) -> TypePartAst:
+        c1 = self.current_pos()
+        p1 = self.parse_generic_identifier().for_alt()
+        p2 = self.parse_self_type_keyword().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
 
     @parser_rule
     def parse_self_type_keyword(self) -> GenericIdentifierAst:
@@ -1235,6 +1253,7 @@ class Parser:
     def parse_literal_number_b10_integer(self) -> LiteralNumberBase10Ast:
         c1 = self.current_pos()
         p1 = self.parse_numeric_prefix_op().parse_optional()
+        p1 = self.parse_type_part_first().parse_once()
         p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
         p3 = self.parse_numeric_postfix_type().parse_optional()
         return LiteralNumberBase10Ast(c1, p1, p2, None, p3)
