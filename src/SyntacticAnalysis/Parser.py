@@ -582,9 +582,10 @@ class Parser:
     def parse_yield_expression(self) -> YieldExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwYield).parse_once()
-        p2 = self.parse_convention().parse_once()
-        p3 = self.parse_expression().parse_optional()
-        return YieldExpressionAst(c1, p1, p2, p3)
+        p2 = self.parse_token(TokenType.KwWith).parse_optional()
+        p3 = self.parse_convention().parse_once()
+        p4 = self.parse_expression().parse_optional()
+        return YieldExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     @tested_parser_rule
@@ -1160,9 +1161,9 @@ class Parser:
     @tested_parser_rule
     def parse_type_single(self) -> TypeSingleAst:
         c1 = self.current_pos()
-        p1 = self.parse_type_namespace().parse_optional() or TypeNamespaceAst(c1, [])
+        p1 = self.parse_type_namespace().parse_optional()
         p2 = self.parse_type_parts().parse_once()
-        return TypeSingleAst(c1, p1.items + p2)
+        return TypeSingleAst(c1, (p1.items if p1 else []) + p2)
 
     @parser_rule
     @tested_parser_rule
@@ -1455,7 +1456,7 @@ class Parser:
         # TODO : these rules don't come up u the error for failed alternate parsing (see number postfix types)
 
         p1 = self.parse_identifier().parse_once()
-        if p1.value.token.token_metadata == characters:
+        if p1.value == characters:
             return p1
         else:
             new_error = ParserError(self.current_pos(), f"Expected '{characters}', got '{p1.value}'")
