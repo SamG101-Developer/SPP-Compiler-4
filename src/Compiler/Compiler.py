@@ -1,6 +1,7 @@
 from src.LexicalAnalysis.Lexer import Lexer
 from src.SyntacticAnalysis.Parser import Parser
 from src.SemanticAnalysis.ASTs import Ast
+from src.SemanticAnalysis.Analyse import Analyser
 
 
 class Compiler:
@@ -14,4 +15,6 @@ class Compiler:
     def compile(self) -> Ast:
         tokens = Lexer(self._code).lex()
         ast = Parser(tokens, self._file_path).parse()
+        print(ast.print())
+        # Analyser(ast).analyse()
         return ast
