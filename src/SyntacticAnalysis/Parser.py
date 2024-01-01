@@ -49,14 +49,14 @@ class Parser:
         return self._tokens[self._index]
 
     # Modify all function calls
-    def __getattribute__(self, item):
-        attr = super().__getattribute__(item)
-        if callable(attr) and item.startswith("parse_"):
-            if not hasattr(attr, "__tested__"):
-                print(f"[+] Parser function '{item}' has not been tested yet.")
-            if hasattr(attr, "__tested__") and not attr.__tested__:
-                print(f"[!] Parser function '{item}' is not working correctly.")
-        return attr
+    # def __getattribute__(self, item):
+    #     attr = super().__getattribute__(item)
+    #     if callable(attr) and item.startswith("parse_"):
+    #         if not hasattr(attr, "__tested__"):
+    #             print(f"[+] Parser function '{item}' has not been tested yet.")
+    #         if hasattr(attr, "__tested__") and not attr.__tested__:
+    #             print(f"[!] Parser function '{item}' is not working correctly.")
+    #     return attr
 
     # ===== PARSING =====
 
@@ -113,8 +113,14 @@ class Parser:
         p1 = self.parse_annotation().parse_zero_or_more()
         p2 = self.parse_token(TokenType.KwMod).parse_once()
         p3 = self.parse_module_identifier().parse_once()
-        p4 = self.parse_module_member().parse_zero_or_more()
+        p4 = self.parse_module_implementation().parse_once()
         return ModulePrototypeAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_module_implementation(self) -> ModuleImplementationAst:
+        c1 = self.current_pos()
+        p1 = self.parse_module_member().parse_zero_or_more()
+        return ModuleImplementationAst(c1, p1)
 
     @parser_rule
     @tested_parser_rule
@@ -429,6 +435,8 @@ class Parser:
     @parser_rule
     @tested_parser_rule
     def parse_annotation(self) -> AnnotationAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkAt).parse_once()
         return None
         # raise NotImplementedError("Annotations won't be supported until compiler is self-hosting.")
 
@@ -1187,7 +1195,7 @@ class Parser:
     def parse_type_union(self) -> TypeUnionAst:
         c1 = self.current_pos()
         p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkBitOr)
-        return TypeUnionAst(c1, p1)
+        return TypeUnionAst(c1, p1) if len(p1) > 1 else p1[0]
 
     @parser_rule
     @tested_parser_rule
