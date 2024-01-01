@@ -18,6 +18,12 @@ class Seq[T]:
     def join(self, separator: str = "") -> str:
         return separator.join(self._value)
 
+    def keys[U](self) -> Seq[U]:
+        return Seq([x for x, y in self._value])
+
+    def values[U](self) -> Seq[U]:
+        return Seq([y for x, y in self._value])
+
     def print(self, printer, separator: str = "") -> str:
         mapped = self.map(lambda x: x.print(printer))
         joined = mapped.join(separator)

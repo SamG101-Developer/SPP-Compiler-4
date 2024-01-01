@@ -1123,15 +1123,17 @@ class TypeSingleAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.parts).print(printer, ".")}"
 
-    # def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
-    #     type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
-    #     i, p = type_parts[0]
-    #     if p.identifier == from_ty:
-    #         self.parts[i] = to_ty
-    #
-    #     for i, part in type_parts:
-    #         for g in part.generic_arguments.arguments if part.generic_arguments else []:
-    #             g.type.substitute_generics(from_ty, to_ty)
+    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
+        printer = AstPrinter()
+        type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
+
+        i, p = type_parts[0]
+        if p.identifier == from_ty.parts[0].identifier:
+            self.parts[i] = to_ty
+
+        for i, part in type_parts:
+            for g in part.generic_arguments.arguments if part.generic_arguments else []:
+                g.type.substitute_generics(from_ty, to_ty)
 
 
 @dataclass
@@ -1144,8 +1146,8 @@ class TypeTupleAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.items).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
-    # def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
-    #     Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
+    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
+        Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
 
 
 @dataclass
@@ -1156,8 +1158,8 @@ class TypeUnionAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.items).print(printer, " | ")}"
 
-    # def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
-    #     Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
+    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
+        Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
 
 
 TypeAst = (
