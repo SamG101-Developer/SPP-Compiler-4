@@ -605,7 +605,7 @@ class LambdaPrototypeAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{Seq(self.annotations).print(printer, "\n")}\n{self.fun_token.print(printer)}{self.generic_parameters.print(printer)}{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
-        s += f"{self.where_block.print(printer)}" if self.where_block else ""
+        s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.lambda_capture_block.print(printer)}" if self.lambda_capture_block else ""
         s += f"{self.body.print(printer)}"
         return s
@@ -1105,7 +1105,11 @@ class SupPrototypeNormalAst(Ast, PreProcessor):
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)}{self.identifier.print(printer)} {self.where_block.print(printer)} {self.body.print(printer)}"
+        s = ""
+        s += f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)}{self.identifier.print(printer)}"
+        s += f" {self.where_block.print(printer)}" if self.where_block else ""
+        s += f"{self.body.print(printer)}"
+        return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
@@ -1128,7 +1132,7 @@ class SupPrototypeInheritanceAst(Ast):
         s += f"{self.sup_keyword.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
         s += f"{self.super_class.print(printer)} {self.on_keyword.print(printer)}{self.identifier.print(printer)}"
-        s += f"{self.where_block.print(printer)}" if self.where_block else ""
+        s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
 
