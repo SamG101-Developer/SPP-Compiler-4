@@ -1253,7 +1253,6 @@ class TypeSingleAst(Ast):
         type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
 
         i, p = type_parts[0]
-        print(p, from_ty.parts[0], p == from_ty.parts[0])
         if p == from_ty.parts[0]:
             self.parts[i] = to_ty
 
