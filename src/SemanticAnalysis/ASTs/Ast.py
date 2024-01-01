@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import hashlib
+import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Self
 
+from SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
 from src.SemanticAnalysis.ASTs.AstPrinter import AstPrinter, ast_printer_method, ast_printer_method_indent
 from src.SemanticAnalysis.PreProcessor import PreProcessor
 from src.SemanticAnalysis.CommonTypes import CommonTypes
+from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
+
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.Utils.Sequence import Seq
 
@@ -73,7 +79,7 @@ class ClassAttributeAst(Ast):
 
 
 @dataclass
-class ClassPrototypeAst(Ast, PreProcessor):
+class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator):
     annotations: List[AnnotationAst]
     class_token: TokenAst
     identifier: TypeAst
@@ -99,6 +105,13 @@ class ClassPrototypeAst(Ast, PreProcessor):
         Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
+
+    def generate(self, s: ScopeHandler) -> None:
+        s.next_scope(self.identifier)
+        Seq(self.body.members).for_each(lambda m: m.generate(s))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
+        s.prev_scope()
 
 
 @dataclass
@@ -258,7 +271,7 @@ class FunctionParameterGroupAst(Ast):
 
 
 @dataclass
-class FunctionPrototypeAst(Ast, PreProcessor):
+class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator):
     annotations: List[AnnotationAst]
     fun_token: TokenAst
     identifier: IdentifierAst
@@ -268,6 +281,7 @@ class FunctionPrototypeAst(Ast, PreProcessor):
     return_type: TypeAst
     where_block: Optional[WhereBlockAst]
     body: InnerScopeAst[StatementAst]
+    _fn_type: TypeAst = dataclasses.field(default=None)
 
     def __post_init__(self):
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
@@ -291,6 +305,9 @@ class FunctionPrototypeAst(Ast, PreProcessor):
 
         mock_class_name = IdentifierAst(-1, f"__MOCK_{self.identifier.value}")
         mock_class_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, mock_class_name.value, None)])
+
+        function_class_type = self._deduce_function_class_type(context)
+        function_call_name  = self._deduce_function_call_name(function_class_type)
 
         if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
             mock_class_ast = ClassPrototypeAst(
@@ -323,13 +340,11 @@ class FunctionPrototypeAst(Ast, PreProcessor):
                         brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
                         arguments=[],
                         brace_r_token=TokenAst.dummy(TokenType.TkBraceR))),
-                residual=None)
+                residual=None,
+                _sup_let_type=function_class_type)
 
             context.body.members.insert(0, mock_let_statement)
             context.body.members.insert(0, mock_class_ast)
-
-        function_class_type = self._deduce_function_class_type(context)
-        function_call_name  = self._deduce_function_call_name(function_class_type)
 
         call_method_ast = FunctionPrototypeAst(
             pos=-1,
@@ -347,7 +362,7 @@ class FunctionPrototypeAst(Ast, PreProcessor):
             pos=-1,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
             generic_parameters=None,
-            super_class=function_class_type,
+            super_class=copy.deepcopy(function_class_type),
             on_keyword=TokenAst.dummy(TokenType.KwOn),
             identifier=mock_class_name,
             where_block=copy.deepcopy(self.where_block),
@@ -359,6 +374,7 @@ class FunctionPrototypeAst(Ast, PreProcessor):
 
         context.body.members.insert(0, sup_block_ast)
         context.body.members.remove(self)
+        self._fn_type = function_class_type
 
     def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
         is_method = not isinstance(context, ModulePrototypeAst)
@@ -382,6 +398,12 @@ class FunctionPrototypeAst(Ast, PreProcessor):
             case "FunMut": return IdentifierAst(-1, "call_mut")
             case "FunOne": return IdentifierAst(-1, "call_one")
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
+
+    def generate(self, s: ScopeHandler) -> None:
+        s.next_scope(self.identifier)
+        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        s.current_scope.add_symbol(VariableSymbol(copy.deepcopy(self.identifier), self._fn_type))
+        s.prev_scope()
 
 
 @dataclass
@@ -522,6 +544,12 @@ class IdentifierAst(Ast):
     def __eq__(self, other):
         return isinstance(other, IdentifierAst) and self.value == other.value
 
+    def __hash__(self):
+        return int.from_bytes(hashlib.md5(self.value.encode()).digest())
+
+    def __json__(self) -> str:
+        return self.value
+
 
 @dataclass
 class IfExpressionAst(Ast):
@@ -612,12 +640,13 @@ class LambdaPrototypeAst(Ast):
 
 
 @dataclass
-class LetStatementInitializedAst(Ast, PreProcessor):
+class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator):
     let_keyword: TokenAst
     assign_to: LocalVariableAst
     assign_token: TokenAst
     value: ExpressionAst
     residual: Optional[ResidualInnerScopeAst]
+    _sup_let_type: TypeAst = dataclasses.field(default=None)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -628,6 +657,9 @@ class LetStatementInitializedAst(Ast, PreProcessor):
 
     def pre_process(self, context) -> None:
         pass
+
+    def generate(self, s: ScopeHandler) -> None:
+        s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
 
 @dataclass
@@ -1051,7 +1083,7 @@ PostfixMemberPartAst = (
 
 
 @dataclass
-class ProgramAst(Ast, PreProcessor):
+class ProgramAst(Ast, PreProcessor, SymbolGenerator):
     module: ModulePrototypeAst
     eof_token: TokenAst
 
@@ -1061,6 +1093,9 @@ class ProgramAst(Ast, PreProcessor):
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.pre_process(context))
+
+    def generate(self, s: ScopeHandler) -> None:
+        Seq(self.module.body.members).for_each(lambda m: m.generate(s))
 
 
 @dataclass
@@ -1092,7 +1127,7 @@ class SupMethodPrototypeAst(FunctionPrototypeAst):
 
 
 @dataclass
-class SupPrototypeNormalAst(Ast, PreProcessor):
+class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator):
     sup_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
     identifier: TypeAst
@@ -1115,16 +1150,17 @@ class SupPrototypeNormalAst(Ast, PreProcessor):
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
 
+    def generate(self, s: ScopeHandler) -> None:
+        s.next_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP"))
+        Seq(self.body.members).for_each(lambda m: m.generate(s))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        s.prev_scope()
+
 
 @dataclass
-class SupPrototypeInheritanceAst(Ast):
-    sup_keyword: TokenAst
-    generic_parameters: Optional[GenericParameterGroupAst]
+class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
     super_class: TypeAst
     on_keyword: TokenAst
-    identifier: TypeAst
-    where_block: Optional[WhereBlockAst]
-    body: InnerScopeAst[SupMemberAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1135,10 +1171,6 @@ class SupPrototypeInheritanceAst(Ast):
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
-
-    def pre_process(self, context: ModulePrototypeAst) -> None:
-        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
-        Seq(self.body.members).for_each(lambda m: m.pre_process(self))
 
 
 SupPrototypeAst = (
@@ -1262,6 +1294,10 @@ class TypeSingleAst(Ast):
 
     def __eq__(self, other):
         return isinstance(other, TypeSingleAst) and self.parts == other.parts
+
+    def __json__(self) -> str:
+        printer = AstPrinter()
+        return self.print(printer)
 
 
 @dataclass
