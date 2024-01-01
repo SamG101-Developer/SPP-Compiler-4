@@ -12,14 +12,15 @@ class AstPrinter:
         self._code = ""
 
     def format_line(self, line: str):
-        # prefix = ("\n" + " " * self._indent) if line.startswith("\n") else ""
-        # self._code += prefix + line[1:] if line.startswith("\n") else line
+        # Insert tabs after \n characters in parts of the code.
         return line.replace("\n", "\n" + " " * self._indent)
 
     def increment_indent(self):
+        # Increase the indent by the tab size.
         self._indent += AstPrinter.TAB_SIZE
 
     def decrement_indent(self):
+        # Decrease the indent by the tab size.
         self._indent -= AstPrinter.TAB_SIZE
 
     @property
@@ -27,7 +28,7 @@ class AstPrinter:
         return self._code
 
 
-# Decorator for the printer methods
+# Decorators for the printer methods
 def ast_printer_method(func, next_indent: bool = False):
     @functools.wraps(func)
     def wrapper(self=None, *args):
