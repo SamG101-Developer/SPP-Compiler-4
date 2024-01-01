@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -12,13 +13,6 @@ from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.Utils.Sequence import Seq
 
 
-class Default(ABC):
-    @staticmethod
-    @abstractmethod
-    def default() -> Self:
-        ...
-
-
 @dataclass
 class Ast(ABC):
     pos: int
@@ -27,6 +21,9 @@ class Ast(ABC):
     @abstractmethod
     def print(self, printer: AstPrinter) -> str:
         ...
+    
+    def __eq__(self, other):
+        return isinstance(other, Ast)
 
 
 @dataclass
@@ -85,12 +82,16 @@ class ClassPrototypeAst(Ast, PreProcessor):
     body: InnerScopeAst[ClassAttributeAst]
     _mod: ModuleIdentifierAst = dataclasses.field(default=None)
 
+    def __post_init__(self):
+        self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
+        self.where_block = self.where_block or WhereBlockAst(-1, TokenAst.dummy(TokenType.KwWhere), WhereConstraintsGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR)))
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{Seq(self.annotations).print(printer, "\n")}{self.class_token.print(printer)}{self.identifier.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
-        s += f"{self.where_block.print(printer)}" if self.where_block else ""
+        s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
 
@@ -261,7 +262,7 @@ class FunctionPrototypeAst(Ast, PreProcessor):
     annotations: List[AnnotationAst]
     fun_token: TokenAst
     identifier: IdentifierAst
-    generic_parameters: GenericParameterGroupAst
+    generic_parameters: Optional[GenericParameterGroupAst]
     parameters: FunctionParameterGroupAst
     arrow_token: TokenAst
     return_type: TypeAst
@@ -271,13 +272,111 @@ class FunctionPrototypeAst(Ast, PreProcessor):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}{self.fun_token.print(printer)}{self.identifier.print(printer)}{self.generic_parameters.print(printer)}{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
+        s += f"{Seq(self.annotations).print(printer, "\n")}{self.fun_token.print(printer)}{self.identifier.print(printer)}"
+        s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
+        s += f"{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
 
     def pre_process(self, context: ModulePrototypeAst | SupPrototypeAst) -> None:
-        ...
+        if not isinstance(context, ModulePrototypeAst):
+            Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
+            Seq(self.parameters.parameters).for_each(lambda p: p.type_declaration.substitute_generics(CommonTypes.self(), context.identifier))
+            self.return_type.substitute_generics(CommonTypes.self(), context.identifier)
+
+        mock_class_name = IdentifierAst(-1, f"__MOCK_{self.identifier.value}")
+        mock_class_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, mock_class_name.value, None)])
+
+        if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
+            mock_class_ast = ClassPrototypeAst(
+                pos=-1,
+                annotations=[],
+                class_token=TokenAst.dummy(TokenType.KwCls),
+                identifier=mock_class_name,
+                generic_parameters=None,
+                where_block=None,
+                body=InnerScopeAst(
+                    pos=-1,
+                    brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
+                    members=[],
+                    brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
+
+            mock_let_statement = LetStatementInitializedAst(
+                pos=-1,
+                let_keyword=TokenAst.dummy(TokenType.KwLet),
+                assign_to=LocalVariableSingleAst(
+                    pos=-1,
+                    is_mutable=None,
+                    unpack_token=None,
+                    identifier=copy.deepcopy(self.identifier)),
+                assign_token=TokenAst.dummy(TokenType.TkAssign),
+                value=ObjectInitializerAst(
+                    pos=-1,
+                    class_type=copy.deepcopy(mock_class_name),
+                    arguments=ObjectInitializerArgumentGroupAst(
+                        pos=-1,
+                        brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
+                        arguments=[],
+                        brace_r_token=TokenAst.dummy(TokenType.TkBraceR))),
+                residual=None)
+
+            context.body.members.append(mock_class_ast)
+            context.body.members.append(mock_let_statement)
+
+        function_class_type = self._deduce_function_class_type(context)
+        function_call_name  = self._deduce_function_call_name(function_class_type)
+
+        call_method_ast = FunctionPrototypeAst(
+            pos=-1,
+            annotations=[],
+            fun_token=TokenAst.dummy(TokenType.KwFun),
+            identifier=function_call_name,
+            generic_parameters=None,
+            parameters=copy.deepcopy(self.parameters),
+            arrow_token=TokenAst.dummy(TokenType.TkArrowR),
+            return_type=copy.deepcopy(self.return_type),
+            where_block=None,
+            body=copy.deepcopy(self.body))
+
+        sup_block_ast = SupPrototypeInheritanceAst(
+            pos=-1,
+            sup_keyword=TokenAst.dummy(TokenType.KwSup),
+            generic_parameters=None,
+            super_class=function_class_type,
+            on_keyword=TokenAst.dummy(TokenType.KwOn),
+            identifier=mock_class_name,
+            where_block=copy.deepcopy(self.where_block),
+            body=InnerScopeAst(
+                pos=-1,
+                brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
+                members=[call_method_ast],
+                brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
+
+        context.body.members.append(sup_block_ast)
+
+    def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
+        is_method = not isinstance(context, ModulePrototypeAst)
+        has_self_parameter = isinstance(self.parameters.parameters[0], FunctionParameterSelfAst)
+        parameter_types = Seq(self.parameters.parameters).map(lambda p: p.type_declaration).value
+        return_type = self.return_type
+
+        if is_method and has_self_parameter:
+            convention = self.parameters.parameters[0].convention
+            match convention:
+                case ConventionRefAst(): return CommonTypes.fun_ref(return_type, parameter_types)
+                case ConventionMutAst(): return CommonTypes.fun_mut(return_type, parameter_types)
+                case ConventionMovAst(): return CommonTypes.fun_one(return_type, parameter_types)
+                case _: raise SystemExit(f"Unknown convention '{convention}' being deduced. Report as bug.")
+        else:
+            return CommonTypes.fun_ref(return_type, parameter_types)
+
+    def _deduce_function_call_name(self, function_class_type: TypeAst) -> IdentifierAst:
+        match function_class_type.parts[-1].value:
+            case "FunRef": return IdentifierAst(-1, "call_ref")
+            case "FunMut": return IdentifierAst(-1, "call_mut")
+            case "FunOne": return IdentifierAst(-1, "call_one")
+            case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
 
 @dataclass
@@ -287,6 +386,9 @@ class GenericArgumentNormalAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.type.print(printer)}"
+
+    def __eq__(self, other):
+        return isinstance(other, GenericArgumentNormalAst) and self.type == other.type
 
 
 @dataclass
@@ -298,6 +400,9 @@ class GenericArgumentNamedAst(GenericArgumentNormalAst):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.type.print(printer)}"
 
+    def __eq__(self, other):
+        return isinstance(other, GenericArgumentNamedAst) and self.identifier == other.identifier and self.type == other.type
+
 
 GenericArgumentAst = (
         GenericArgumentNormalAst |
@@ -305,35 +410,33 @@ GenericArgumentAst = (
 
 
 @dataclass
-class GenericArgumentGroupAst(Ast, Default):
+class GenericArgumentGroupAst(Ast):
     bracket_l_token: TokenAst
     arguments: List[GenericArgumentAst]
     bracket_r_token: TokenAst
-
-    @staticmethod
-    def default() -> Self:
-        return GenericArgumentGroupAst(-1, TokenAst.no_tok(), [], TokenAst.no_tok())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.bracket_l_token.print(printer)}{Seq(self.arguments).print(printer, ", ")}{self.bracket_r_token.print(printer)}"
 
+    def __eq__(self, other):
+        return isinstance(other, GenericArgumentGroupAst) and self.arguments == other.arguments
+
 
 @dataclass
-class GenericIdentifierAst(Ast, Default):
-    identifier: str
+class GenericIdentifierAst(Ast):
+    value: str
     generic_arguments: Optional[GenericArgumentGroupAst]
-
-    @staticmethod
-    def default() -> Self:
-        return GenericIdentifierAst(-1, "", GenericArgumentGroupAst.default())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
-        s += f"{self.identifier}"
+        s += f"{self.value}"
         s += f"{self.generic_arguments.print(printer)}" if self.generic_arguments else ""
         return s
+
+    def __eq__(self, other):
+        return isinstance(other, GenericIdentifierAst) and self.value == other.value and self.generic_arguments == other.generic_arguments
 
 
 @dataclass
@@ -375,14 +478,10 @@ GenericParameterAst = (
 
 
 @dataclass
-class GenericParameterGroupAst(Ast, Default):
+class GenericParameterGroupAst(Ast):
     bracket_l_token: TokenAst
     parameters: List[GenericParameterAst]
     bracket_r_token: TokenAst
-
-    @staticmethod
-    def default() -> Self:
-        return GenericParameterGroupAst(-1, None, [], None)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -399,13 +498,9 @@ class GenericParameterGroupAst(Ast, Default):
 
 
 @dataclass
-class GenericParameterInlineConstraintAst(Ast, Default):
+class GenericParameterInlineConstraintAst(Ast):
     colon_token: TokenAst
     constraints: List[TypeAst]
-
-    @staticmethod
-    def default() -> Self:
-        return GenericParameterInlineConstraintAst(-1, TokenAst.no_tok(), [])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -418,6 +513,9 @@ class IdentifierAst(Ast):
 
     def print(self, printer: AstPrinter) -> str:
         return f"{self.value}"
+
+    def __eq__(self, other):
+        return isinstance(other, IdentifierAst) and self.value == other.value
 
 
 @dataclass
@@ -433,30 +531,26 @@ class IfExpressionAst(Ast):
 
 
 @dataclass
-class InnerScopeAst[T](Ast, Default):
+class InnerScopeAst[T](Ast):
     brace_l_token: TokenAst
     members: List[T]
     brace_r_token: TokenAst
 
-    @staticmethod
-    def default() -> Self:
-        return InnerScopeAst(-1, TokenAst.no_tok(), [], TokenAst.no_tok())
-
     @ast_printer_method_indent
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.brace_l_token.print(printer)}\n{Seq(self.members).print(printer, "\n")}\n{self.brace_r_token.print(printer)}"
+        s = ""
+        s += f"{self.brace_l_token.print(printer)}"
+        s += f"\n{Seq(self.members).print(printer, "\n")}\n" if self.members else ""
+        s += f"{self.brace_r_token.print(printer)}"
+        return s
 
 
 @dataclass
-class LambdaCaptureBlockAst(Ast, Default):
+class LambdaCaptureBlockAst(Ast):
     with_keyword: TokenAst
     bracket_l_token: TokenAst
     items: List[LambdaCaptureItemAst]
     bracket_r_token: TokenAst
-
-    @staticmethod
-    def default() -> Self:
-        return LambdaCaptureBlockAst(-1, TokenAst.no_tok(), TokenAst.no_tok(), [], TokenAst.no_tok())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -513,7 +607,7 @@ class LambdaPrototypeAst(Ast):
 
 
 @dataclass
-class LetStatementInitializedAst(Ast):
+class LetStatementInitializedAst(Ast, PreProcessor):
     let_keyword: TokenAst
     assign_to: LocalVariableAst
     assign_token: TokenAst
@@ -526,6 +620,9 @@ class LetStatementInitializedAst(Ast):
         s += f"{self.let_keyword.print(printer)}{self.assign_to.print(printer)} {self.assign_token.print(printer)} {self.value.print(printer)}"
         s += f"{self.residual.print(printer)}" if self.residual else ""
         return s
+
+    def pre_process(self, context) -> None:
+        pass
 
 
 @dataclass
@@ -558,6 +655,9 @@ class LiteralNumberBase10Ast(Ast):
         s += f"{self.number.print(printer)}"
         s += f"{self.primitive_type.print(printer)}" if self.primitive_type else ""
         return s
+
+    def __eq__(self, other):
+        return isinstance(other, LiteralNumberBase10Ast) and self.sign == other.sign and self.number == other.number and self.primitive_type == other.primitive_type
 
 
 @dataclass
@@ -724,11 +824,20 @@ class ModulePrototypeAst(Ast):
     annotations: List[AnnotationAst]
     module_keyword: TokenAst
     identifier: ModuleIdentifierAst
-    body: List[ModuleMemberAst]
+    body: ModuleImplementationAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{Seq(self.annotations).print(printer, "\n")}\n{self.module_keyword.print(printer)}{self.identifier.print(printer)}\n{Seq(self.body).print(printer, "\n\n")}"
+        return f"{Seq(self.annotations).print(printer, "\n")}\n{self.module_keyword.print(printer)}{self.identifier.print(printer)}\n{self.body.print(printer)}"
+
+
+@dataclass
+class ModuleImplementationAst(Ast):
+    members: List[ModuleMemberAst]
+
+    @ast_printer_method
+    def print(self, printer: AstPrinter) -> str:
+        return f"{Seq(self.members).print(printer, "\n\n")}"
 
 
 @dataclass
@@ -869,13 +978,9 @@ class PatternBlockAst(Ast):
 
 
 @dataclass
-class PatternGuardAst(Ast, Default):
+class PatternGuardAst(Ast):
     guard_token: TokenAst
     expression: ExpressionAst
-
-    @staticmethod
-    def default() -> Self:
-        return PatternGuardAst(-1, TokenAst.no_tok(), TokenAst.no_tok())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -946,18 +1051,13 @@ class ProgramAst(Ast, PreProcessor):
         return f"{self.module.print(printer)}"
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
-        # ...
-        Seq(self.module.body).for_each(lambda m: m.pre_process(context))
+        Seq(self.module.body.members).for_each(lambda m: m.pre_process(context))
 
 
 @dataclass
-class ResidualInnerScopeAst(Ast, Default):
+class ResidualInnerScopeAst(Ast):
     else_keyword: TokenAst
     body: InnerScopeAst[StatementAst]
-
-    @staticmethod
-    def default() -> Self:
-        return ResidualInnerScopeAst(-1, TokenAst.no_tok(), InnerScopeAst.default())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -987,7 +1087,7 @@ class SupMethodPrototypeAst(FunctionPrototypeAst):
 class SupPrototypeNormalAst(Ast, PreProcessor):
     sup_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
-    identifier: IdentifierAst
+    identifier: TypeAst
     where_block: WhereBlockAst
     body: InnerScopeAst[SupMemberAst]
 
@@ -1002,16 +1102,22 @@ class SupPrototypeNormalAst(Ast, PreProcessor):
 @dataclass
 class SupPrototypeInheritanceAst(Ast):
     sup_keyword: TokenAst
-    generic_parameters: GenericParameterGroupAst
+    generic_parameters: Optional[GenericParameterGroupAst]
     super_class: TypeAst
     on_keyword: TokenAst
     identifier: TypeAst
-    where_block: WhereBlockAst
+    where_block: Optional[WhereBlockAst]
     body: InnerScopeAst[SupMemberAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)}{self.super_class.print(printer)} {self.on_keyword.print(printer)}{self.identifier.print(printer)} {self.where_block.print(printer)} {self.body.print(printer)}"
+        s = ""
+        s += f"{self.sup_keyword.print(printer)}"
+        s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
+        s += f"{self.super_class.print(printer)} {self.on_keyword.print(printer)}{self.identifier.print(printer)}"
+        s += f"{self.where_block.print(printer)}" if self.where_block else ""
+        s += f"{self.body.print(printer)}"
+        return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
         ...
@@ -1107,8 +1213,8 @@ class TokenAst(Ast):
     token: Token
 
     @staticmethod
-    def no_tok() -> Self:
-        return TokenAst(-1, Token("", TokenType.NO_TOK))
+    def dummy(token_type: TokenType) -> Self:
+        return TokenAst(-1, Token(token_type.value, token_type))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1128,12 +1234,16 @@ class TypeSingleAst(Ast):
         type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
 
         i, p = type_parts[0]
-        if p.identifier == from_ty.parts[0].identifier:
+        print(p, from_ty.parts[0], p == from_ty.parts[0])
+        if p == from_ty.parts[0]:
             self.parts[i] = to_ty
 
         for i, part in type_parts:
             for g in part.generic_arguments.arguments if part.generic_arguments else []:
                 g.type.substitute_generics(from_ty, to_ty)
+
+    def __eq__(self, other):
+        return isinstance(other, TypeSingleAst) and self.parts == other.parts
 
 
 @dataclass
@@ -1149,6 +1259,9 @@ class TypeTupleAst(Ast):
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
         Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
 
+    def __eq__(self, other):
+        return isinstance(other, TypeTupleAst) and self.items == other.items
+
 
 @dataclass
 class TypeUnionAst(Ast):
@@ -1160,6 +1273,9 @@ class TypeUnionAst(Ast):
 
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
         Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
+
+    def __eq__(self, other):
+        return isinstance(other, TypeUnionAst) and self.items == other.items
 
 
 TypeAst = (
@@ -1174,12 +1290,8 @@ TypePartAst = (
 
 
 @dataclass
-class TypeNamespaceAst(Ast, Default):
+class TypeNamespaceAst(Ast):
     items: List[TypePartAst]
-
-    @staticmethod
-    def default() -> Self:
-        return TypeNamespaceAst(-1, [])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1200,13 +1312,9 @@ UnaryOperatorAst = TokenAst
 
 
 @dataclass
-class WhereBlockAst(Ast, Default):
+class WhereBlockAst(Ast):
     where_keyword: TokenAst
     constraint_group: WhereConstraintsGroupAst
-
-    @staticmethod
-    def default() -> Self:
-        return WhereBlockAst(-1, TokenAst.no_tok(), WhereConstraintsAst.default)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1214,29 +1322,21 @@ class WhereBlockAst(Ast, Default):
 
 
 @dataclass
-class WhereConstraintsGroupAst(Ast, Default):
-    paren_l_token: TokenAst
+class WhereConstraintsGroupAst(Ast):
+    brack_l_token: TokenAst
     constraints: List[WhereConstraintsAst]
-    paren_r_token: TokenAst
-
-    @staticmethod
-    def default() -> Self:
-        return WhereConstraintsGroupAst(-1, TokenAst.no_tok(), [], TokenAst.no_tok())
+    brack_r_token: TokenAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.paren_l_token.print(printer)}{Seq(self.constraints).print(printer, ", ")}{self.paren_r_token.print(printer)}"
+        return f"{self.brack_l_token.print(printer)}{Seq(self.constraints).print(printer, ", ")}{self.brack_r_token.print(printer)}"
 
 
 @dataclass
-class WhereConstraintsAst(Ast, Default):
+class WhereConstraintsAst(Ast):
     types_to_constrain: List[TypeAst]
     colon_token: TokenAst
     constraints: List[TypeAst]
-
-    @staticmethod
-    def default() -> Self:
-        return WhereConstraintsAst(-1, [], TokenAst.no_tok(), [])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1259,13 +1359,9 @@ class WhileExpressionAst(Ast):
 
 
 @dataclass
-class WithExpressionAliasAst(Ast, Default):
+class WithExpressionAliasAst(Ast):
     variable: LocalVariableAst
     assign_token: TokenAst
-
-    @staticmethod
-    def default() -> Self:
-        return WithExpressionAliasAst(-1, None, TokenAst.no_tok())
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
