@@ -11,8 +11,8 @@ def main():
     compiler = Compiler(code, file_path)
     ast = compiler.compile()
 
-    print("\n\nAST:")
-    pprint(asdict(ast))
+    # print("\n\nAST:")
+    # pprint(asdict(ast))
 
 
 if __name__ == "__main__":

@@ -18,5 +18,7 @@ class Seq[T]:
     def join(self, separator: str = "") -> str:
         return separator.join(self._value)
 
-    def print(self, separator: str = "") -> str:
-        return self.map(lambda x: x.print()).join(separator)
+    def print(self, printer, separator: str = "") -> str:
+        mapped = self.map(lambda x: x.print(printer))
+        joined = mapped.join(separator)
+        return joined
