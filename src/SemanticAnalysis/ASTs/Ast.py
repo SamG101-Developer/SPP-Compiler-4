@@ -321,8 +321,8 @@ class FunctionPrototypeAst(Ast, PreProcessor):
                         brace_r_token=TokenAst.dummy(TokenType.TkBraceR))),
                 residual=None)
 
-            context.body.members.append(mock_class_ast)
-            context.body.members.append(mock_let_statement)
+            context.body.members.insert(0, mock_let_statement)
+            context.body.members.insert(0, mock_class_ast)
 
         function_class_type = self._deduce_function_class_type(context)
         function_call_name  = self._deduce_function_call_name(function_class_type)
@@ -353,7 +353,8 @@ class FunctionPrototypeAst(Ast, PreProcessor):
                 members=[call_method_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
-        context.body.members.append(sup_block_ast)
+        context.body.members.insert(0, sup_block_ast)
+        context.body.members.remove(self)
 
     def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
         is_method = not isinstance(context, ModulePrototypeAst)
@@ -873,7 +874,11 @@ class ObjectInitializerArgumentGroupAst(Ast):
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.brace_l_token.print(printer)}\n{Seq(self.arguments).print(printer, "\n")}\n{self.brace_r_token.print(printer)}"
+        s = ""
+        s += f"{self.brace_l_token.print(printer)}"
+        s += f"\n{Seq(self.arguments).print(printer, "\n")}\n" if self.arguments else ""
+        s += f"{self.brace_r_token.print(printer)}"
+        return s
 
 
 @dataclass
