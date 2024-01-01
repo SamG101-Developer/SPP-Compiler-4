@@ -108,7 +108,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator):
 
     def generate(self, s: ScopeHandler) -> None:
         s.next_scope(self.identifier)
-        Seq(self.body.members).for_each(lambda m: m.generate(s))
+        Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
         s.prev_scope()
