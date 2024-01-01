@@ -269,6 +269,10 @@ class FunctionPrototypeAst(Ast, PreProcessor):
     where_block: Optional[WhereBlockAst]
     body: InnerScopeAst[StatementAst]
 
+    def __post_init__(self):
+        self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
+        self.where_block = self.where_block or WhereBlockAst(-1, TokenAst.dummy(TokenType.KwWhere), WhereConstraintsGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR)))
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
@@ -1084,8 +1088,7 @@ class ReturnStatementAst(Ast):
 
 @dataclass
 class SupMethodPrototypeAst(FunctionPrototypeAst):
-    def pre_process(self, context: SupPrototypeAst) -> None:
-        ...
+    ...
 
 
 @dataclass
@@ -1096,12 +1099,17 @@ class SupPrototypeNormalAst(Ast, PreProcessor):
     where_block: WhereBlockAst
     body: InnerScopeAst[SupMemberAst]
 
+    def __post_init__(self):
+        self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
+        self.where_block = self.where_block or WhereBlockAst(-1, TokenAst.dummy(TokenType.KwWhere), WhereConstraintsGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR)))
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)}{self.identifier.print(printer)} {self.where_block.print(printer)} {self.body.print(printer)}"
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
-        ...
+        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
+        Seq(self.body.members).for_each(lambda m: m.pre_process(self))
 
 
 @dataclass
@@ -1125,7 +1133,8 @@ class SupPrototypeInheritanceAst(Ast):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
-        ...
+        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
+        Seq(self.body.members).for_each(lambda m: m.pre_process(self))
 
 
 SupPrototypeAst = (
@@ -1149,6 +1158,7 @@ class TypedefStatementAst(Ast, PreProcessor):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
+        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         ...
 
 
