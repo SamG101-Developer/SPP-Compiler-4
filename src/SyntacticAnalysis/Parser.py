@@ -188,7 +188,7 @@ class Parser:
         p5 = self.parse_type().parse_once()
         p6 = self.parse_where_block().parse_optional()
         p7 = self.parse_inner_scope(self.parse_sup_member).parse_once()
-        return SupPrototypeInheritanceAst(c1, p3, p4, p5, p6, p7, p1, p2)
+        return SupPrototypeInheritanceAst(c1, p1, p2, p5, p6, p7, p3, p4)
 
     @parser_rule
     @tested_parser_rule
