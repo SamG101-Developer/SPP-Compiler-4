@@ -6,10 +6,10 @@ import hashlib
 import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterator, List, Optional, Self
+from typing import List, Optional, Self
 
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler, Scope
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler, ScopeIterator
+from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol, MemoryStatus
 from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
 from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
@@ -83,7 +83,7 @@ class ClassAttributeAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.type_declaration.print(printer)}"
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
         self.type_declaration.do_semantic_analysis(s)
 
@@ -123,7 +123,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
         s.prev_scope()
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         scope = next(s)
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
         # self.generic_parameters.do_semantic_analysis(s)
@@ -214,7 +214,7 @@ class FunctionArgumentGroupAst(Ast):
 
 
 @dataclass
-class FunctionParameterSelfAst(Ast):
+class FunctionParameterSelfAst(Ast, SemanticAnalysis):
     is_mutable: Optional[TokenAst]
     convention: ConventionAst
     identifier: TokenAst
@@ -229,9 +229,17 @@ class FunctionParameterSelfAst(Ast):
     def __eq__(self, other):
         return isinstance(other, FunctionParameterSelfAst)
 
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+        symbol = VariableSymbol(self.identifier, CommonTypes.self(), is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
+            ast_initialized=self,
+            is_borrow_ref=isinstance(self.convention, ConventionRefAst),
+            is_borrow_mut=isinstance(self.convention, ConventionMutAst),
+            ast_borrow=self))
+        s.current.add_symbol(symbol)
+
 
 @dataclass
-class FunctionParameterRequiredAst(Ast):
+class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
     is_mutable: Optional[TokenAst]
     identifier: IdentifierAst
     colon_token: TokenAst
@@ -245,12 +253,20 @@ class FunctionParameterRequiredAst(Ast):
         s += f"{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)}"
         return s
 
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+        symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
+            ast_initialized=self,
+            is_borrow_ref=isinstance(self.convention, ConventionRefAst),
+            is_borrow_mut=isinstance(self.convention, ConventionMutAst),
+            ast_borrow=self))
+        s.current.add_symbol(symbol)
+
     def __eq__(self, other):
         return isinstance(other, FunctionParameterRequiredAst) and self.identifier == other.identifier
 
 
 @dataclass
-class FunctionParameterOptionalAst(Ast):
+class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
     is_mutable: Optional[TokenAst]
     identifier: IdentifierAst
     colon_token: TokenAst
@@ -265,6 +281,27 @@ class FunctionParameterOptionalAst(Ast):
         s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
         s += f"{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)} {self.assignment_token.print(printer)} {self.default_value.print(printer)}"
         return s
+
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+        symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
+            ast_initialized=self,
+            is_borrow_ref=isinstance(self.convention, ConventionRefAst),
+            is_borrow_mut=isinstance(self.convention, ConventionMutAst),
+            ast_borrow=self))
+        s.current.add_symbol(symbol)
+
+        # self.default_value.do_semantic_analysis(s)
+
+        if not isinstance(self.convention, ConventionMovAst):
+            exception = SemanticError(f"Optional parameters must use the by-val convention:")
+            exception.add_traceback(self.convention.pos, f"Convention '{self.convention}' used here.")
+            raise exception
+
+        # if self.type_declaration != self.default_value.infer_type():
+        #     exception = SemanticError(f"Optional parameter type does not match default value type:")
+        #     exception.add_traceback(self.type_declaration.pos, f"Parameter type '{self.type_declaration}' declared here.")
+        #     exception.add_traceback(self.default_value.pos, f"Default value type '{self.default_value.infer_type()}' inferred here.")
+        #     raise exception
 
     def __eq__(self, other):
         return isinstance(other, FunctionParameterOptionalAst) and self.identifier == other.identifier
@@ -286,6 +323,15 @@ class FunctionParameterVariadicAst(Ast):
         s += f"{self.variadic_token.print(printer)}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)}"
         return s
 
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+        # TODO : type declaration for variadics will need to be checked later: tuple?
+        symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
+            ast_initialized=self,
+            is_borrow_ref=isinstance(self.convention, ConventionRefAst),
+            is_borrow_mut=isinstance(self.convention, ConventionMutAst),
+            ast_borrow=self))
+        s.current.add_symbol(symbol)
+
     def __eq__(self, other):
         return isinstance(other, FunctionParameterVariadicAst) and self.identifier == other.identifier
 
@@ -306,7 +352,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.parameters).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         # Check no parameters have the same name
         if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
@@ -322,9 +368,11 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
             exception = SemanticError(f"Invalid parameter order in function prototype:")
-            exception.add_traceback(difference[0][1].pos, f"{ordering[difference[0][0]]} parameter '{difference[0][1]}' declared here.")
-            exception.add_traceback(difference[1][1].pos, f"{ordering[difference[1][0]]} parameter '{difference[1][1]}' declared here.")
+            exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} parameter '{difference[-2][1]}' declared here.")
+            exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} parameter '{difference[-1][1]}' declared here.")
             raise exception
+
+        Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(s))
 
 
 @dataclass
@@ -461,7 +509,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         s.current_scope.add_symbol(VariableSymbol(copy.deepcopy(self.identifier), self._fn_type))
         s.prev_scope()
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         next(s)
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
         # self.generic_parameters.do_semantic_analysis(s)
@@ -726,7 +774,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     def generate(self, s: ScopeHandler) -> None:
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         ...
 
 
@@ -935,7 +983,7 @@ class ModulePrototypeAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}\n{self.module_keyword.print(printer)}{self.identifier.print(printer)}\n{self.body.print(printer)}"
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         Seq(self.annotations).for_each(lambda x: x.do_semantic_analysis(s))
         # self.identifier.do_semantic_analysis(s)
         self.body.do_semantic_analysis(s)
@@ -949,7 +997,7 @@ class ModuleImplementationAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.members).print(printer, "\n\n")}"
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         Seq(self.members).for_each(lambda x: x.do_semantic_analysis(s))
 
 
@@ -1174,7 +1222,7 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     def generate(self, s: ScopeHandler) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.generate(s))
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         self.module.do_semantic_analysis(s)
 
 
@@ -1237,7 +1285,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.prev_scope()
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         next(s)
         # Seq(self.generic_parameters.parameters).for_each(lambda p: p.do_semantic_analysis(s))
         # self.where_block.do_semantic_analysis(s)
@@ -1264,7 +1312,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
             return
         super().pre_process(context)
 
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         super().do_semantic_analysis(s)
 
 
