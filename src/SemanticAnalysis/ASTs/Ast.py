@@ -117,10 +117,11 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         self._mod = context.identifier
 
     def generate(self, s: ScopeHandler) -> None:
+        s.current_scope.add_symbol(TypeSymbol(self.identifier, self))
         s.into_new_scope(self.identifier)
         Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
+        s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
         s.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
@@ -137,6 +138,9 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
             exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' declared here.")
             exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' re-declared here.")
             raise exception
+
+    def __json__(self):
+        return self.identifier
 
 
 @dataclass
@@ -254,6 +258,7 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
@@ -283,6 +288,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
@@ -308,7 +314,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class FunctionParameterVariadicAst(Ast):
+class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
     is_mutable: Optional[TokenAst]
     variadic_token: TokenAst
     identifier: IdentifierAst
@@ -323,14 +329,15 @@ class FunctionParameterVariadicAst(Ast):
         s += f"{self.variadic_token.print(printer)}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # TODO : type declaration for variadics will need to be checked later: tuple?
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self))
-        s.current.add_symbol(symbol)
+        scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
         return isinstance(other, FunctionParameterVariadicAst) and self.identifier == other.identifier
@@ -1435,7 +1442,7 @@ class TokenAst(Ast):
 
 
 @dataclass
-class TypeSingleAst(Ast):
+class TypeSingleAst(Ast, SemanticAnalysis):
     parts: List[TypePartAst]
 
     @ast_printer_method
@@ -1454,8 +1461,17 @@ class TypeSingleAst(Ast):
             for g in part.generic_arguments.arguments if part.generic_arguments else []:
                 g.type.substitute_generics(from_ty, to_ty)
 
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        if not scope_handler.current_scope.get_symbol(self):
+            exception = SemanticError(f"Type {self} is not defined")
+            exception.add_traceback(self.pos, f"Type {self} used here")
+            raise exception
+
     def __eq__(self, other):
         return isinstance(other, TypeSingleAst) and self.parts == other.parts
+
+    def __hash__(self):
+        return int.from_bytes(hashlib.md5("".join([str(p) for p in self.parts]).encode()).digest())
 
     def __json__(self) -> str:
         printer = AstPrinter()
