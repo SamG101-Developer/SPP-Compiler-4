@@ -6,14 +6,16 @@ import hashlib
 import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Self
+from typing import Iterator, List, Optional, Self
 
-from SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
+from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
 from src.SemanticAnalysis.ASTs.AstPrinter import AstPrinter, ast_printer_method, ast_printer_method_indent
 from src.SemanticAnalysis.PreProcessor import PreProcessor
 from src.SemanticAnalysis.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
 
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.Utils.Sequence import Seq
@@ -30,6 +32,10 @@ class Ast(ABC):
     
     def __eq__(self, other):
         return isinstance(other, Ast)
+
+    def __str__(self):
+        printer = AstPrinter()
+        return self.print(printer)
 
 
 @dataclass
@@ -67,7 +73,7 @@ class BinaryExpressionAst(Ast):
 
 
 @dataclass
-class ClassAttributeAst(Ast):
+class ClassAttributeAst(Ast, SemanticAnalysis):
     annotations: List[AnnotationAst]
     identifier: IdentifierAst
     colon_token: TokenAst
@@ -77,9 +83,13 @@ class ClassAttributeAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.type_declaration.print(printer)}"
 
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
+        self.type_declaration.do_semantic_analysis(s)
+
 
 @dataclass
-class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator):
+class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     annotations: List[AnnotationAst]
     class_token: TokenAst
     identifier: TypeAst
@@ -112,6 +122,21 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator):
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
         s.prev_scope()
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        scope = next(s)
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
+        # self.generic_parameters.do_semantic_analysis(s)
+        # self.where_block.do_semantic_analysis(s)
+        # self.body.do_semantic_analysis(s)
+
+        # Check that no attributes have the same name as each other.
+        if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
+            duplicate_attributes = Seq(self.body.members).map(lambda m: m.identifier).non_unique_items()[0]
+            exception = SemanticError(f"Duplicate attributes '{duplicate_attributes[0]}' found on type '{self.identifier}':")
+            exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' declared here.")
+            exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' re-declared here.")
+            raise exception
 
 
 @dataclass
@@ -857,7 +882,7 @@ class ModuleIdentifierAst(Ast):
 
 
 @dataclass
-class ModulePrototypeAst(Ast):
+class ModulePrototypeAst(Ast, SemanticAnalysis):
     annotations: List[AnnotationAst]
     module_keyword: TokenAst
     identifier: ModuleIdentifierAst
@@ -867,14 +892,22 @@ class ModulePrototypeAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}\n{self.module_keyword.print(printer)}{self.identifier.print(printer)}\n{self.body.print(printer)}"
 
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        Seq(self.annotations).for_each(lambda x: x.do_semantic_analysis(s))
+        # self.identifier.do_semantic_analysis(s)
+        self.body.do_semantic_analysis(s)
+
 
 @dataclass
-class ModuleImplementationAst(Ast):
+class ModuleImplementationAst(Ast, SemanticAnalysis):
     members: List[ModuleMemberAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.members).print(printer, "\n\n")}"
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(s))
 
 
 @dataclass
@@ -1083,7 +1116,7 @@ PostfixMemberPartAst = (
 
 
 @dataclass
-class ProgramAst(Ast, PreProcessor, SymbolGenerator):
+class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     module: ModulePrototypeAst
     eof_token: TokenAst
 
@@ -1096,6 +1129,9 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator):
 
     def generate(self, s: ScopeHandler) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.generate(s))
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        self.module.do_semantic_analysis(s)
 
 
 @dataclass
@@ -1127,7 +1163,7 @@ class SupMethodPrototypeAst(FunctionPrototypeAst):
 
 
 @dataclass
-class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator):
+class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     sup_keyword: TokenAst
     generic_parameters: GenericParameterGroupAst
     identifier: TypeAst
@@ -1156,6 +1192,9 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator):
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.prev_scope()
 
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        ...
+
 
 @dataclass
 class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
@@ -1171,6 +1210,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        ...
 
 
 SupPrototypeAst = (
