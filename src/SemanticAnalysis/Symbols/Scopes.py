@@ -68,10 +68,12 @@ class ScopeHandler:
 
     def __iter__(self):
         def iterate(scope: Scope):
+            self._current_scope = scope
             yield scope
+
             for child_scope in scope._children_scopes:
                 yield from iterate(child_scope)
-            raise SystemExit("ScopeHandler.__iter__(): This should never happen.")
+            self._current_scope = self.global_scope
         return iterate(self._global_scope)
 
     @property
