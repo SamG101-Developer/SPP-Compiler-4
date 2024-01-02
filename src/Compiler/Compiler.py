@@ -15,9 +15,10 @@ class Compiler:
     def compile(self) -> Ast:
         tokens = Lexer(self._code).lex()
         ast = Parser(tokens, self._file_path).parse()
-        Analyser(ast).analyse()
+        Analyser(tokens, ast).analyse()
 
         ast_printer = Ast.AstPrinter()
-        print(ast.print(ast_printer))
+        # print(ast.print(ast_printer))
+
 
         return ast
