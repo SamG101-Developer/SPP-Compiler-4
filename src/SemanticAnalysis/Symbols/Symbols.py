@@ -41,8 +41,8 @@ class VariableSymbol(Symbol):
 
 @dataclass
 class TypeSymbol(Symbol):
-    name: IdentifierAst
-    type: TypeAst
+    name: TypeAst
+    type: Optional[ClassPrototypeAst]  # None for generic types
 
     def __json__(self) -> dict:
         return {
@@ -60,8 +60,8 @@ class SymbolTable[SymbolType]:
     def add(self, symbol: SymbolType) -> None:
         self._internal_table[symbol.name] = symbol
 
-    def get(self, name: str) -> Optional[SymbolType]:
-        return self._internal_table.get(name)
+    def get(self, name: str, default=None) -> Optional[SymbolType]:
+        return self._internal_table.get(name, default)
 
     def set(self, name: str, symbol: SymbolType) -> None:
         self._internal_table[name] = symbol
