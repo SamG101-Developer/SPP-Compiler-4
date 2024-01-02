@@ -11,6 +11,9 @@ class ErrorFormatter:
         self._file_path = file_path
 
     def error(self, start_pos: int, end_pos: int = -1, message: str = ""):
+        while self._tokens[start_pos].token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
+            start_pos += 1
+
         # Get the tokens at the start and end of the line containing the error. Skip the leading newline.
         error_line_start_pos = [i for i, x in enumerate(self._tokens[:start_pos]) if x.token_type == TokenType.TkNewLine][-1] + 1
         error_line_end_pos = [i for i, x in enumerate(self._tokens[start_pos:]) if x.token_type == TokenType.TkNewLine][0] + start_pos
