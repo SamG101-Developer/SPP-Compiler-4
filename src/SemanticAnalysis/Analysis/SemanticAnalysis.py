@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
 
-from src.SemanticAnalysis.Symbols.Scopes import Scope
+from src.SemanticAnalysis.Symbols.Scopes import ScopeIterator
 
 
 class SemanticAnalysis(ABC):
     @abstractmethod
-    def do_semantic_analysis(self, s: Iterator[Scope]) -> None:
+    def do_semantic_analysis(self, s: ScopeIterator) -> None:
         pass

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json_fix
 from abc import abstractmethod
-from typing import Any, Final, Optional
+from typing import Any, Final, Optional, Iterator
 
 from src.SemanticAnalysis.Symbols.Symbols import SymbolTable, Symbol, TypeSymbol, VariableSymbol
 
@@ -50,6 +50,23 @@ class StructureScope(Scope):
     _symbol_table: SymbolTable[VariableSymbol]
 
 
+class ScopeIterator:
+    _iterator: Iterator[Scope]
+    _current: Optional[Scope]
+
+    def __init__(self, iterator: Iterator[Scope]):
+        self._iterator = iterator
+        self._current = None
+
+    def __next__(self, default: Optional[Scope] = None):
+        self._current = next(self._iterator, default)
+        return self._current
+
+    @property
+    def current(self) -> Optional[Scope]:
+        return self._current
+
+
 class ScopeHandler:
     _global_scope: Final[Scope]
     _current_scope: Scope
@@ -66,15 +83,15 @@ class ScopeHandler:
     def prev_scope(self):
         self._current_scope = self._current_scope._parent_scope
 
-    def __iter__(self):
-        def iterate(scope: Scope):
+    def __iter__(self) -> ScopeIterator:
+        def iterate(scope: Scope) -> Iterator[Scope]:
             self._current_scope = scope
             yield scope
 
             for child_scope in scope._children_scopes:
                 yield from iterate(child_scope)
             self._current_scope = self.global_scope
-        return iterate(self._global_scope)
+        return ScopeIterator(iterate(self._global_scope))
 
     @property
     def current_scope(self) -> Scope:
