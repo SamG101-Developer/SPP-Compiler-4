@@ -452,7 +452,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             context.body.members.append(mock_let_statement)
 
         call_method_ast = FunctionPrototypeAst(
-            pos=-1,
+            pos=self.pos,
             annotations=[],
             fun_token=TokenAst.dummy(TokenType.KwFun),
             identifier=function_call_name,
@@ -498,9 +498,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
 
     def _deduce_function_call_name(self, function_class_type: TypeAst) -> IdentifierAst:
         match function_class_type.parts[-1].value:
-            case "FunRef": return IdentifierAst(-1, "call_ref")
-            case "FunMut": return IdentifierAst(-1, "call_mut")
-            case "FunOne": return IdentifierAst(-1, "call_one")
+            case "FunRef": return IdentifierAst(self.identifier.pos, "call_ref")
+            case "FunMut": return IdentifierAst(self.identifier.pos, "call_mut")
+            case "FunOne": return IdentifierAst(self.identifier.pos, "call_one")
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
     def generate(self, s: ScopeHandler) -> None:
@@ -519,6 +519,13 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         # self.return_type.do_semantic_analysis(s)
         # self.where_block.do_semantic_analysis(s)
         self.body.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Check that there a return statement at the end fo a non-Void function
+        if self.return_type != CommonTypes.void() and self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst):
+            exception = SemanticError(f"Missing return statement in non-Void function:")
+            exception.add_traceback(self.pos, f"Function '{self.identifier}' declared here.")
+            exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
+            raise exception
 
 
 @dataclass
@@ -694,7 +701,7 @@ class InnerScopeAst[T](Ast, SemanticAnalysis):
     
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.into_new_scope("<inner-scope>")
-        # Seq(self.members).for_each(lambda m: m.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs))
+        Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
         scope_handler.exit_cur_scope()
 
 
@@ -1244,7 +1251,7 @@ class ResidualInnerScopeAst(Ast):
 
 
 @dataclass
-class ReturnStatementAst(Ast):
+class ReturnStatementAst(Ast, SemanticAnalysis):
     return_keyword: TokenAst
     expression: Optional[ExpressionAst]
 
@@ -1254,6 +1261,11 @@ class ReturnStatementAst(Ast):
         s += f"{self.return_keyword.print(printer)}"
         s += f"{self.expression.print(printer)}" if self.expression else ""
         return s
+
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        self.expression.do_semantic_analysis(scope_handler, **kwargs) if self.expression else None
+        # todo : check memory status of object being returned
+        # todo : infer type of expression and check against kwargs["target_return_type"]
 
 
 @dataclass
