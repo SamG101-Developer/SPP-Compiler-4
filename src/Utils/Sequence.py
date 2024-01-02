@@ -51,6 +51,19 @@ class Seq[T]:
     def contains_duplicates(self) -> bool:
         return self.non_unique_items().not_empty()
 
+    def sort(self, key: Callable[[T], any] = None, reverse: bool = False) -> Seq[T]:
+        return Seq(sorted(self._value, key=key, reverse=reverse))
+
+    def is_sorted(self, key: Callable[[T], any] = None, reverse: bool = False) -> bool:
+        return self.sort(key=key, reverse=reverse) == self
+
+    def ordered_difference(self, other: Seq[T]) -> Seq[T]:
+        out = []
+        for x, y in zip(self, other):
+            if x != y:
+                out.append(y)
+        return Seq(out)
+
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
 
@@ -59,6 +72,12 @@ class Seq[T]:
 
     def __setitem__(self, key: int, value: T) -> None:
         self._value[key] = value
+
+    def __sub__(self, other):
+        return Seq([x for x in self._value if x not in other])
+
+    def __eq__(self, other):
+        return self._value == other._value
 
     @property
     def value(self) -> List[T]:
