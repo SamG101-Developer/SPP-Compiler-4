@@ -83,9 +83,9 @@ class ClassAttributeAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.type_declaration.print(printer)}"
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
-        self.type_declaration.do_semantic_analysis(s)
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
+        # self.type_declaration.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
 
 
 @dataclass
@@ -117,18 +117,18 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         self._mod = context.identifier
 
     def generate(self, s: ScopeHandler) -> None:
-        s.next_scope(self.identifier)
+        s.into_new_scope(self.identifier)
         Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.current_scope.add_symbol(TypeSymbol(IdentifierAst(-1, "Self"), copy.deepcopy(self.identifier)))
-        s.prev_scope()
+        s.exit_cur_scope()
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        scope = next(s)
-        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
-        # self.generic_parameters.do_semantic_analysis(s)
-        # self.where_block.do_semantic_analysis(s)
-        # self.body.do_semantic_analysis(s)
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        scope_handler.move_to_next_scope()
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
+        # self.generic_parameters.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
+        # self.where_block.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
+        # self.body.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
 
         # Check that no attributes have the same name as each other.
         if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
@@ -229,13 +229,13 @@ class FunctionParameterSelfAst(Ast, SemanticAnalysis):
     def __eq__(self, other):
         return isinstance(other, FunctionParameterSelfAst)
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         symbol = VariableSymbol(self.identifier, CommonTypes.self(), is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self))
-        s.current.add_symbol(symbol)
+        scope_handler.current_scope.add_symbol(symbol)
 
 
 @dataclass
@@ -253,13 +253,13 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
         s += f"{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self))
-        s.current.add_symbol(symbol)
+        scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
         return isinstance(other, FunctionParameterRequiredAst) and self.identifier == other.identifier
@@ -282,15 +282,15 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
         s += f"{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.convention.print(printer)}{self.type_declaration.print(printer)} {self.assignment_token.print(printer)} {self.default_value.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self))
-        s.current.add_symbol(symbol)
+        scope_handler.current_scope.add_symbol(symbol)
 
-        # self.default_value.do_semantic_analysis(s)
+        # self.default_value.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
 
         if not isinstance(self.convention, ConventionMovAst):
             exception = SemanticError(f"Optional parameters must use the by-val convention:")
@@ -352,7 +352,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.parameters).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Check no parameters have the same name
         if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
@@ -372,7 +372,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
             exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} parameter '{difference[-1][1]}' declared here.")
             raise exception
 
-        Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(s))
+        Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -504,19 +504,21 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
     def generate(self, s: ScopeHandler) -> None:
-        s.next_scope(self.identifier)
+        s.into_new_scope(self.identifier)
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.current_scope.add_symbol(VariableSymbol(copy.deepcopy(self.identifier), self._fn_type))
-        s.prev_scope()
+        s.exit_cur_scope()
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        next(s)
-        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        scope_handler.move_to_next_scope()
+        kwargs |= {"target_return_type": self.return_type}
+
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         # self.generic_parameters.do_semantic_analysis(s)
-        self.parameters.do_semantic_analysis(s)
+        self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.return_type.do_semantic_analysis(s)
         # self.where_block.do_semantic_analysis(s)
-        # self.body.do_semantic_analysis(s)
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -677,7 +679,7 @@ class IfExpressionAst(Ast):
 
 
 @dataclass
-class InnerScopeAst[T](Ast):
+class InnerScopeAst[T](Ast, SemanticAnalysis):
     brace_l_token: TokenAst
     members: List[T]
     brace_r_token: TokenAst
@@ -689,6 +691,11 @@ class InnerScopeAst[T](Ast):
         s += f"\n{Seq(self.members).print(printer, "\n")}\n" if self.members else ""
         s += f"{self.brace_r_token.print(printer)}"
         return s
+    
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        scope_handler.into_new_scope("<inner-scope>")
+        # Seq(self.members).for_each(lambda m: m.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs))
+        scope_handler.exit_cur_scope()
 
 
 @dataclass
@@ -774,7 +781,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     def generate(self, s: ScopeHandler) -> None:
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         ...
 
 
@@ -983,10 +990,10 @@ class ModulePrototypeAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.annotations).print(printer, "\n")}\n{self.module_keyword.print(printer)}{self.identifier.print(printer)}\n{self.body.print(printer)}"
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        Seq(self.annotations).for_each(lambda x: x.do_semantic_analysis(s))
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        Seq(self.annotations).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
         # self.identifier.do_semantic_analysis(s)
-        self.body.do_semantic_analysis(s)
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -997,8 +1004,8 @@ class ModuleImplementationAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.members).print(printer, "\n\n")}"
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(s))
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -1222,8 +1229,8 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     def generate(self, s: ScopeHandler) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.generate(s))
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        self.module.do_semantic_analysis(s)
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        self.module.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -1280,16 +1287,16 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         self.body.members = Seq(self.body.members).filter(lambda m: not isinstance(m, FunctionPrototypeAst)).value
 
     def generate(self, s: ScopeHandler) -> None:
-        s.next_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP"))
+        s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP"))
         Seq(self.body.members).for_each(lambda m: m.generate(s))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.prev_scope()
+        s.exit_cur_scope()
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        next(s)
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        scope_handler.move_to_next_scope()
         # Seq(self.generic_parameters.parameters).for_each(lambda p: p.do_semantic_analysis(s))
         # self.where_block.do_semantic_analysis(s)
-        Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(s))
+        Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -1312,8 +1319,8 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
             return
         super().pre_process(context)
 
-    def do_semantic_analysis(self, s: ScopeIterator) -> None:
-        super().do_semantic_analysis(s)
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        super().do_semantic_analysis(scope_handler, **kwargs)
 
 
 SupPrototypeAst = (

@@ -74,24 +74,28 @@ class ScopeHandler:
     def __init__(self):
         self._global_scope = Scope("Global")
         self._current_scope = self._global_scope
+        self._iterator = iter(self)
 
-    def next_scope(self, name: Any):
+    def into_new_scope(self, name: Any):
         new_scope = Scope(name, self._current_scope)
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
 
-    def prev_scope(self):
+    def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope
 
     def __iter__(self) -> ScopeIterator:
         def iterate(scope: Scope) -> Iterator[Scope]:
-            self._current_scope = scope
             yield scope
 
             for child_scope in scope._children_scopes:
                 yield from iterate(child_scope)
             self._current_scope = self.global_scope
         return ScopeIterator(iterate(self._global_scope))
+
+    def move_to_next_scope(self) -> Scope:
+        self._current_scope = next(self._iterator)
+        return self._current_scope
 
     @property
     def current_scope(self) -> Scope:

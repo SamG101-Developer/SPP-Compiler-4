@@ -27,7 +27,7 @@ class Analyser:
             f.write(json.dumps(scope_handler.current_scope, indent=4))
 
         try:
-            self._ast.do_semantic_analysis(iter(scope_handler))
+            self._ast.do_semantic_analysis(scope_handler)
         except SemanticError as e:
             final_error = str(e)
             for error in e.additional_info:
