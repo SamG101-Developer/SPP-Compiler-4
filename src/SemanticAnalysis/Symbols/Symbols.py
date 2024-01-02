@@ -2,27 +2,19 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 import json_fix
 
 
+@dataclass
 class MemoryStatus:
-    is_borrow_ref: bool
-    is_borrow_mut: bool
+    is_borrow_ref: bool = dataclasses.field(default=False)
+    is_borrow_mut: bool = dataclasses.field(default=False)
 
-    ast_initialized: Optional[Ast]
-    ast_consumed: Optional[Ast]
-    ast_borrows: list[Ast]
-    ast_partial_moves: list[Ast]
-
-    def __init__(self):
-        self.is_borrow_ref = False
-        self.is_borrow_mut = False
-
-        self.ast_initialized = None
-        self.ast_consumed = None
-        self.ast_borrows = []
-        self.ast_partial_moves = []
+    ast_initialized: Optional[Ast] = dataclasses.field(default=None)
+    ast_consumed: Optional[Ast] = dataclasses.field(default=None)
+    ast_borrow: Optional[Ast] = dataclasses.field(default=None)
+    ast_partial_moves: List[Ast] = dataclasses.field(default_factory=list)
 
     @property
     def is_borrow(self) -> bool:
@@ -37,7 +29,7 @@ class Symbol:
 class VariableSymbol(Symbol):
     name: IdentifierAst
     type: TypeAst
-    mutable: bool = dataclasses.field(default=False)
+    is_mutable: bool = dataclasses.field(default=False)
     memory_info: MemoryStatus = dataclasses.field(default_factory=MemoryStatus)
 
     def __json__(self) -> dict:
