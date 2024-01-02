@@ -22,10 +22,10 @@ class Scope:
     def add_symbol(self, symbol: Symbol) -> None:
         self._symbol_table.add(symbol)
 
-    def get_symbol(self, name: str) -> Optional[Symbol]:
-        return self._symbol_table.get(name)
+    def get_symbol(self, name: str | TypeAst) -> Optional[Symbol]:
+        return self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
 
-    def set_symbol(self, name: str, symbol: Symbol) -> None:
+    def set_symbol(self, name: str | TypeAst, symbol: Symbol) -> None:
         self._symbol_table.set(name, symbol)
 
     def __json__(self) -> dict:
