@@ -71,6 +71,8 @@ class ScopeHandler:
             yield scope
             for child_scope in scope._children_scopes:
                 yield from iterate(child_scope)
+            raise SystemExit("ScopeHandler.__iter__(): This should never happen.")
+        return iterate(self._global_scope)
 
     @property
     def current_scope(self) -> Scope:
