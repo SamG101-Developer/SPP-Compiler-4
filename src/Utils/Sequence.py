@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Iterable, Callable, Sized
+from typing import List, Callable, Iterator
 
 
 class Seq[T]:
-    _value: Iterable[T]
+    _value: List[T]
 
-    def __init__(self, value: Iterable[T]) -> None:
+    def __init__(self, value: List[T]) -> None:
         self._value = value
 
     def for_each(self, func: Callable[[T], None]) -> None:
@@ -38,8 +38,30 @@ class Seq[T]:
     def not_empty(self) -> bool:
         return len(self._value) != 0
 
+    def unique_items(self) -> Seq[T]:
+        return Seq(list(set(self._value)))  # TODO : use an ordered set to maintain the order of the items every time
+
+    def non_unique_items(self) -> Seq[Seq[T]]:
+        items = []
+        for x in self.unique_items():
+            if self._value.count(x) > 1:
+                items.append([y for y in self._value if y == x])
+        return Seq(items)
+
+    def contains_duplicates(self) -> bool:
+        return self.non_unique_items().not_empty()
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._value)
+
+    def __getitem__(self, key: int) -> T:
+        return self._value[key]
+
+    def __setitem__(self, key: int, value: T) -> None:
+        self._value[key] = value
+
     @property
-    def value(self) -> int:
+    def value(self) -> List[T]:
         return self._value
 
     @property
