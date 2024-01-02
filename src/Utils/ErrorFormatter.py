@@ -1,4 +1,7 @@
 from typing import List
+
+from colorama import Fore, Style
+
 from src.LexicalAnalysis.Tokens import Token, TokenType
 
 
@@ -42,10 +45,10 @@ class ErrorFormatter:
 
         left_padding = " " * len(str(error_line_number))
         final_error_message = "\n".join([
-            f"\n\nError in file {self._file_path} on line {error_line_number}:",
+            f"\n\n{Fore.WHITE}{Style.BRIGHT}Error in file {self._file_path} on line {error_line_number}:",
             f"{left_padding} |",
-            f"{error_line_number} | {error_line_as_string}",
-            f"{left_padding} | {carets_line_as_string}{formatted_message}"
+            f"{Fore.RED}{error_line_number} | {error_line_as_string}",
+            f"{left_padding} | {Style.RESET_ALL}{carets_line_as_string}{formatted_message}"
         ])
 
         return final_error_message

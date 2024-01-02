@@ -1,10 +1,10 @@
-from dataclasses import asdict
-from pprint import pprint
+import colorama
 
 from src.Compiler.Compiler import Compiler
 
 
 def main():
+    colorama.init()
     file_path = "../test/main.spp"
     with open(file_path, "r") as file:
         code = file.read()
