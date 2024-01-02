@@ -286,7 +286,7 @@ FunctionParameterAst = (
 
 
 @dataclass
-class FunctionParameterGroupAst(Ast):
+class FunctionParameterGroupAst(Ast, SemanticAnalysis):
     paren_l_token: TokenAst
     parameters: List[FunctionParameterAst]
     paren_r_token: TokenAst
@@ -294,9 +294,17 @@ class FunctionParameterGroupAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.parameters).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
+            duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
+            exception = SemanticError(f"Duplicate parameters '{duplicate_parameters[0]}' found in function prototype:")
+            exception.add_traceback(duplicate_parameters[0].pos, f"Parameter '{duplicate_parameters[0]}' declared here.")
+            exception.add_traceback(duplicate_parameters[1].pos, f"Parameter '{duplicate_parameters[1]}' re-declared here.")
+            raise exception
+
 
 @dataclass
-class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator):
+class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     annotations: List[AnnotationAst]
     fun_token: TokenAst
     identifier: IdentifierAst
@@ -368,8 +376,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator):
                 residual=None,
                 _sup_let_type=function_class_type)
 
-            context.body.members.insert(0, mock_let_statement)
-            context.body.members.insert(0, mock_class_ast)
+            context.body.members.append(mock_class_ast)
+            context.body.members.append(mock_let_statement)
 
         call_method_ast = FunctionPrototypeAst(
             pos=-1,
@@ -397,8 +405,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator):
                 members=[call_method_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
-        context.body.members.insert(0, sup_block_ast)
-        context.body.members.remove(self)
+        context.body.members.append(sup_block_ast)
+        # context.body.members.remove(self)
         self._fn_type = function_class_type
 
     def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
@@ -429,6 +437,15 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator):
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.current_scope.add_symbol(VariableSymbol(copy.deepcopy(self.identifier), self._fn_type))
         s.prev_scope()
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        next(s)
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(s))
+        # self.generic_parameters.do_semantic_analysis(s)
+        self.parameters.do_semantic_analysis(s)
+        # self.return_type.do_semantic_analysis(s)
+        # self.where_block.do_semantic_analysis(s)
+        # self.body.do_semantic_analysis(s)
 
 
 @dataclass
@@ -665,7 +682,7 @@ class LambdaPrototypeAst(Ast):
 
 
 @dataclass
-class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator):
+class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     let_keyword: TokenAst
     assign_to: LocalVariableAst
     assign_token: TokenAst
@@ -685,6 +702,9 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator):
 
     def generate(self, s: ScopeHandler) -> None:
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
+
+    def do_semantic_analysis(self, s: Iterator[ScopeHandler]) -> None:
+        ...
 
 
 @dataclass
@@ -1126,6 +1146,7 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.pre_process(context))
+        self.module.body.members = Seq(self.module.body.members).filter(lambda m: not isinstance(m, FunctionPrototypeAst)).value
 
     def generate(self, s: ScopeHandler) -> None:
         Seq(self.module.body.members).for_each(lambda m: m.generate(s))
@@ -1183,8 +1204,12 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
+        if self.identifier.parts[-1].value in ["__MOCK_call_ref", "__MOCK_call_mut", "__MOCK_call_one"]:
+            return
+
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
+        self.body.members = Seq(self.body.members).filter(lambda m: not isinstance(m, FunctionPrototypeAst)).value
 
     def generate(self, s: ScopeHandler) -> None:
         s.next_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP"))
