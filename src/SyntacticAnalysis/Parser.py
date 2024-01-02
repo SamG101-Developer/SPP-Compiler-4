@@ -1482,6 +1482,8 @@ class Parser:
             self._errors.append(new_error)
             raise new_error
 
+        c1 = self.current_pos()
+
         while token_type != TokenType.TkNewLine and self.current_tok().token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
             self._index += 1
         while token_type == TokenType.TkNewLine and self.current_tok().token_type == TokenType.TkWhitespace:
@@ -1500,7 +1502,6 @@ class Parser:
                 self._errors.append(new_error)
                 raise new_error
 
-        # self._errors.clear()
-        r = TokenAst(self.current_pos(), self.current_tok())
+        r = TokenAst(c1, self.current_tok())
         self._index += 1
         return r
