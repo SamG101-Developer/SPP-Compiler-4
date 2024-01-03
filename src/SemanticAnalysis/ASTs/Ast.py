@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import dataclasses
 import hashlib
+import json
+
 import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -112,7 +114,7 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         function_call = self._as_function_call()
         function_call.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
         # TODO : special case for ".." as an operand
 
         function_call = self._as_function_call()
@@ -166,9 +168,8 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     def generate(self, s: ScopeHandler) -> None:
         sym = TypeSymbol(self.identifier, self)
         s.current_scope.add_symbol(sym)
-        sym.associated_scope = s.current_scope
-
         s.into_new_scope(self.identifier)
+        sym.associated_scope = s.current_scope
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
@@ -935,7 +936,9 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
             exception.add_traceback(self.pos, f"Identifier '{self.value}' used here.")
             raise exception
 
-    def infer_type(self, scope_handler: ScopeHandler) -> TypeAst:
+        scope_handler.current_scope.get_symbol(self).type.do_semantic_analysis(scope_handler, **kwargs)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
         sym = scope_handler.current_scope.get_symbol(self)
         return sym.type
 
@@ -981,7 +984,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         scope_handler.exit_cur_scope()
 
-    def infer_type(self, scope_handler) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
         return self.branches[0].body.members[-1].infer_type(scope_handler) if self.branches and self.branches[0].body.members else CommonTypes.void()
 
 
@@ -1146,12 +1149,12 @@ class LiteralNumberBase10Ast(Ast, SemanticAnalysis, TypeInfer):
         # TODO: don't allow [float -> int] conversion
         ...
 
-    def infer_type(self, scope_handler) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
         if self.primitive_type:
-            return TypeSingleAst(self.primitive_type.pos, [GenericIdentifierAst(self.primitive_type.pos, self.primitive_type.value, None)])
+            return TypeSingleAst(pos=self.primitive_type.pos, parts=[GenericIdentifierAst(self.primitive_type.pos, self.primitive_type.value, None)])
         if self.number.token.token_type == TokenType.LxDecFloat:
-            return CommonTypes.big_dec()
-        return CommonTypes.big_num()
+            return CommonTypes.big_dec(self.pos)
+        return CommonTypes.big_num(self.pos)
 
     def __eq__(self, other):
         return isinstance(other, LiteralNumberBase10Ast) and self.sign == other.sign and self.number == other.number and self.primitive_type == other.primitive_type
@@ -1200,7 +1203,7 @@ class LiteralStringAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         pass
 
-    def infer_type(self, scope_handler) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
         return CommonTypes.str()
 
 
@@ -1415,7 +1418,7 @@ class ObjectInitializerAst(Ast, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.class_type.print(printer)}{self.arguments.print(printer)}"
 
-    def infer_type(self, scope_handler: ScopeHandler) -> TypeAst:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
         return self.class_type
 
 
@@ -1432,7 +1435,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
         return self.expression.infer_type(scope_handler)
 
 
@@ -1595,7 +1598,7 @@ class PatternGuardAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class PostfixExpressionAst(Ast, SemanticAnalysis):
+class PostfixExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     lhs: ExpressionAst
     op: PostfixExpressionOperatorAst
 
@@ -1606,6 +1609,9 @@ class PostfixExpressionAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.lhs.do_semantic_analysis(scope_handler, **kwargs)
         self.op.do_semantic_analysis(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
+        return self.op.infer_type(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
 
 
 @dataclass
@@ -1682,7 +1688,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type()).associated_scope
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).associated_scope
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
@@ -1699,11 +1705,26 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
                 raise exception
 
         # Check that, for attribute access, the attribute exists on the type being accessed.
-        elif isinstance(self.identifier, IdentifierAst) and not lhs_type_scope.has_symbol(self.identifier.value):
+        elif isinstance(self.identifier, IdentifierAst) and not lhs_type_scope.has_symbol(self.identifier):
+            print(lhs_type_scope._scope_name)
+            print(scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).name)
+            print(json.dumps(lhs_type_scope.all_symbols(), indent=4))
             exception = SemanticError(f"Undefined attribute '{self.identifier.value}':")
-            exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here.")
+            exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type(scope_handler)}' found here.")
             exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
             raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
+        lhs = kwargs.get("postfix-lhs")
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).associated_scope
+
+        #
+        if isinstance(self.identifier, LiteralNumberBase10Ast):
+            return lhs.infer_type().parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)]
+
+        #
+        elif isinstance(self.identifier, IdentifierAst):
+            return lhs_type_scope.get_symbol(self.identifier).type
 
 
 @dataclass
@@ -2160,7 +2181,6 @@ class WithExpressionAliasAst(Ast, SemanticAnalysis):
         return f"{self.variable.print(printer)}{self.assign_token.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        print("let")
         let_statement = LetStatementInitializedAst(
             pos=self.variable.pos,
             let_keyword=TokenAst.dummy(TokenType.KwLet),
