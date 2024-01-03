@@ -1,57 +1,57 @@
 class CommonTypes:
     @staticmethod
-    def self():
+    def self(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Self", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Self", None)])
 
     @staticmethod
-    def void():
+    def void(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Void", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Void", None)])
 
     @staticmethod
-    def bool():
+    def bool(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Bool", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Bool", None)])
 
     @staticmethod
-    def big_num():
+    def big_num(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "BigNum", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "BigNum", None)])
 
     @staticmethod
-    def big_dec():
+    def big_dec(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "BigDec", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "BigDec", None)])
 
     @staticmethod
-    def str():
+    def str(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Str", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Str", None)])
 
     @staticmethod
-    def rgx():
+    def rgx(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Rgx", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Rgx", None)])
 
     @staticmethod
-    def ctx():
+    def ctx(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Ctx", None)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Ctx", None)])
 
     @staticmethod
-    def arr(elem_type):
+    def arr(elem_type, pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         elem_type = GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [GenericArgumentNormalAst(-1, elem_type)], TokenAst.dummy(TokenType.TkBrackR))
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Arr", elem_type)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Arr", elem_type)])
 
     @staticmethod
-    def tuple(types):
+    def tuple(types, pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         types = GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [GenericArgumentNormalAst(-1, x) for x in types], TokenAst.dummy(TokenType.TkBrackR))
-        return TypeSingleAst(-1, [GenericIdentifierAst(-1, "Tuple", types)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Tuple", types)])
 
     @staticmethod
     def fun_ref(return_type, param_types, pos: int = -1):
@@ -59,7 +59,7 @@ class CommonTypes:
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
         param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
-        return TypeSingleAst(pos, [GenericIdentifierAst(-1, "FunRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fun_mut(return_type, param_types, pos: int = -1):
@@ -67,7 +67,7 @@ class CommonTypes:
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
         param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
-        return TypeSingleAst(pos, [GenericIdentifierAst(-1, "FunMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fun_one(return_type, param_types, pos: int = -1):
@@ -75,4 +75,4 @@ class CommonTypes:
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
         param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
-        return TypeSingleAst(pos, [GenericIdentifierAst(-1, "FunOne", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunOne", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
