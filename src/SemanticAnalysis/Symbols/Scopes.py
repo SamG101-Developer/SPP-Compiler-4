@@ -35,6 +35,8 @@ class Scope:
         return self.get_symbol(name) is not None
 
     def set_symbol(self, name: IdentifierAst | TypeAst, symbol: TypeSymbol | VariableSymbol) -> None:
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
+        assert isinstance(name, IdentifierAst) or type(symbol) in TypeAst.__args__
         self._symbol_table.set(name, symbol)
 
     def all_symbols(self) -> List[TypeSymbol | VariableSymbol]:
