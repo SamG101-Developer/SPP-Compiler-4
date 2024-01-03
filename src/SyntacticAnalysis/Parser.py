@@ -289,7 +289,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
         p2 = self.parse_convention().parse_once()
-        p3 = self.parse_token(TokenType.KwSelf).parse_once()
+        p3 = self.parse_self_keyword().parse_once()
         return FunctionParameterSelfAst(c1, p1, p2, p3)
 
     @parser_rule
