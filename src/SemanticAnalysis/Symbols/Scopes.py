@@ -94,7 +94,6 @@ class ScopeHandler:
 
     def __iter__(self) -> ScopeIterator:
         def iterate(scope: Scope) -> Iterator[Scope]:
-            # print("HERE!", self._current_scope._scope_name, [str(c._scope_name) for c in scope._children_scopes])
             for child_scope in scope._children_scopes:
                 yield child_scope
                 yield from iterate(child_scope)
@@ -102,12 +101,7 @@ class ScopeHandler:
         return ScopeIterator(iterate(self._global_scope))
 
     def move_to_next_scope(self) -> Scope:
-        current = self.current_scope._scope_name if self._current_scope else "?"
         self._current_scope = next(self._iterator)
-        now = self.current_scope._scope_name if self._current_scope else "?"
-
-        print(f"moved from {current} to {now}")
-
         return self._current_scope
 
     @property
