@@ -104,6 +104,12 @@ class ScopeHandler:
         self._current_scope = next(self._iterator)
         return self._current_scope
 
+    def at_global_scope(self, parent_level: int = 0) -> bool:
+        scope_to_check = self.current_scope
+        for _ in range(parent_level):
+            scope_to_check = scope_to_check._parent_scope
+        return scope_to_check == self._global_scope
+
     @property
     def current_scope(self) -> Scope:
         return self._current_scope
