@@ -225,6 +225,10 @@ class FunctionParameterSelfAst(Ast, SemanticAnalysis):
     is_mutable: Optional[TokenAst]
     convention: ConventionAst
     identifier: TokenAst
+    type_declaration: TypeAst = dataclasses.field(default=None)
+
+    def __post_init__(self):
+        self.type_declaration = CommonTypes.self()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -362,7 +366,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.parameters).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Check no parameters have the same name
         if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
@@ -380,6 +384,20 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
             exception = SemanticError(f"Invalid parameter order in function prototype:")
             exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} parameter '{difference[-2][1]}' declared here.")
             exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} parameter '{difference[-1][1]}' declared here.")
+            raise exception
+
+        # Check that the function is class method, not in the module global space, if there is a "self" parameter
+        if self.parameters and isinstance(self.parameters[0], FunctionParameterSelfAst) and scope_handler.at_global_scope(parent_level=2):
+            exception = SemanticError(f"Can only use the 'self' parameter within a class:")
+            exception.add_traceback(self.parameters[0].pos, f"Parameter '{self.parameters[0]}' declared here.")
+            raise exception
+
+        # Check that there is a maximum of 1 variadic parameter
+        variadic_parameters = Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst))
+        if variadic_parameters.length > 1:
+            exception = SemanticError(f"Invalid parameter order in function prototype:")
+            exception.add_traceback(variadic_parameters[0].pos, f"1st variadic parameter '{variadic_parameters[0]}' declared here.")
+            exception.add_traceback(variadic_parameters[1].pos, f"2nd variadic parameter '{variadic_parameters[1]}' declared here.")
             raise exception
 
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
@@ -461,7 +479,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             context.body.members.append(mock_class_ast)
             context.body.members.append(mock_let_statement)
 
-        call_method_ast = FunctionPrototypeAst(
+        call_method_ast = SupMethodPrototypeAst(
             pos=self.pos,
             annotations=[],
             fun_token=TokenAst.dummy(TokenType.KwFun),
@@ -492,7 +510,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
 
     def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
         is_method = not isinstance(context, ModulePrototypeAst)
-        has_self_parameter = isinstance(self.parameters.parameters[0], FunctionParameterSelfAst)
+        has_self_parameter = self.parameters.parameters and isinstance(self.parameters.parameters[0], FunctionParameterSelfAst)
         parameter_types = Seq(self.parameters.parameters).map(lambda p: p.type_declaration).value
         return_type = self.return_type
 
@@ -601,7 +619,7 @@ class GenericIdentifierAst(Ast):
 
 
 @dataclass
-class GenericParameterRequiredAst(Ast):
+class GenericParameterRequiredAst(Ast, SemanticAnalysis):
     identifier: TypeAst
     inline_constraints: Optional[GenericParameterInlineConstraintAst]
 
@@ -614,6 +632,9 @@ class GenericParameterRequiredAst(Ast):
         s += f"{self.identifier.print(printer)}"
         s += f"{self.inline_constraints.print(printer)}" if self.inline_constraints else ""
         return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
 
 
 @dataclass
@@ -667,6 +688,14 @@ class GenericParameterGroupAst(Ast, SemanticAnalysis):
         return [p for p in self.parameters if isinstance(p, GenericParameterVariadicAst)]
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Check no parameters have the same name
+        if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
+            duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
+            exception = SemanticError(f"Duplicate parameters '{duplicate_parameters[0]}' found in function prototype:")
+            exception.add_traceback(duplicate_parameters[0].pos, f"Parameter '{duplicate_parameters[0]}' declared here.")
+            exception.add_traceback(duplicate_parameters[1].pos, f"Parameter '{duplicate_parameters[1]}' re-declared here.")
+            raise exception
+
         # Check parameter order is Self -> Required -> Optional -> Variadic
         ordering = {GenericParameterRequiredAst: "Required", GenericParameterOptionalAst: "Optional", GenericParameterVariadicAst: "Variadic"}
         current_classifications = Seq(self.parameters).map(lambda p: (type(p), p))
