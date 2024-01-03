@@ -22,6 +22,7 @@ class Analyser:
 
         self._ast.pre_process(root_context)
         self._ast.generate(scope_handler)
+        # scope_handler.reset()
 
         with open("../bin/symbol_table.json", "w") as f:
             f.write(json.dumps(scope_handler.current_scope, indent=4))
