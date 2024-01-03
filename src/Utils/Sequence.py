@@ -9,7 +9,7 @@ class Seq[T]:
     def __init__(self, value: List[T]) -> None:
         self._value = value
 
-    def for_each(self, func: Callable[[T], None]) -> None:
+    def for_each[U](self, func: Callable[[T], U]) -> None:
         for v in self._value: func(v)
 
     def map[U](self, func: Callable[[T], U]) -> Seq[U]:
@@ -48,6 +48,9 @@ class Seq[T]:
                 items.append([y for y in self._value if y == x])
         return Seq(items)
 
+    def non_unique_items_flat(self) -> Seq[T]:
+        return self.non_unique_items().map(lambda x: x[0])
+
     def contains_duplicates(self) -> bool:
         return self.non_unique_items().not_empty()
 
@@ -63,6 +66,15 @@ class Seq[T]:
             if x != y:
                 out.append(y)
         return Seq(out)
+
+    def zip[U](self, other: Seq[U]) -> Seq[tuple[T, U]]:
+        return Seq(list(zip(self._value, other._value)))
+
+    def all(self, func: Callable[[T], bool]) -> bool:
+        return all(func(x) for x in self._value)
+
+    def any(self, func: Callable[[T], bool]) -> bool:
+        return any(func(x) for x in self._value)
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
