@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json_fix
-from typing import Any, Final, Optional, Iterator, List
+from typing import Any, Final, Optional, Iterator, List, Tuple
+
+from ordered_set import OrderedSet
 
 from src.SemanticAnalysis.Symbols.Symbols import SymbolTable, Symbol, TypeSymbol, VariableSymbol
 
@@ -10,24 +12,32 @@ class Scope:
     _scope_name: Any
     _parent_scope: Optional[Scope]
     _children_scopes: list[Scope]
-    _symbol_table: SymbolTable[Symbol]
+    _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
+    _sup_scopes: List[Tuple[Scope, SupPrototypeInheritanceAst]]
 
     def __init__(self, name: str, parent_scope: Optional[Scope] = None):
         self._scope_name = name
         self._parent_scope = parent_scope
         self._children_scopes = []
         self._symbol_table = SymbolTable()
+        self._sup_scopes = []
 
-    def add_symbol(self, symbol: Symbol) -> None:
+    def add_symbol(self, symbol: TypeSymbol | VariableSymbol) -> TypeSymbol | VariableSymbol:
         self._symbol_table.add(symbol)
+        return symbol
 
-    def get_symbol(self, name: str | TypeAst) -> Optional[Symbol]:
+    def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
+        if not isinstance(name, IdentifierAst): name = name.without_generics()
         return self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
 
-    def set_symbol(self, name: str | TypeAst, symbol: Symbol) -> None:
+    def has_symbol(self, name: IdentifierAst | TypeAst) -> bool:
+        return self.get_symbol(name) is not None
+
+    def set_symbol(self, name: IdentifierAst | TypeAst, symbol: TypeSymbol | VariableSymbol) -> None:
         self._symbol_table.set(name, symbol)
 
-    def all_symbols(self) -> List[Symbol]:
+    def all_symbols(self) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all()
 
     def __json__(self) -> dict:
@@ -39,18 +49,26 @@ class Scope:
             "symbol_table": self._symbol_table
         }
 
+    @property
+    def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
+        # The sup scopes are a tree of scopes
+        # however, die to inheritance, say C inherits A and B, and B inherits A, then the sup scopes must be B and B'a
+        # A, so use a set to make sure that the 2nd A isn't added too
 
-class TypeScope(Scope):
-    _sup_scopes: list[Scope]
-    _symbol_table: SymbolTable[TypeSymbol]
+        # all_sup_scopes = OrderedSet()
+        # for sup_scope in self._sup_scopes:
+        #     all_sup_scopes.add(sup_scope)
+        #     all_sup_scopes.update(sup_scope.sup_scopes)
+        # return all_sup_scopes
 
-    def __init__(self, name: str, parent_scope: Optional[Scope] = None):
-        super().__init__(name, parent_scope)
-        self._sup_scopes = []
-
-
-class StructureScope(Scope):
-    _symbol_table: SymbolTable[VariableSymbol]
+        all_sup_scopes = []
+        scopes_read = []
+        for sup_scope, ast in self._sup_scopes:
+            if sup_scope in scopes_read: continue
+            all_sup_scopes.append((sup_scope, ast))
+            all_sup_scopes.extend(sup_scope.sup_scopes)
+            scopes_read.append(sup_scope)
+        return all_sup_scopes
 
 
 class ScopeIterator:
