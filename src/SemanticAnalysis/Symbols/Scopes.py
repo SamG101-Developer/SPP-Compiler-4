@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json_fix
-from abc import abstractmethod
-from typing import Any, Final, Optional, Iterator
+from typing import Any, Final, Optional, Iterator, List
 
 from src.SemanticAnalysis.Symbols.Symbols import SymbolTable, Symbol, TypeSymbol, VariableSymbol
 
@@ -28,8 +27,12 @@ class Scope:
     def set_symbol(self, name: str | TypeAst, symbol: Symbol) -> None:
         self._symbol_table.set(name, symbol)
 
+    def all_symbols(self) -> List[Symbol]:
+        return self._symbol_table.all()
+
     def __json__(self) -> dict:
         return {
+            "what": "scope",
             "name": self._scope_name,
             "parent_scope": self._parent_scope._scope_name if self._parent_scope else None,
             "children_scopes": [child for child in self._children_scopes],
@@ -58,8 +61,8 @@ class ScopeIterator:
         self._iterator = iterator
         self._current = None
 
-    def __next__(self, default: Optional[Scope] = None):
-        self._current = next(self._iterator, default)
+    def __next__(self):
+        self._current = next(self._iterator)
         return self._current
 
     @property
@@ -70,6 +73,7 @@ class ScopeIterator:
 class ScopeHandler:
     _global_scope: Final[Scope]
     _current_scope: Scope
+    _iterator: ScopeIterator
 
     def __init__(self):
         self._global_scope = Scope("Global")
@@ -84,17 +88,26 @@ class ScopeHandler:
     def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope
 
+    def reset(self):
+        self._current_scope = self._global_scope
+        self._iterator = iter(self)
+
     def __iter__(self) -> ScopeIterator:
         def iterate(scope: Scope) -> Iterator[Scope]:
-            yield scope
-
+            # print("HERE!", self._current_scope._scope_name, [str(c._scope_name) for c in scope._children_scopes])
             for child_scope in scope._children_scopes:
+                yield child_scope
                 yield from iterate(child_scope)
-            self._current_scope = self.global_scope
+
         return ScopeIterator(iterate(self._global_scope))
 
     def move_to_next_scope(self) -> Scope:
+        current = self.current_scope._scope_name if self._current_scope else "?"
         self._current_scope = next(self._iterator)
+        now = self.current_scope._scope_name if self._current_scope else "?"
+
+        print(f"moved from {current} to {now}")
+
         return self._current_scope
 
     @property
