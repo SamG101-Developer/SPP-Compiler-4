@@ -34,6 +34,7 @@ class VariableSymbol(Symbol):
 
     def __json__(self) -> dict:
         return {
+            "what": "variable",
             "name": self.name,
             "type": self.type,
         }
@@ -46,6 +47,7 @@ class TypeSymbol(Symbol):
 
     def __json__(self) -> dict:
         return {
+            "what": "type",
             "name": self.name,
             "type": self.type,
         }
@@ -65,6 +67,9 @@ class SymbolTable[SymbolType]:
 
     def set(self, name: str, symbol: SymbolType) -> None:
         self._internal_table[name] = symbol
+
+    def all(self) -> List[SymbolType]:
+        return [x for x in self._internal_table.values()]
 
     def __json__(self) -> dict:
         return {
