@@ -6,5 +6,5 @@ from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 
 class TypeInfer(ABC):
     @abstractmethod
-    def infer_type(self, scope_handler: ScopeHandler) -> TypeAst:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
         pass
