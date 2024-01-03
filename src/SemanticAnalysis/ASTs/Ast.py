@@ -85,7 +85,7 @@ class ClassAttributeAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
-        # self.type_declaration.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -119,17 +119,18 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     def generate(self, s: ScopeHandler) -> None:
         s.current_scope.add_symbol(TypeSymbol(self.identifier, self))
         s.into_new_scope(self.identifier)
-        Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
         s.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
+
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         # self.generic_parameters.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
         # self.where_block.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
-        # self.body.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
+        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
 
         # Check that no attributes have the same name as each other.
         if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
@@ -138,6 +139,8 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
             exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' declared here.")
             exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' re-declared here.")
             raise exception
+
+        scope_handler.exit_cur_scope()
 
     def __json__(self):
         return self.identifier
@@ -534,6 +537,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
             raise exception
 
+        scope_handler.exit_cur_scope()
+
 
 @dataclass
 class GenericArgumentNormalAst(Ast):
@@ -600,6 +605,9 @@ class GenericParameterRequiredAst(Ast):
     identifier: TypeAst
     inline_constraints: Optional[GenericParameterInlineConstraintAst]
 
+    def __post_init__(self):
+        self.identifier = TypeSingleAst(self.identifier.pos, [GenericIdentifierAst(self.identifier.pos, self.identifier.value, None)])
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
@@ -613,6 +621,9 @@ class GenericParameterOptionalAst(GenericParameterRequiredAst):
     assignment_token: TokenAst
     default_value: TypeAst
 
+    def __post_init__(self):
+        pass
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{super().print(printer)} {self.assignment_token.print(printer)} {self.default_value.print(printer)}"
@@ -621,6 +632,9 @@ class GenericParameterOptionalAst(GenericParameterRequiredAst):
 @dataclass
 class GenericParameterVariadicAst(GenericParameterRequiredAst):
     variadic_token: TokenAst
+
+    def __post_init__(self):
+        pass
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -634,7 +648,7 @@ GenericParameterAst = (
 
 
 @dataclass
-class GenericParameterGroupAst(Ast):
+class GenericParameterGroupAst(Ast, SemanticAnalysis):
     bracket_l_token: TokenAst
     parameters: List[GenericParameterAst]
     bracket_r_token: TokenAst
@@ -651,6 +665,9 @@ class GenericParameterGroupAst(Ast):
 
     def get_var(self) -> List[GenericParameterVariadicAst]:
         return [p for p in self.parameters if isinstance(p, GenericParameterVariadicAst)]
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
 
 
 @dataclass
@@ -707,9 +724,12 @@ class InnerScopeAst[T](Ast, SemanticAnalysis):
         return s
     
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        scope_handler.into_new_scope("<inner-scope>")
-        Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
-        scope_handler.exit_cur_scope()
+        if kwargs.get("inline-block", False):
+            Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+        else:
+            scope_handler.into_new_scope("<inner-scope>")
+            Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+            scope_handler.exit_cur_scope()
 
 
 @dataclass
@@ -1316,6 +1336,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         # Seq(self.generic_parameters.parameters).for_each(lambda p: p.do_semantic_analysis(s))
         # self.where_block.do_semantic_analysis(s)
         Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+        scope_handler.exit_cur_scope()
 
 
 @dataclass
@@ -1462,9 +1483,13 @@ class TypeSingleAst(Ast, SemanticAnalysis):
                 g.type.substitute_generics(from_ty, to_ty)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # print(scope_handler.current_scope._parent_scope._parent_scope._scope_name)
+        # for x in scope_handler.current_scope._parent_scope._parent_scope.all_symbols():
+        #     print(f"{x.name} => {json.dumps(x)}")
+
         if not scope_handler.current_scope.get_symbol(self):
-            exception = SemanticError(f"Type {self} is not defined")
-            exception.add_traceback(self.pos, f"Type {self} used here")
+            exception = SemanticError(f"Type '{self}' is not defined:")
+            exception.add_traceback(self.pos, f"Type '{self}' used here.")
             raise exception
 
     def __eq__(self, other):
