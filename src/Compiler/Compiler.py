@@ -20,5 +20,4 @@ class Compiler:
         ast_printer = Ast.AstPrinter()
         # print(ast.print(ast_printer))
 
-
         return ast
