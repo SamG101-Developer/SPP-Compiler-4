@@ -128,7 +128,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         scope_handler.move_to_next_scope()
 
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
-        # self.generic_parameters.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
         self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
 
@@ -524,7 +524,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         kwargs |= {"target_return_type": self.return_type}
 
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
-        # self.generic_parameters.do_semantic_analysis(s)
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.return_type.do_semantic_analysis(s)
         # self.where_block.do_semantic_analysis(s)
@@ -667,7 +667,18 @@ class GenericParameterGroupAst(Ast, SemanticAnalysis):
         return [p for p in self.parameters if isinstance(p, GenericParameterVariadicAst)]
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Check parameter order is Self -> Required -> Optional -> Variadic
+        ordering = {GenericParameterRequiredAst: "Required", GenericParameterOptionalAst: "Optional", GenericParameterVariadicAst: "Variadic"}
+        current_classifications = Seq(self.parameters).map(lambda p: (type(p), p))
+        sorted_classifications = current_classifications.sort(key=lambda t: list(ordering.keys()).index(t[0]))
+        if current_classifications != sorted_classifications:
+            difference = sorted_classifications.ordered_difference(current_classifications)
+            exception = SemanticError(f"Invalid generic parameter order:")
+            exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} generic parameter '{difference[-2][1]}' declared here.")
+            exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} generic parameter '{difference[-1][1]}' declared here.")
+            raise exception
+
+        Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -1333,7 +1344,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
-        # Seq(self.generic_parameters.parameters).for_each(lambda p: p.do_semantic_analysis(s))
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
         Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
         scope_handler.exit_cur_scope()
