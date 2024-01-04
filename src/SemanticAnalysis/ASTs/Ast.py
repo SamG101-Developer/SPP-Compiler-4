@@ -296,7 +296,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
         # Begin memory checks here to prevent overlaps of borrows.
         borrows_ref = OrderedSet()
         borrows_mut = OrderedSet()
-        function = kwargs["function-called"]
+        # function = kwargs["function-called"]
 
         for argument in self.arguments:
             argument.value.do_semantic_analysis(scope_handler, **kwargs)
@@ -1636,7 +1636,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check that the function being called exists with this overload.
-        mock_function_object_name = IdentifierAst(-1, f"__MOCK_{kwargs.get("postfix-lhs")}")
+        mock_function_object_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, f"__MOCK_{kwargs.get("postfix-lhs")}", None)])
         mock_function_object_name.do_semantic_analysis(scope_handler, **kwargs)
         mock_function_object = scope_handler.current_scope.get_symbol(mock_function_object_name)
 
@@ -1670,10 +1670,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
 
         message = ""
         for function_overload in function_overloads:
-            message += f"\n\t{kwargs.get("postfix-lhs")}({Seq(function_overload.parameters.parameters).map(lambda p: p.convention).zip(Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration)).map(lambda t: f"{t[0]} {t[1]}").map(lambda p: str(p) + ", ")}) -> {function_overload.return_type}"
+            message += f"\n\t{kwargs.get("postfix-lhs")}({", ".join(Seq(function_overload.parameters.parameters)
+                    .map(lambda p: p.convention)
+                    .zip(Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration))
+                    .map(lambda t: f"{t[0]}{t[1]}").value)}) -> {function_overload.return_type}"
 
         exception = SemanticError(f"Invalid function call:")
-        exception.add_traceback(self.pos, f"Function call '{self}' found here. Available overloads:{message}")
+        exception.add_traceback(self.pos, f"Function call '{self}' found here.")
+        exception.add_footer(f"Valid overloads are:{message}")
         raise exception
 
 
@@ -1706,9 +1710,6 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
         # Check that, for attribute access, the attribute exists on the type being accessed.
         elif isinstance(self.identifier, IdentifierAst) and not lhs_type_scope.has_symbol(self.identifier):
-            print(lhs_type_scope._scope_name)
-            print(scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).name)
-            print(json.dumps(lhs_type_scope.all_symbols(), indent=4))
             exception = SemanticError(f"Undefined attribute '{self.identifier.value}':")
             exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type(scope_handler)}' found here.")
             exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
@@ -1818,7 +1819,7 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         if self.expression.infer_type(scope_handler) != target_return_type:
             exception = SemanticError(f"Returning variable of incorrect type:")
             exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type {self.expression.infer_type(scope_handler)}.")
+            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{self.expression.infer_type(scope_handler)}'.")
             raise exception
 
 
@@ -1888,14 +1889,21 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         super().pre_process(context)
 
     def generate(self, s: ScopeHandler) -> None:
-        super().generate(s)
+        s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP"))
         cls_scope = s.current_scope.get_symbol(self.identifier).associated_scope
-        new_scope = s.current_scope.get_symbol(self.super_class).associated_scope
-        cls_scope._sup_scopes.append((new_scope, self))
+        cls_scope._sup_scopes.append((s.current_scope, self))
+        Seq(self.body.members).for_each(lambda m: m.generate(s))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        s.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        super().do_semantic_analysis(scope_handler, **kwargs)
+        scope_handler.move_to_next_scope()
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
+        # self.where_block.do_semantic_analysis(s)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+        Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+        scope_handler.exit_cur_scope()
 
         # TODO : check there are no direct duplicate sup super-classes
         # TODO : check overriden typedefs & methods appear on super-class
@@ -2223,6 +2231,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
             self.alias.do_semantic_analysis(scope_handler, **(kwargs | {"with-expression-value": self.expression}))
 
         self.body.do_semantic_analysis(scope_handler, **kwargs)
+        scope_handler.exit_cur_scope()
 
 
 @dataclass
