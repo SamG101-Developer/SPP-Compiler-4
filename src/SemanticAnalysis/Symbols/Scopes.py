@@ -29,7 +29,15 @@ class Scope:
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
         if not isinstance(name, IdentifierAst): name = name.without_generics()
-        return self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
+        sym = self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
+        if sym:
+            return sym
+
+        # TODO : search in sup scopes too
+        # for sup_scope, _ in self._sup_scopes:
+        #     sym = sup_scope.get_symbol(name)
+        #     if sym:
+        #         return sym
 
     def has_symbol(self, name: IdentifierAst | TypeAst) -> bool:
         return self.get_symbol(name) is not None

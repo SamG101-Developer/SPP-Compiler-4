@@ -1649,9 +1649,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+        function_name = kwargs.get("postfix-lhs")
 
         # Check that the function being called exists with this overload.
-        mock_function_object_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, f"__MOCK_{kwargs.get("postfix-lhs")}", None)])
+        mock_function_object_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, f"__MOCK_{function_name}", None)])
         mock_function_object_name.do_semantic_analysis(scope_handler, **kwargs)
         mock_function_object = scope_handler.current_scope.get_symbol(mock_function_object_name)
 
@@ -1662,12 +1663,17 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
         # TODO : variadic parameter, optional parameters
-        for function_overload in function_overloads:
-            argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
-            argument_conventions = Seq(self.arguments.arguments).map(lambda a: a.convention)
+        argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
+        argument_conventions = Seq(self.arguments.arguments).map(lambda a: a.convention)
 
+        error_message = f""
+        for function_overload in function_overloads:
             parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration)
             parameter_conventions = Seq(function_overload.parameters.parameters).map(lambda p: p.convention)
+            error_message += (
+                f"\n\t{function_name}"
+                f"({", ".join(parameter_types.zip(parameter_conventions).map(lambda t: f"{t[0]}{t[1]}").value)}) "
+                f"-> {function_overload.return_type}")
 
             if argument_types.length != parameter_types.length:
                 continue
@@ -1683,16 +1689,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
 
             return
 
-        message = ""
-        for function_overload in function_overloads:
-            message += f"\n\t{kwargs.get("postfix-lhs")}({", ".join(Seq(function_overload.parameters.parameters)
-                    .map(lambda p: p.convention)
-                    .zip(Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration))
-                    .map(lambda t: f"{t[0]}{t[1]}").value)}) -> {function_overload.return_type}"
-
         exception = SemanticError(f"Invalid function call:")
-        exception.add_traceback(self.pos, f"Function call '{self}' found here.")
-        exception.add_footer(f"Valid overloads are:{message}")
+        exception.add_traceback(self.pos, (
+            f"Function call"
+            f"'({", ".join(argument_types.zip(argument_conventions).map(lambda t: f"{t[0]}{t[1]}").value)})'"
+            f"found here."))
+        exception.add_footer(f"Valid overloads are:{error_message}")
         raise exception
 
 
