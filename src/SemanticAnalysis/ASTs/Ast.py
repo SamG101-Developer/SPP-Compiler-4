@@ -370,13 +370,14 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
                     # For a mutable borrow to take place, ensure that no other overlapping part of the variable is
                     # already borrowed immutably or mutably.
-                    for existing_borrow in borrows_ref | borrows_mut:
-                        existing_borrow_check = str(existing_borrow)
-                        if existing_borrow_check.startswith(str(argument.value)):
+                    for i, existing_borrow in borrows_ref | borrows_mut:
+                        if existing_borrow.startswith(str(argument.value)):
                             exception = SemanticError(f"Cannot take a mutable borrow to an object '{argument.value}' that's already borrowed:")
-                            exception.add_traceback(existing_borrow.pos, f"Object '{argument.value}' already borrowed here.")
+                            exception.add_traceback(i, f"Object '{argument.value}' already borrowed here.")
                             exception.add_traceback(argument.convention.pos, f"Object '{argument.value}' attempted to ebe borrowed mutably here.")
                             raise exception
+
+                    borrows_mut.add((argument.value.pos, str(argument.value)))
 
                 case ConventionRefAst():
                     # Can only take a borrow from a (postfix) identifier.
@@ -387,13 +388,15 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
                     # For an immutable borrow to take place, ensure that no other overlapping part of the variable is
                     # already borrowed mutably.
-                    for existing_borrow in borrows_mut:
+                    for i, existing_borrow in borrows_mut:
                         existing_borrow_check = str(existing_borrow)
                         if existing_borrow_check.startswith(str(argument.value)):
                             exception = SemanticError(f"Cannot take a immutable borrow to an object '{argument.value}' that's already mutably borrowed:")
-                            exception.add_traceback(existing_borrow.pos, f"Object '{argument.value}' already mutably borrowed here.")
-                            exception.add_traceback(argument.convention.pos, f"Object '{argument.value}' attempted to ebe borrowed immutably here.")
+                            exception.add_traceback(i, f"Object '{argument.value}' already mutably borrowed here.")
+                            exception.add_traceback(argument.convention.pos, f"Object '{argument.value}' attempted to be borrowed immutably here.")
                             raise exception
+
+                    borrows_ref.add((argument.value.pos, str(argument.value)))
 
 
 @dataclass
@@ -1687,6 +1690,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
 
             self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            return
 
         exception = SemanticError(f"Invalid function call:")
         exception.add_traceback(self.pos, (
