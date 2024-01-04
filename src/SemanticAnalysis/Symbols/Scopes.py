@@ -40,7 +40,7 @@ class Scope:
         self._symbol_table.set(name, symbol)
 
     def all_symbols(self) -> List[TypeSymbol | VariableSymbol]:
-        return self._symbol_table.all()
+        return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope else [])
 
     def __json__(self) -> dict:
         return {
@@ -56,13 +56,6 @@ class Scope:
         # The sup scopes are a tree of scopes
         # however, die to inheritance, say C inherits A and B, and B inherits A, then the sup scopes must be B and B'a
         # A, so use a set to make sure that the 2nd A isn't added too
-
-        # all_sup_scopes = OrderedSet()
-        # for sup_scope in self._sup_scopes:
-        #     all_sup_scopes.add(sup_scope)
-        #     all_sup_scopes.update(sup_scope.sup_scopes)
-        # return all_sup_scopes
-
         all_sup_scopes = []
         scopes_read = []
         for sup_scope, ast in self._sup_scopes:
@@ -70,6 +63,7 @@ class Scope:
             all_sup_scopes.append((sup_scope, ast))
             all_sup_scopes.extend(sup_scope.sup_scopes)
             scopes_read.append(sup_scope)
+
         return all_sup_scopes
 
 
