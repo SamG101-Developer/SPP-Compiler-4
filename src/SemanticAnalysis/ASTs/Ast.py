@@ -301,6 +301,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
             raise exception
 
         # TODO : Expand tuple into multiple arguments, so that each part is analysed.
+        # TODO : Check memory status of symbols too, not just their convention.
 
         # Begin memory checks here to prevent overlaps of borrows.
         borrows_ref = OrderedSet()
@@ -1107,6 +1108,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
         sym = VariableSymbol(
             name=self.assign_to.identifier,
             type=self.value.infer_type(scope_handler),
@@ -1428,13 +1430,89 @@ class ObjectInitializerArgumentGroupAst(Ast):
 
 
 @dataclass
-class ObjectInitializerAst(Ast, TypeInfer):
+class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
     class_type: TypeAst
     arguments: ObjectInitializerArgumentGroupAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.class_type.print(printer)}{self.arguments.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+
+        type_scope = scope_handler.current_scope.get_symbol(self.class_type).associated_scope
+        attributes = type_scope.all_symbols(exclusive=True)
+        sup_classes = type_scope.exclusive_sup_scopes
+
+        # Check if a default value has been given in "else=":
+        default_value_given = (Seq(self.arguments.arguments)
+               .filter(lambda a: isinstance(a, ObjectInitializerArgumentNamedAst))
+               .filter(lambda a: isinstance(a.identifier, TokenAst) and a.identifier.token.token_type == TokenType.KwElse))
+
+        # Check there is a maximum of 1 default value given:
+        if default_value_given.length > 1:
+            exception = SemanticError(f"Multiple default values given in object initializer:")
+            exception.add_traceback(default_value_given[0].pos, f"1st default value given here.")
+            exception.add_traceback(default_value_given[1].pos, f"2nd default value given here.")
+            raise exception
+
+        # Check that the default value is of the correct type:
+        if default_value_given and self.class_type != default_value_given[0].value.infer_type(scope_handler):
+            exception = SemanticError(f"Invalid type '{default_value_given[0].value.infer_type(scope_handler)}' given to object initializer:")
+            exception.add_traceback(self.class_type.pos, f"Object initializer declared here with type '{self.class_type}'.")
+            exception.add_traceback(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given[0].value.infer_type(scope_handler)}'.")
+            raise exception
+
+        # Check that each attribute has been given a value if there is no default value:
+        if not default_value_given:
+            for attribute in Seq(attributes).filter(lambda s: isinstance(s, VariableSymbol)):
+                if not Seq(self.arguments.arguments).map(lambda a: a.identifier).contains(attribute.name):
+                    exception = SemanticError(f"Missing attribute '{attribute.name}' in object initializer:")
+                    exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here.")
+                    exception.add_traceback(self.pos, f"Object initializer declared here.")
+                    raise exception
+
+        # Check that each attribute's given value is of the correct type:
+        for attribute in Seq(attributes).filter(lambda s: isinstance(s, VariableSymbol)):
+            given_argument = Seq(self.arguments.arguments).filter(lambda a: a.identifier == attribute.name)
+
+            # No argument given means that the default value will be used.
+            if not given_argument:
+                continue
+
+            given_argument = given_argument[0]
+            given_argument = given_argument.value if isinstance(given_argument, ObjectInitializerArgumentNamedAst) else given_argument.identifier
+            if attribute.type != given_argument.infer_type(scope_handler):
+                exception = SemanticError(f"Invalid type '{given_argument.infer_type(scope_handler)}' given to attribute '{attribute.name}':")
+                exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here with type '{attribute.type}'.")
+                exception.add_traceback(given_argument.pos, f"Attribute '{attribute.name}' given value here with type '{given_argument.infer_type(scope_handler)}'.")
+                raise exception
+
+        # TODO : below
+        # Check that each parent class has a value given in "sup=", if the parent class is stateful:
+        # for parent_class in Seq(sup_classes).filter(lambda s: s.all_symbols(exclusive=True).filter(lambda s: isinstance(s, VariableSymbol)).length > 0):
+        #     sup_argument = (Seq(self.arguments.arguments)
+        #             .filter(lambda a: isinstance(a, ObjectInitializerArgumentNamedAst))
+        #             .filter(lambda a: isinstance(a.identifier, TokenAst) and a.identifier.token.token_type == TokenType.KwSup))
+        #
+        #     # Check that there is a maximum of 1 "sup=" argument given:
+        #     if sup_argument.length > 1:
+        #         exception = SemanticError(f"Multiple 'sup=' arguments given in object initializer:")
+        #         exception.add_traceback(sup_argument[0].pos, f"1st 'sup=' argument given here.")
+        #         exception.add_traceback(sup_argument[1].pos, f"2nd 'sup=' argument given here.")
+        #         raise exception
+        #
+        #     # Check that the "sup=" argument is of the correct type:
+        #     sup_class_types = Seq(sup_classes).map(lambda s: s.type).value
+        #     if sup_argument and sup_argument[0].value.infer_type(scope_handler) != CommonTypes.tuple(sup_class_types):
+        #         exception = SemanticError(f"Invalid type '{sup_argument[0].value.infer_type(scope_handler)}' given to 'sup=':")
+        #         exception.add_traceback(sup_argument[0].value.pos, f"'sup=' argument given here with type '{sup_argument[0].value.infer_type(scope_handler)}', instead of '{CommonTypes.tuple(sup_class_types)}'.")
+        #         exception.add_traceback(self.pos, f"Object initializer declared here.")
+        #         raise exception
+
+        # TODO : generic arguments
+        # TODO : check the memory status of the object initializer arguments
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
         return self.class_type
