@@ -76,6 +76,9 @@ class Seq[T]:
     def any(self, func: Callable[[T], bool]) -> bool:
         return any(func(x) for x in self._value)
 
+    def contains(self, item: T) -> bool:
+        return item in self._value
+
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
 
@@ -90,6 +93,9 @@ class Seq[T]:
 
     def __eq__(self, other):
         return self._value == other._value
+
+    def __bool__(self):
+        return self.not_empty()
 
     @property
     def value(self) -> List[T]:

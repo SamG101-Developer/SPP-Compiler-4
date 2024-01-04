@@ -48,8 +48,8 @@ class Scope:
         assert isinstance(name, IdentifierAst) or type(symbol) in TypeAst.__args__
         self._symbol_table.set(name, symbol)
 
-    def all_symbols(self) -> List[TypeSymbol | VariableSymbol]:
-        return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope else [])
+    def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
+        return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])
 
     def __json__(self) -> dict:
         return {
@@ -74,6 +74,10 @@ class Scope:
             scopes_read.append(sup_scope)
 
         return all_sup_scopes
+
+    @property
+    def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
+        return self._sup_scopes
 
 
 class ScopeIterator:
