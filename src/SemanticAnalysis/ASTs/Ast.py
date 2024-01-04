@@ -9,7 +9,7 @@ import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from ordered_set import OrderedSet
-from typing import List, Optional, Self
+from typing import List, Optional, Self, Any, Tuple, Type
 
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol, MemoryStatus
@@ -114,11 +114,11 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         function_call = self._as_function_call()
         function_call.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         # TODO : special case for ".." as an operand
 
         function_call = self._as_function_call()
-        return function_call.infer_type()
+        return function_call.infer_type(scope_handler, **kwargs)
 
 
 @dataclass
@@ -202,6 +202,10 @@ class ConventionMovAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f""
 
+    @staticmethod
+    def default() -> str:
+        return f""
+
     def __eq__(self, other):
         return isinstance(other, ConventionMovAst)
 
@@ -213,6 +217,10 @@ class ConventionRefAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.ampersand_token.print(printer)}"
+
+    @staticmethod
+    def default() -> str:
+        return f"&"
 
     def __eq__(self, other):
         return isinstance(other, ConventionRefAst)
@@ -227,8 +235,30 @@ class ConventionMutAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.ampersand_token.print(printer)}{self.mut_token.print(printer)}"
 
+    @staticmethod
+    def default() -> str:
+        return f"&mut "
+
     def __eq__(self, other):
         return isinstance(other, ConventionMutAst)
+
+
+class ConventionNonInitAst:
+    @staticmethod
+    def default() -> str:
+        return f"Uninitialized: "
+
+    def __eq__(self, other):
+        return isinstance(other, ConventionNonInitAst)
+
+
+class ConventionPartInitAst:
+    @staticmethod
+    def default() -> str:
+        return f"Partially-Initialized: "
+
+    def __eq__(self, other):
+        return isinstance(other, ConventionPartInitAst)
 
 
 ConventionAst = (
@@ -951,9 +981,20 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
 
         scope_handler.current_scope.get_symbol(self).type.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         sym = scope_handler.current_scope.get_symbol(self)
-        return sym.type
+        if sym.memory_info.ast_consumed:
+            convention = ConventionNonInitAst
+        elif sym.memory_info.ast_partial_moves:
+            convention = ConventionPartInitAst
+        elif sym.memory_info.is_borrow_mut:
+            convention = ConventionMutAst
+        elif sym.memory_info.is_borrow_ref:
+            convention = ConventionRefAst
+        else:
+            convention = ConventionMovAst
+
+        return convention, sym.type
 
     def __eq__(self, other):
         return isinstance(other, IdentifierAst) and self.value == other.value
@@ -997,8 +1038,10 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         scope_handler.exit_cur_scope()
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
-        return self.branches[0].body.members[-1].infer_type(scope_handler) if self.branches and self.branches[0].body.members else CommonTypes.void()
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        if self.branches and self.branches[0].body.members:
+            return self.branches[0].body.members[-1].infer_type(scope_handler)
+        return ConventionMovAst, CommonTypes.void()
 
 
 @dataclass
@@ -1163,12 +1206,12 @@ class LiteralNumberBase10Ast(Ast, SemanticAnalysis, TypeInfer):
         # TODO: don't allow [float -> int] conversion
         ...
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         if self.primitive_type:
-            return TypeSingleAst(pos=self.primitive_type.pos, parts=[GenericIdentifierAst(self.primitive_type.pos, self.primitive_type.value, None)])
+            return ConventionMovAst, TypeSingleAst(pos=self.primitive_type.pos, parts=[GenericIdentifierAst(self.primitive_type.pos, self.primitive_type.value, None)])
         if self.number.token.token_type == TokenType.LxDecFloat:
-            return CommonTypes.big_dec(self.pos)
-        return CommonTypes.big_num(self.pos)
+            return ConventionMovAst, CommonTypes.big_dec(self.pos)
+        return ConventionMovAst, CommonTypes.big_num(self.pos)
 
     def __eq__(self, other):
         return isinstance(other, LiteralNumberBase10Ast) and self.sign == other.sign and self.number == other.number and self.primitive_type == other.primitive_type
@@ -1217,8 +1260,8 @@ class LiteralStringAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         pass
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
-        return CommonTypes.str()
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, CommonTypes.str()
 
 
 @dataclass
@@ -1285,8 +1328,8 @@ class LiteralBooleanAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         pass
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
-        return CommonTypes.bool()
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, CommonTypes.bool()
 
 
 @dataclass
@@ -1514,8 +1557,8 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         # TODO : generic arguments
         # TODO : check the memory status of the object initializer arguments
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
-        return self.class_type
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, self.class_type
 
 
 @dataclass
@@ -1531,7 +1574,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return self.expression.infer_type(scope_handler)
 
 
@@ -1654,7 +1697,7 @@ class PatternBlockAst(Ast, SemanticAnalysis):
         s += f"{self.body.print(printer)}"
         return s
 
-    def is_else_block(self) -> bool:
+    def is_else_branch(self) -> bool:
         return isinstance(self.patterns[0], PatternVariantElseAst)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
@@ -1706,12 +1749,12 @@ class PostfixExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         self.lhs.do_semantic_analysis(scope_handler, **kwargs)
         self.op.do_semantic_analysis(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return self.op.infer_type(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
 
 
 @dataclass
-class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
+class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer):
     generic_arguments: Optional[GenericArgumentGroupAst]
     arguments: FunctionArgumentGroupAst
     fold_token: Optional[TokenAst]
@@ -1727,7 +1770,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         s += f"{self.fold_token.print(printer)}" if self.fold_token else ""
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> FunctionPrototypeAst:
         function_name = kwargs.get("postfix-lhs")
 
         # Check that the function being called exists with this overload.
@@ -1745,38 +1788,33 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
-        argument_conventions = Seq(self.arguments.arguments).map(lambda a: a.convention)
 
         error_message = f""
         for function_overload in function_overloads:
-            parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration)
-            parameter_conventions = Seq(function_overload.parameters.parameters).map(lambda p: p.convention)
+            parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: (p.convention, p.type_declaration))
             error_message += (
                 f"\n\t{function_name}"
-                f"({", ".join(parameter_conventions.zip(parameter_types).map(lambda t: f"{t[0]}{t[1]}").value)}) "
+                f"({", ".join(parameter_types.map(lambda t: f"{t[0].default()}{t[1]}").value)}) "
                 f"-> {function_overload.return_type}")
 
             if argument_types.length != parameter_types.length:
                 continue
 
-            if argument_conventions.length != parameter_conventions.length:
+            if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[0][1]) and t[0][1] != t[1][1]):
                 continue
 
-            if argument_types.zip(parameter_types).any(lambda t: t[0] != t[1]):
-                continue
-
-            if argument_conventions.zip(parameter_conventions).any(lambda t: t[0] != t[1]):
-                continue
-
-            return
+            return function_overload
 
         exception = SemanticError(f"Invalid function call:")
         exception.add_traceback(self.pos, (
             f"Function call"
-            f"'({", ".join(argument_conventions.zip(argument_types).map(lambda t: f"{t[0]}{t[1]}").value)})'"
-            f"found here."))
+            f" '({", ".join(argument_types.map(lambda t: f"{t[0].default()}{t[1]}").value)})'"
+            f" found here."))
         exception.add_footer(f"Valid overloads are:{error_message}")
         raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, self.do_semantic_analysis(scope_handler, **kwargs).return_type
 
 
 @dataclass
@@ -1813,17 +1851,17 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
             exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
             raise exception
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> TypeAst:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         lhs = kwargs.get("postfix-lhs")
         lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).associated_scope
 
         #
         if isinstance(self.identifier, LiteralNumberBase10Ast):
-            return lhs.infer_type().parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)]
+            return ConventionMovAst, lhs.infer_type().parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)]
 
         #
         elif isinstance(self.identifier, IdentifierAst):
-            return lhs_type_scope.get_symbol(self.identifier).type
+            return ConventionMovAst, lhs_type_scope.get_symbol(self.identifier).type
 
 
 @dataclass
@@ -1896,28 +1934,29 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
             case PostfixExpressionAst(): sym = scope_handler.current_scope.get_symbol(self.expression.lhs)
             case _: sym = None
 
-        if sym and sym.memory_info.ast_consumed:
-            exception = SemanticError(f"Returning uninitialized variable:")
-            exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{self.expression}' uninitialized/moved here.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-            raise exception
+        # if sym and sym.memory_info.ast_consumed:
+        #     exception = SemanticError(f"Returning uninitialized variable:")
+        #     exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{self.expression}' uninitialized/moved here.")
+        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
+        #     raise exception
 
-        if sym and sym.memory_info.ast_borrow:
-            exception = SemanticError(f"Returning borrowed variable:")
-            exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{self.expression}' borrowed here.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-            raise exception
+        # if sym and sym.memory_info.ast_borrow:
+        #     exception = SemanticError(f"Returning borrowed variable:")
+        #     exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{self.expression}' borrowed here.")
+        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
+        #     raise exception
 
-        if sym and sym.memory_info.ast_partial_moves:
-            exception = SemanticError(f"Returning partially moved variable:")
-            exception.add_traceback(sym.memory_info.ast_partial_moves[0].pos, f"Variable '{self.expression}' partially moved here.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-            raise exception
+        # if sym and sym.memory_info.ast_partial_moves:
+        #     exception = SemanticError(f"Returning partially moved variable:")
+        #     exception.add_traceback(sym.memory_info.ast_partial_moves[0].pos, f"Variable '{self.expression}' partially moved here.")
+        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
+        #     raise exception
 
-        if self.expression.infer_type(scope_handler) != target_return_type:
+        found_return_type = self.expression.infer_type(scope_handler)
+        if found_return_type != (ConventionMovAst, target_return_type):
             exception = SemanticError(f"Returning variable of incorrect type:")
             exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{self.expression.infer_type(scope_handler)}'.")
+            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{found_return_type[0].default()}{found_return_type[1]}'.")
             raise exception
 
 
