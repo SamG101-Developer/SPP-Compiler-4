@@ -33,4 +33,5 @@ class Analyser:
             final_error = str(e)
             for error in e.additional_info:
                 final_error += err_fmt.error(error[0], message=error[1])
+            final_error += f"\n{e.footer}"
             raise SystemExit(final_error) from None
