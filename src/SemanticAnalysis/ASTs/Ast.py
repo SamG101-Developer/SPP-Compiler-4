@@ -1664,6 +1664,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
         # TODO : variadic parameter, optional parameters
+        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
         argument_conventions = Seq(self.arguments.arguments).map(lambda a: a.convention)
 
@@ -1688,8 +1690,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
             if argument_conventions.zip(parameter_conventions).any(lambda t: t[0] != t[1]):
                 continue
 
-            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             return
 
         exception = SemanticError(f"Invalid function call:")
