@@ -202,6 +202,9 @@ class ConventionMovAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f""
 
+    def __eq__(self, other):
+        return isinstance(other, ConventionMovAst)
+
 
 @dataclass
 class ConventionRefAst(Ast):
@@ -210,6 +213,9 @@ class ConventionRefAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.ampersand_token.print(printer)}"
+
+    def __eq__(self, other):
+        return isinstance(other, ConventionRefAst)
 
 
 @dataclass
@@ -220,6 +226,9 @@ class ConventionMutAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.ampersand_token.print(printer)}{self.mut_token.print(printer)}"
+
+    def __eq__(self, other):
+        return isinstance(other, ConventionMutAst)
 
 
 ConventionAst = (
@@ -1261,12 +1270,18 @@ class LiteralTupleAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class LiteralBooleanAst(Ast):
-    boolean: TokenAst
+class LiteralBooleanAst(Ast, SemanticAnalysis, TypeInfer):
+    boolean: bool
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.boolean.print(printer)}"
+        return f"{self.boolean}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        pass
+
+    def infer_type(self, scope_handler, **kwargs) -> TypeAst:
+        return CommonTypes.bool()
 
 
 @dataclass
@@ -1648,7 +1663,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         # TODO : generics, named arguments
         # TODO : variadic parameter, optional parameters
         for function_overload in function_overloads:
-            argument_types = Seq(self.arguments.arguments).map(lambda a: a.expression.infer_type(scope_handler))
+            argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
             argument_conventions = Seq(self.arguments.arguments).map(lambda a: a.convention)
 
             parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration)
