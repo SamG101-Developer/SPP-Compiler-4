@@ -347,11 +347,11 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
-            if sym and sym.memory_info.ast_consumed:
-                exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
-                exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
-                exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
-                raise exception
+            # if sym and sym.memory_info.ast_consumed:
+            #     exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
+            #     exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
+            #     exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
+            #     raise exception
 
             # Check that an argument is not partially moved before being used: applies to (postfix) identifier only.
             # Non-overlapping partial moves are ok, for example, if "a.b" is moved, "a.c" is fine to use, but "a" isn't.
@@ -374,7 +374,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                     if isinstance(argument.value, IdentifierAst):
                         sym.memory_info.ast_consumed = argument
 
-                    # Cannot move from a borrowed context so enforce this here too.
+                    # Cannot move from a borrowed context, so enforce this here too.
                     elif sym.memory_info.is_borrow:
                         exception = SemanticError(f"Cannot move from a borrowed context:")
                         exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{argument.value}' borrowed here.")
@@ -1787,12 +1787,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         mock_function_object_sup_scopes = scope_handler.current_scope.get_symbol(mock_function_object_name).associated_scope.sup_scopes
         function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members[0])
 
+        # Check the argument nams are valid (names only) for type inference. Rest of argument checks are after.
+        Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
+
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
         # TODO : variadic parameter, optional parameters
-        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
+
 
         error_message = f""
         for function_overload in function_overloads:
@@ -1805,9 +1807,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if argument_types.length != parameter_types.length:
                 continue
 
-            if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[0][1]) and t[0][1] != t[1][1]):
+            if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[1][0]) or t[0][1] != t[1][1]):
                 continue
 
+            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             return function_overload
 
         exception = SemanticError(f"Invalid function call:")
@@ -1833,7 +1837,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).associated_scope
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)[1]).associated_scope
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
@@ -1858,7 +1862,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)).associated_scope
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)[1]).associated_scope
 
         #
         if isinstance(self.identifier, LiteralNumberBase10Ast):

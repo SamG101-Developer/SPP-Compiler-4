@@ -28,7 +28,7 @@ class Scope:
 
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
-        assert isinstance(name, IdentifierAst) or type(name) in TypeAst.__args__
+        assert isinstance(name, IdentifierAst) or type(name) in TypeAst.__args__, f"Expected IdentifierAst or TypeAst, got {type(name)}"
         if not isinstance(name, IdentifierAst): name = name.without_generics()
         sym = self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
         if sym:
