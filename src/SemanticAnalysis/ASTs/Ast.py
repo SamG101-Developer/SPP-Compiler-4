@@ -1526,11 +1526,16 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             given_argument = given_argument[0]
             given_argument = given_argument.value if isinstance(given_argument, ObjectInitializerArgumentNamedAst) else given_argument.identifier
-            if attribute.type != given_argument.infer_type(scope_handler):
+            given_argument_type = given_argument.infer_type(scope_handler)
+            if given_argument_type != (ConventionMovAst, attribute.type):
                 exception = SemanticError(f"Invalid type '{given_argument.infer_type(scope_handler)}' given to attribute '{attribute.name}':")
                 exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here with type '{attribute.type}'.")
-                exception.add_traceback(given_argument.pos, f"Attribute '{attribute.name}' given value here with type '{given_argument.infer_type(scope_handler)}'.")
+                exception.add_traceback(given_argument.pos, f"Attribute '{attribute.name}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
                 raise exception
+
+            argument = Seq(self.arguments.arguments).map(lambda a: a.value if isinstance(a, ObjectInitializerArgumentNamedAst) else a.identifier)[0]
+            argument_symbol = scope_handler.current_scope.get_symbol(argument)
+            argument_symbol.memory_info.ast_consumed = argument
 
         # TODO : below
         # Check that each parent class has a value given in "sup=", if the parent class is stateful:
