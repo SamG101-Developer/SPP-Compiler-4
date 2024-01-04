@@ -310,13 +310,13 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
         for argument in self.arguments:
             argument.value.do_semantic_analysis(scope_handler, **kwargs)
 
-            match argument:
-                case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value.value)
-                case PostfixExpressionAst(): sym = scope_handler.current_scope.get_symbol(argument.value.lhs.value)
+            match argument.value:
+                case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
+                case PostfixExpressionAst(): sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
-            if sym and not sym.memory_info.ast_initialized:
+            if sym and sym.memory_info.ast_consumed:
                 exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
                 exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
                 exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
@@ -340,7 +340,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
             match argument.convention:
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
-                    if isinstance(argument, IdentifierAst):
+                    if isinstance(argument.value, IdentifierAst):
                         sym.memory_info.ast_consumed = argument
 
                     # Cannot move from a borrowed context so enforce this here too.
@@ -365,7 +365,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                     if not sym.is_mutable:
                         exception = SemanticError(f"Cannot take a mutable borrow from an immutable variable:")
                         exception.add_traceback(sym.memory_info.ast_initialized.pos, f"Variable '{argument.value}' declared immutably here.")
-                        exception.add_traceback(argument.convention.pos, f"Mutable borrow '{argument.convention}' taken here.")
+                        exception.add_traceback(argument.convention.pos, f"Mutable borrow '{argument.value}' taken here.")
                         raise exception
 
                     # For a mutable borrow to take place, ensure that no other overlapping part of the variable is
@@ -1647,8 +1647,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         function_name = kwargs.get("postfix-lhs")
 
         # Check that the function being called exists with this overload.
@@ -1672,7 +1670,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
             parameter_conventions = Seq(function_overload.parameters.parameters).map(lambda p: p.convention)
             error_message += (
                 f"\n\t{function_name}"
-                f"({", ".join(parameter_types.zip(parameter_conventions).map(lambda t: f"{t[0]}{t[1]}").value)}) "
+                f"({", ".join(parameter_conventions.zip(parameter_types).map(lambda t: f"{t[0]}{t[1]}").value)}) "
                 f"-> {function_overload.return_type}")
 
             if argument_types.length != parameter_types.length:
@@ -1687,12 +1685,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis):
             if argument_conventions.zip(parameter_conventions).any(lambda t: t[0] != t[1]):
                 continue
 
-            return
+            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         exception = SemanticError(f"Invalid function call:")
         exception.add_traceback(self.pos, (
             f"Function call"
-            f"'({", ".join(argument_types.zip(argument_conventions).map(lambda t: f"{t[0]}{t[1]}").value)})'"
+            f"'({", ".join(argument_conventions.zip(argument_types).map(lambda t: f"{t[0]}{t[1]}").value)})'"
             f"found here."))
         exception.add_footer(f"Valid overloads are:{error_message}")
         raise exception
