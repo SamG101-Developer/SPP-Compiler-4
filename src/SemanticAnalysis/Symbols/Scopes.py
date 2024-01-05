@@ -29,16 +29,22 @@ class Scope:
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
         assert isinstance(name, IdentifierAst) or type(name) in TypeAst.__args__, f"Expected IdentifierAst or TypeAst, got {type(name)}"
-        if not isinstance(name, IdentifierAst): name = name.without_generics()
-        sym = self._symbol_table.get(name, self._parent_scope.get_symbol(name) if self._parent_scope else None)
+
+        if not isinstance(name, IdentifierAst):
+            name = name.without_generics()
+
+        sym = self._symbol_table.get(name)
+        if not sym and self._parent_scope:
+            sym = self._parent_scope.get_symbol(name)
         if sym:
             return sym
 
         # TODO : search in sup scopes too
-        # for sup_scope, _ in self._sup_scopes:
-        #     sym = sup_scope.get_symbol(name)
-        #     if sym:
-        #         return sym
+
+        for sup_scope, _ in self._sup_scopes:
+            sym = sup_scope.get_symbol(name)
+            if sym:
+                return sym
 
     def has_symbol(self, name: IdentifierAst | TypeAst) -> bool:
         return self.get_symbol(name) is not None
@@ -57,6 +63,7 @@ class Scope:
             "name": self._scope_name,
             "parent_scope": self._parent_scope._scope_name if self._parent_scope else None,
             "children_scopes": [child for child in self._children_scopes],
+            "sup_scopes": [sup._scope_name for sup, _ in self._sup_scopes],
             "symbol_table": self._symbol_table
         }
 
@@ -128,7 +135,9 @@ class ScopeHandler:
         return ScopeIterator(iterate(self._global_scope))
 
     def move_to_next_scope(self) -> Scope:
+        # print("ITERATE FROM", self._iterator.current._scope_name if self._iterator.current else "")
         self._current_scope = next(self._iterator)
+        # print("ITERATE TO", self._iterator.current._scope_name)
         return self._current_scope
 
     def at_global_scope(self, parent_level: int = 0) -> bool:
