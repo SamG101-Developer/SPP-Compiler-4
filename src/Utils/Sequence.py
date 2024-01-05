@@ -41,7 +41,7 @@ class Seq[T]:
     def unique_items(self) -> Seq[T]:
         return Seq(list(set(self._value)))  # TODO : use an ordered set to maintain the order of the items every time
 
-    def non_unique_items(self) -> Seq[Seq[T]]:
+    def non_unique_items(self) -> Seq[List[T]]:
         items = []
         for x in self.unique_items():
             if self._value.count(x) > 1:
