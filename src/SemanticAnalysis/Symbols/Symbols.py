@@ -32,6 +32,11 @@ class VariableSymbol(Symbol):
     is_mutable: bool = dataclasses.field(default=False)
     memory_info: MemoryStatus = dataclasses.field(default_factory=MemoryStatus)
 
+    def __post_init__(self):
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
+        assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name}"
+        assert type(self.type) in TypeAst.__args__ or self.type is None, f"Got variable symbol with type: {self.type}"  # TODO ; shouldn't be None
+
     def __json__(self) -> dict:
         return {
             "what": "variable",
@@ -45,6 +50,11 @@ class TypeSymbol(Symbol):
     name: TypeAst
     type: Optional[ClassPrototypeAst]  # None for generic types
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
+
+    def __post_init__(self):
+        from src.SemanticAnalysis.ASTs.Ast import ClassPrototypeAst, TypeAst
+        assert type(self.name) in TypeAst.__args__
+        assert isinstance(self.type, ClassPrototypeAst) or self.type is None
 
     def __json__(self) -> dict:
         return {
