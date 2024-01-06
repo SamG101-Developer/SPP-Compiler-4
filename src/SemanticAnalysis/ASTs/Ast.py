@@ -161,17 +161,6 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
-        if self.identifier.parts[-1].value != "MOCK_set":
-            # Add a superimposition for every class with the "__MemCheck" class.
-            from SyntacticAnalysis.Parser import Parser
-            from LexicalAnalysis.Lexer import Lexer
-            code = (f"sup {self.identifier} {{"
-                    f"  fun set(mut self, that: {self.identifier}) -> Void {{}}"
-                    f"}}")
-
-            sup_ast = Parser(Lexer(code).lex(), "<temp>").parse_sup_prototype_normal().parse_once()
-            context.body.members.append(sup_ast)
-
         Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
@@ -383,7 +372,6 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
                     if isinstance(argument.value, IdentifierAst):
-                        print("consumed", argument.value)
                         sym.memory_info.ast_consumed = argument
 
                     # Cannot move from a borrowed context, so enforce this here too.
@@ -1176,42 +1164,13 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
         scope_handler.current_scope.add_symbol(sym)
 
-        # Map "let x = 5" to "x.__set__(5)" to check memory constraints and move variables if needed.
-        function_call_ast = PostfixExpressionAst(
-            pos=self.pos,
-            lhs=PostfixExpressionAst(
-                pos=self.pos,
-                lhs=self.assign_to.identifier,
-                op=PostfixExpressionOperatorMemberAccessAst(
-                    pos=self.pos,
-                    dot_token=TokenAst.dummy(TokenType.TkDot),
-                    identifier=IdentifierAst(
-                        pos=self.pos,
-                        value="set"
-                    ),
-                ),
-            ),
-            op=PostfixExpressionOperatorFunctionCallAst(
-                pos=self.pos,
-                generic_arguments=None,
-                arguments=FunctionArgumentGroupAst(
-                    pos=self.pos,
-                    paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                    arguments=[
-                        FunctionArgumentNormalAst(
-                            pos=self.pos,
-                            convention=ConventionMovAst(self.pos),
-                            value=self.value,
-                            unpack_token=None
-                        )
-                    ],
-                    paren_r_token=TokenAst.dummy(TokenType.TkParenR),
-                ),
-                fold_token=None
-            )
-        )
-
         if not self._sup_let_type:
+            from SyntacticAnalysis.Parser import Parser
+            from LexicalAnalysis.Lexer import Lexer
+            code = f"({self.value})"
+            function_call_ast = Parser(Lexer(code).lex(), "<temp>").parse_function_call_arguments().parse_once()
+            function_call_ast.arguments[0].pos = self.value.pos
+            function_call_ast.arguments[0].value.pos = self.value.pos
             function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
 
 
@@ -1587,12 +1546,22 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             given_argument = given_argument[0]
             given_argument = given_argument.value if isinstance(given_argument, ObjectInitializerArgumentNamedAst) else given_argument.identifier
+
+            from SyntacticAnalysis.Parser import Parser
+            from LexicalAnalysis.Lexer import Lexer
+            code = f"({given_argument})"
+            function_call_ast = Parser(Lexer(code).lex(), "<temp>").parse_function_call_arguments().parse_once()
+            function_call_ast.arguments[0].value.pos = given_argument.pos
+
             given_argument_type = given_argument.infer_type(scope_handler)
             if given_argument_type != (ConventionMovAst, attribute.type):
-                exception = SemanticError(f"Invalid type '{given_argument.infer_type(scope_handler)}' given to attribute '{attribute.name}':")
+                function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+                exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.name}':")
                 exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here with type '{attribute.type}'.")
                 exception.add_traceback(given_argument.pos, f"Attribute '{attribute.name}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
                 raise exception
+
+            function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
 
             argument = Seq(self.arguments.arguments).map(lambda a: a.value if isinstance(a, ObjectInitializerArgumentNamedAst) else a.identifier)[0]
             argument_symbol = scope_handler.current_scope.get_symbol(argument)
@@ -2246,7 +2215,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         printer = AstPrinter()
         type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
         type_part = type_parts[-1]
-        if type_part[1].value != from_ty.value:
+        if type_part[1].value == from_ty.value:
             self.parts[type_part[0]] = to_ty
 
         for i, part in type_parts:
