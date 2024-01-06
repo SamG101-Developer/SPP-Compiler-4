@@ -67,6 +67,9 @@ class Seq[T]:
                 out.append(y)
         return Seq(out)
 
+    def skip(self, n: int) -> Seq[T]:
+        return Seq(self._value[n:])
+
     def zip[U](self, other: Seq[U]) -> Seq[tuple[T, U]]:
         return Seq(list(zip(self._value, other._value)))
 
