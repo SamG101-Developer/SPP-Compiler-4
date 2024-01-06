@@ -1547,6 +1547,14 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
                     exception.add_traceback(self.pos, f"Object initializer declared here.")
                     raise exception
 
+        # Check no arguments are given that don't exist on the class:
+        for argument in Seq(self.arguments.arguments).map(lambda a: a.identifier):
+            if not Seq(attributes).map(lambda a: a.name).contains(argument):
+                exception = SemanticError(f"Invalid attribute '{argument}' given in object initializer:")
+                exception.add_traceback(argument.pos, f"Attribute '{argument}' given here.")
+                exception.add_traceback(self.pos, f"Object initializer declared here.")
+                raise exception
+
         # Check that each attribute's given value is of the correct type:
         for attribute in Seq(attributes).filter(lambda s: isinstance(s, VariableSymbol)):
             given_argument = Seq(self.arguments.arguments).filter(lambda a: a.identifier == attribute.name)
@@ -1574,9 +1582,9 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
 
-            argument = Seq(self.arguments.arguments).map(lambda a: a.value if isinstance(a, ObjectInitializerArgumentNamedAst) else a.identifier)[0]
-            argument_symbol = scope_handler.current_scope.get_symbol(argument)
-            argument_symbol.memory_info.ast_consumed = argument
+            # argument = Seq(self.arguments.arguments).map(lambda a: a.value if isinstance(a, ObjectInitializerArgumentNamedAst) else a.identifier)[0]
+            # argument_symbol = scope_handler.current_scope.get_symbol(argument)
+            # argument_symbol.memory_info.ast_consumed = argument
 
         # TODO : below
         # Check that each parent class has a value given in "sup=", if the parent class is stateful:
