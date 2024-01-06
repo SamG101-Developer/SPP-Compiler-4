@@ -1493,7 +1493,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{self.brace_l_token.print(printer)}"
-        s += f"\n{Seq(self.arguments).print(printer, "\n")}\n" if self.arguments else ""
+        s += f"\n{Seq(self.arguments).print(printer, ", ")}\n" if self.arguments else ""
         s += f"{self.brace_r_token.print(printer)}"
         return s
 
@@ -1570,6 +1570,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
             from LexicalAnalysis.Lexer import Lexer
             code = f"({given_argument})"
             function_call_ast = Parser(Lexer(code).lex(), "<temp>").parse_function_call_arguments().parse_once()
+            function_call_ast.arguments[0].pos = given_argument.pos
             function_call_ast.arguments[0].value.pos = given_argument.pos
 
             given_argument_type = given_argument.infer_type(scope_handler)
