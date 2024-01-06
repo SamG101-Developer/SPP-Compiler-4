@@ -27,6 +27,10 @@ class Scope:
         return symbol
 
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst, TypeSingleAst
+        if isinstance(name, TypeSingleAst) and isinstance(name.parts[0], TypeSingleAst):
+            raise
+
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
         assert isinstance(name, IdentifierAst) or type(name) in TypeAst.__args__, f"Expected IdentifierAst or TypeAst, got {type(name)}"
 
