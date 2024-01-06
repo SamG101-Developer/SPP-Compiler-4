@@ -1155,7 +1155,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        self.value.do_semantic_analysis(scope_handler, **kwargs)
         sym = VariableSymbol(
             name=self.assign_to.identifier,
             type=self.value.infer_type(scope_handler)[1],
@@ -1168,10 +1167,12 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             from SyntacticAnalysis.Parser import Parser
             from LexicalAnalysis.Lexer import Lexer
             code = f"({self.value})"
-            function_call_ast = Parser(Lexer(code).lex(), "<temp>").parse_function_call_arguments().parse_once()
-            function_call_ast.arguments[0].pos = self.value.pos
-            function_call_ast.arguments[0].value.pos = self.value.pos
+            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.value.pos).parse_function_call_arguments().parse_once()
+            # function_call_ast.arguments[0].pos = self.value.pos
+            # function_call_ast.arguments[0].value.pos = self.value.pos
             function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+        else:
+            self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -1511,8 +1512,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{self.class_type.print(printer)}{self.arguments.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        # self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-
         type_scope = scope_handler.current_scope.get_symbol(self.class_type).associated_scope
         attributes = type_scope.all_symbols(exclusive=True)
         sup_classes = type_scope.exclusive_sup_scopes

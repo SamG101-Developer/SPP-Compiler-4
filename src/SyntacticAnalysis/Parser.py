@@ -35,15 +35,17 @@ class Parser:
     _index: int
     _err_fmt: ErrorFormatter
     _errors: List[ParserError]
+    _pos_shift: int
 
-    def __init__(self, tokens: List[Token], file_name: str) -> None:
+    def __init__(self, tokens: List[Token], file_name: str, pos_shift: int = 0) -> None:
         self._tokens = tokens
         self._index = 0
         self._err_fmt = ErrorFormatter(self._tokens, file_name)
         self._errors = []
+        self._pos_shift = pos_shift
 
     def current_pos(self) -> int:
-        return self._index
+        return self._index + self._pos_shift
 
     def current_tok(self) -> Token:
         return self._tokens[self._index]
