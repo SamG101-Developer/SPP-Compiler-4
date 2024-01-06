@@ -1,3 +1,4 @@
+import dataclasses
 import json
 
 from src.LexicalAnalysis.Tokens import Token
@@ -19,6 +20,9 @@ class Analyser:
         root_context = self._ast.module
         scope_handler = ScopeHandler()
         err_fmt = ErrorFormatter(self._tokens, "<filename>")
+
+        with open("../bin/ast.json", "w") as f:
+            f.write(json.dumps(dataclasses.asdict(self._ast), indent=4))
 
         self._ast.pre_process(root_context)
         self._ast.generate(scope_handler)
