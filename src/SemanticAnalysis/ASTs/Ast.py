@@ -358,11 +358,11 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
-            # if sym and sym.memory_info.ast_consumed:
-            #     exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
-            #     exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
-            #     exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
-            #     raise exception
+            if sym and sym.memory_info.ast_consumed:
+                exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
+                exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
+                exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
+                raise exception
 
             # Check that an argument is not partially moved before being used: applies to (postfix) identifier only.
             # Non-overlapping partial moves are ok, for example, if "a.b" is moved, "a.c" is fine to use, but "a" isn't.
@@ -383,6 +383,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
                     if isinstance(argument.value, IdentifierAst):
+                        print("consumed", argument.value)
                         sym.memory_info.ast_consumed = argument
 
                     # Cannot move from a borrowed context, so enforce this here too.
@@ -1852,9 +1853,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members[0])
 
         # Check the argument nams are valid (names only) for type inference. Rest of argument checks are after.
-        # Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
-        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+        Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
+
 
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
@@ -1878,8 +1878,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[1][0]) or t[0][1] != t[1][1]):
                 continue
 
-
+            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             return function_overload
+
+        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         exception = SemanticError(f"Invalid function call:")
         exception.add_traceback(self.pos, (
