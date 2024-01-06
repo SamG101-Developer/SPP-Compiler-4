@@ -1852,7 +1852,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members[0])
 
         # Check the argument nams are valid (names only) for type inference. Rest of argument checks are after.
-        Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
+        # Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
+        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
@@ -1876,8 +1878,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[1][0]) or t[0][1] != t[1][1]):
                 continue
 
-            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+
             return function_overload
 
         exception = SemanticError(f"Invalid function call:")
