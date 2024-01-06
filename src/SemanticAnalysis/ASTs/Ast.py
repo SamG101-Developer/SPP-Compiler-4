@@ -161,59 +161,20 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
+        if self.identifier.parts[-1].value != "MOCK_set":
+            # Add a superimposition for every class with the "__MemCheck" class.
+            from SyntacticAnalysis.Parser import Parser
+            from LexicalAnalysis.Lexer import Lexer
+            code = (f"sup {self.identifier} {{"
+                    f"  fun set(mut self, that: {self.identifier}) -> Void {{}}"
+                    f"}}")
+
+            sup_ast = Parser(Lexer(code).lex(), "<temp>").parse_sup_prototype_normal().parse_once()
+            context.body.members.append(sup_ast)
+
         Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
-
-        # Add a superimposition for every class with the "__Set" method, to allow function-like analysis of "let".
-        superimposition = SupPrototypeNormalAst(
-            pos=-1,
-            sup_keyword=TokenAst.dummy(TokenType.KwSup),
-            generic_parameters=None,
-            identifier=self.identifier,
-            where_block=None,
-            body=InnerScopeAst(
-                pos=-1,
-                brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
-                members=[
-                    SupMethodPrototypeAst(
-                        pos=-1,
-                        annotations=[],
-                        fun_token=TokenAst.dummy(TokenType.KwFun),
-                        identifier=IdentifierAst(pos=-1, value="__Set"),
-                        generic_parameters=None,
-                        parameters=FunctionParameterGroupAst(
-                            pos=-1,
-                            paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                            parameters=[
-                                FunctionParameterSelfAst(
-                                    pos=-1,
-                                    is_mutable=TokenAst.dummy(TokenType.KwMut),
-                                    identifier=CommonTypes.self(pos=-1),
-                                    convention=ConventionMovAst(pos=-1),
-                                    type_declaration=CommonTypes.self(pos=-1)),
-                                FunctionParameterRequiredAst(
-                                    pos=-1,
-                                    is_mutable=None,
-                                    identifier=IdentifierAst(pos=-1, value="that"),
-                                    colon_token=TokenAst.dummy(TokenType.TkColon),
-                                    convention=ConventionMovAst(pos=-1),
-                                    type_declaration=CommonTypes.self(pos=-1)),
-                            ],
-                            paren_r_token=TokenAst.dummy(TokenType.TkParenR)),
-                        arrow_token=TokenAst.dummy(TokenType.TkArrowR),
-                        return_type=CommonTypes.void(pos=-1),
-                        where_block=None,
-                        body=InnerScopeAst(
-                            pos=-1,
-                            brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
-                            members=[],
-                            brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
-                ],
-                brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
-
-        # context.body.members.insert(0, superimposition)
-        # print(superimposition)
 
     def generate(self, s: ScopeHandler) -> None:
         sym = TypeSymbol(self.identifier, self)
@@ -697,7 +658,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             Seq(self.parameters.parameters).for_each(lambda p: p.type_declaration.substitute_generics(CommonTypes.self(), context.identifier))
             self.return_type.substitute_generics(CommonTypes.self(), context.identifier)
 
-        mock_class_name = IdentifierAst(-1, f"__MOCK_{self.identifier.value}")
+        mock_class_name = IdentifierAst(-1, f"MOCK_{self.identifier.value}")
         mock_class_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, mock_class_name.value, None)])
 
         function_class_type = self._deduce_function_class_type(context)
@@ -1205,8 +1166,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        # print(self)
-
         self.value.do_semantic_analysis(scope_handler, **kwargs)
         sym = VariableSymbol(
             name=self.assign_to.identifier,
@@ -1227,7 +1186,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     dot_token=TokenAst.dummy(TokenType.TkDot),
                     identifier=IdentifierAst(
                         pos=self.pos,
-                        value="__Set"
+                        value="set"
                     ),
                 ),
             ),
@@ -1251,7 +1210,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             )
         )
 
-        # function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+        if not self._sup_let_type:
+            function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -1879,11 +1839,15 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         match function_name:
             case PostfixExpressionAst():
                 function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler)[1]).associated_scope
-                function_name_rhs_part_scope = function_name_lhs_part_scope.get_symbol(TypeSingleAst(pos=-1, parts=[GenericIdentifierAst(pos=-1, value=f"__MOCK_{function_name.op.identifier}", generic_arguments=None)])).associated_scope
+                function_name_rhs_part_scope = function_name_lhs_part_scope.get_symbol(TypeSingleAst(pos=-1, parts=[GenericIdentifierAst(pos=-1, value=f"MOCK_{function_name.op.identifier}", generic_arguments=None)])).associated_scope
             case IdentifierAst():
                 function_name_rhs_part_scope = scope_handler.current_scope.get_symbol(function_name.infer_type(scope_handler)[1]).associated_scope
+            case _:
+                exception = SemanticError(f"Invalid function call:")
+                exception.add_traceback(function_name.pos, f"Function call '{function_name}' found here. Can only call identifiers.")
+                raise exception
 
-        # The only classes possibly superimposed over a __MOCK_ class are the Fun classes.
+        # The only classes possibly superimposed over a MOCK_ class are the Fun classes.
         mock_function_object_sup_scopes = function_name_rhs_part_scope.sup_scopes
         function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members[0])
 
@@ -1898,6 +1862,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         error_message = f""
         for function_overload in function_overloads:
             parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: (p.convention, p.type_declaration))
+            if isinstance(function_overload.parameters.parameters[0], FunctionParameterSelfAst):
+                parameter_types = parameter_types.skip(1)
+
             error_message += (
                 f"\n\t{function_name}"
                 f"({", ".join(parameter_types.map(lambda t: f"{t[0].default()}{t[1]}").value)}) "
@@ -2112,7 +2079,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-        Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
         scope_handler.exit_cur_scope()
 
 
@@ -2150,7 +2117,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # self.where_block.do_semantic_analysis(s)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-        Seq(self.body.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
         scope_handler.exit_cur_scope()
 
         # TODO : check there are no direct duplicate sup super-classes
@@ -2268,16 +2235,18 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         return f"{Seq(self.parts).print(printer, ".")}"
 
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> None:
+        self._substitute_generics(from_ty.parts[-1], to_ty.parts[-1])
+
+    def _substitute_generics(self, from_ty: TypePartAst, to_ty: TypePartAst) -> None:
         printer = AstPrinter()
         type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
-
-        i, p = type_parts[0]
-        if p == from_ty.parts[0]:
-            self.parts[i] = to_ty
+        type_part = type_parts[-1]
+        if type_part[1].value != from_ty.value:
+            self.parts[type_part[0]] = to_ty
 
         for i, part in type_parts:
             for g in part.generic_arguments.arguments if part.generic_arguments else []:
-                g.type.substitute_generics(from_ty, to_ty)
+                g.type._substitute_generics(from_ty, to_ty)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         sym = scope_handler.current_scope.get_symbol(self)
