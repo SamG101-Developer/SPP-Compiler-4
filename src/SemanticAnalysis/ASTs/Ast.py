@@ -1453,16 +1453,19 @@ class ModuleImplementationAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class ObjectInitializerArgumentNormalAst(Ast):
+class ObjectInitializerArgumentNormalAst(Ast, SemanticAnalysis):
     identifier: IdentifierAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}"
 
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+
 
 @dataclass
-class ObjectInitializerArgumentNamedAst(Ast):
+class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalysis):
     identifier: IdentifierAst | TokenAst
     assignment_token: TokenAst
     value: ExpressionAst
@@ -1471,6 +1474,9 @@ class ObjectInitializerArgumentNamedAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.value.print(printer)}"
 
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
+
 
 ObjectInitializerArgumentAst = (
         ObjectInitializerArgumentNormalAst |
@@ -1478,7 +1484,7 @@ ObjectInitializerArgumentAst = (
 
 
 @dataclass
-class ObjectInitializerArgumentGroupAst(Ast):
+class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalysis):
     brace_l_token: TokenAst
     arguments: List[ObjectInitializerArgumentAst]
     brace_r_token: TokenAst
@@ -1490,6 +1496,9 @@ class ObjectInitializerArgumentGroupAst(Ast):
         s += f"\n{Seq(self.arguments).print(printer, "\n")}\n" if self.arguments else ""
         s += f"{self.brace_r_token.print(printer)}"
         return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -1507,6 +1516,8 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         type_scope = scope_handler.current_scope.get_symbol(self.class_type).associated_scope
         attributes = type_scope.all_symbols(exclusive=True)
         sup_classes = type_scope.exclusive_sup_scopes
+
+        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check if a default value has been given in "else=":
         default_value_given = (Seq(self.arguments.arguments)
