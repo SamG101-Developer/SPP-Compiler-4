@@ -34,7 +34,7 @@ class VariableSymbol(Symbol):
 
     def __post_init__(self):
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
-        assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name}"
+        assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name} ({type(self.name)})"
         assert type(self.type) in TypeAst.__args__ or self.type is None, f"Got variable symbol with type: {self.type}"  # TODO ; shouldn't be None
 
     def __json__(self) -> dict:
