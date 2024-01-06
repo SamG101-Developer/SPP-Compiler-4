@@ -1167,7 +1167,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             from SyntacticAnalysis.Parser import Parser
             from LexicalAnalysis.Lexer import Lexer
             code = f"({self.value})"
-            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.value.pos).parse_function_call_arguments().parse_once()
+            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.value.pos - 1).parse_function_call_arguments().parse_once()
             # function_call_ast.arguments[0].pos = self.value.pos
             # function_call_ast.arguments[0].value.pos = self.value.pos
             function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
@@ -1563,14 +1563,13 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
                 continue
 
             given_argument = given_argument[0]
+            original_pos = given_argument.pos
             given_argument = given_argument.value if isinstance(given_argument, ObjectInitializerArgumentNamedAst) else given_argument.identifier
 
             from SyntacticAnalysis.Parser import Parser
             from LexicalAnalysis.Lexer import Lexer
             code = f"({given_argument})"
-            function_call_ast = Parser(Lexer(code).lex(), "<temp>").parse_function_call_arguments().parse_once()
-            function_call_ast.arguments[0].pos = given_argument.pos
-            function_call_ast.arguments[0].value.pos = given_argument.pos
+            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=original_pos - 1).parse_function_call_arguments().parse_once()
 
             given_argument_type = given_argument.infer_type(scope_handler)
             if given_argument_type != (ConventionMovAst, attribute.type):
