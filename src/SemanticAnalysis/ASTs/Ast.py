@@ -55,7 +55,7 @@ class AnnotationAst(Ast):
 
 
 @dataclass
-class AssignmentStatementAst(Ast):
+class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
     lhs: List[ExpressionAst]
     op: TokenAst
     rhs: ExpressionAst
@@ -63,6 +63,12 @@ class AssignmentStatementAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.lhs).print(printer, ", ")} {self.op.print(printer)} {self.rhs.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        ...
 
 
 @dataclass
@@ -343,7 +349,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
             match argument.value:
                 case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
-                case PostfixExpressionAst(): sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
+                case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst): sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
@@ -1049,7 +1055,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
 
 @dataclass
-class InnerScopeAst[T](Ast, SemanticAnalysis):
+class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
     brace_l_token: TokenAst
     members: List[T]
     brace_r_token: TokenAst
@@ -1069,6 +1075,9 @@ class InnerScopeAst[T](Ast, SemanticAnalysis):
             scope_handler.into_new_scope("<inner-scope>")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
             scope_handler.exit_cur_scope()
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return self.members[-1].infer_type(scope_handler) if self.members else CommonTypes.void()
 
 
 @dataclass
@@ -1855,7 +1864,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 parameter_types = parameter_types.skip(1)
 
             error_message += (
-                f"\n\t{function_name}"
+                f"\n\t{function_name.infer_type(scope_handler)[1]}"
                 f"({", ".join(parameter_types.map(lambda t: f"{t[0].default()}{t[1]}").value)}) "
                 f"-> {function_overload.return_type}")
 
@@ -1972,13 +1981,19 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
 
 
 @dataclass
-class ResidualInnerScopeAst(Ast):
+class ResidualInnerScopeAst(Ast, SemanticAnalysis, TypeInfer):
     else_keyword: TokenAst
     body: InnerScopeAst[StatementAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.else_keyword.print(printer)}{self.body.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return self.body.infer_type(scope_handler, **kwargs)
 
 
 @dataclass
@@ -1997,10 +2012,10 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         self.expression.do_semantic_analysis(scope_handler, **kwargs) if self.expression else None
         target_return_type = kwargs.get("target-return-type")
 
-        match self.expression:
-            case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(self.expression)
-            case PostfixExpressionAst(): sym = scope_handler.current_scope.get_symbol(self.expression.lhs)
-            case _: sym = None
+        # match self.expression:
+        #     case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(self.expression)
+        #     case PostfixExpressionAst() if isinstance(self.expression.op, PostfixExpressionOperatorMemberAccessAst): sym = scope_handler.current_scope.get_symbol(self.expression.lhs)
+        #     case _: sym = None
 
         # if sym and sym.memory_info.ast_consumed:
         #     exception = SemanticError(f"Returning uninitialized variable:")
@@ -2374,11 +2389,14 @@ class WhereConstraintsAst(Ast):
 
 
 @dataclass
-class WhileExpressionAst(Ast):
+class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     while_keyword: TokenAst
     condition: ExpressionAst
     body: InnerScopeAst[StatementAst]
     else_block: Optional[ResidualInnerScopeAst]
+
+    def __post_init__(self):
+        self.else_block = self.else_block or ResidualInnerScopeAst(-1, TokenAst.dummy(TokenType.KwElse), InnerScopeAst(-1, TokenAst.dummy(TokenType.TkBraceL), [], TokenAst.dummy(TokenType.TkBraceR)))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -2386,6 +2404,14 @@ class WhileExpressionAst(Ast):
         s += f"{self.while_keyword.print(printer)}{self.condition.print(printer)} {self.body.print(printer)}"
         s += f"{self.else_block.print(printer)}" if self.else_block else ""
         return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.condition.do_semantic_analysis(scope_handler, **kwargs)
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
+        self.else_block.do_semantic_analysis(scope_handler, **kwargs)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return CommonTypes.void(pos=self.pos)
 
 
 @dataclass
