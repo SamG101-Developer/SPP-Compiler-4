@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import dataclasses
 import hashlib
-import json
 
 import json_fix
 from abc import ABC, abstractmethod
@@ -87,29 +86,39 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                     exception.add_traceback(lhs.pos, f"Assignment target '{lhs}' invalid.")
                     raise exception
 
-        # Check that the LHS is mutable (given that it has already been initialized)
-        for i, lhs_symbol in enumerate(lhs_symbols):
-            if not lhs_symbol.is_mutable and lhs_symbol.memory_info.ast_initialized:
-                exception = SemanticError(f"Cannot assign to an immutable variable:")
-                exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
-                exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
-                raise exception
+        if self.op.token.token_type == TokenType.TkAssign:
+            # Check that the LHS is mutable (given that it has already been initialized)
+            for i, lhs_symbol in enumerate(lhs_symbols):
+                if not lhs_symbol.is_mutable and lhs_symbol.memory_info.ast_initialized:
+                    exception = SemanticError(f"Cannot assign to an immutable variable:")
+                    exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
+                    exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
+                    raise exception
 
-        # Check that the type of the RHS is the same as the LHS
-        if len(self.lhs) == 1:
-            lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
-            rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
-            if lhs_type != rhs_type:
-                exception = SemanticError(f"Type mismatch in assignment:")
-                exception.add_traceback(self.lhs[0].pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")
-                exception.add_traceback(self.rhs.pos, f"Assignment value '{self.rhs}' inferred here with type '{rhs_type[0].default()}{rhs_type[1]}'.")
-                raise exception
+                match self.lhs[i]:
+                    case IdentifierAst(): lhs_symbol.memory_info.ast_initialized = self
+                    case PostfixExpressionAst(): ...  # TODO : sym.memory_info.ast_partial_moves.remove()
+
+            # Check that the type of the RHS is the same as the LHS
+            if len(self.lhs) == 1:
+                lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
+                rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+                if (lhs_type == rhs_type) or (lhs_type[0] == ConventionNonInitAst and lhs_type[1] == rhs_type[1]):
+                    pass
+                else:
+                    exception = SemanticError(f"Type mismatch in assignment:")
+                    exception.add_traceback(self.lhs[0].pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")
+                    exception.add_traceback(self.rhs.pos, f"Assignment value '{self.rhs}' inferred here with type '{rhs_type[0].default()}{rhs_type[1]}'.")
+                    raise exception
+
+            else:
+                raise NotImplementedError()
 
         else:
             raise NotImplementedError()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        ...
+        return CommonTypes.void()
 
 
 @dataclass
@@ -123,6 +132,8 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{self.lhs.print(printer)} {self.op.print(printer)} {self.rhs.print(printer)}"
 
     def _as_function_call(self) -> PostfixExpressionAst:
+        # TODO : move to parser/lexer implementation
+
         function = PostfixExpressionAst(
             pos=self.pos,
             lhs=self.lhs,
