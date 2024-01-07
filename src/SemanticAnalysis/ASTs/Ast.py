@@ -65,7 +65,48 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{Seq(self.lhs).print(printer, ", ")} {self.op.print(printer)} {self.rhs.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        from SyntacticAnalysis.Parser import Parser
+        from LexicalAnalysis.Lexer import Lexer
+        code = f"({self.rhs})"
+        function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.rhs.pos - 1).parse_function_call_arguments().parse_once()
+        function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+
+        lhs_symbols = []
+
+        # Check the LHS is a valid assignment target
+        for lhs in self.lhs:
+            match lhs:
+                case IdentifierAst():
+                    sym = scope_handler.current_scope.get_symbol(lhs)
+                    lhs_symbols.append(sym)
+                case PostfixExpressionAst() if isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
+                    sym = scope_handler.current_scope.get_symbol(lhs.lhs)
+                    lhs_symbols.append(sym)
+                case _:
+                    exception = SemanticError(f"Invalid assignment target (must be an identifier):")
+                    exception.add_traceback(lhs.pos, f"Assignment target '{lhs}' invalid.")
+                    raise exception
+
+        # Check that the LHS is mutable (given that it has already been initialized)
+        for i, lhs_symbol in enumerate(lhs_symbols):
+            if not lhs_symbol.is_mutable and lhs_symbol.memory_info.ast_initialized:
+                exception = SemanticError(f"Cannot assign to an immutable variable:")
+                exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
+                exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
+                raise exception
+
+        # Check that the type of the RHS is the same as the LHS
+        if len(self.lhs) == 1:
+            lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
+            rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+            if lhs_type != rhs_type:
+                exception = SemanticError(f"Type mismatch in assignment:")
+                exception.add_traceback(self.lhs[0].pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")
+                exception.add_traceback(self.rhs.pos, f"Assignment value '{self.rhs}' inferred here with type '{rhs_type[0].default()}{rhs_type[1]}'.")
+                raise exception
+
+        else:
+            raise NotImplementedError()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         ...
@@ -1850,7 +1891,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
         # Check the argument nams are valid (names only) for type inference. Rest of argument checks are after.
         Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
-
 
         # Check each function overload if it valid for this function call
         # TODO : generics, named arguments
