@@ -51,7 +51,7 @@ class CommonTypes:
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         types = GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [GenericArgumentNormalAst(-1, x) for x in types], TokenAst.dummy(TokenType.TkBrackR))
-        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Tuple", types)])
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Tup", types)])
 
     @staticmethod
     def fun_ref(return_type, param_types, pos: int = -1):
