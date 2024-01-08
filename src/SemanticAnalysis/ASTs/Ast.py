@@ -118,7 +118,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
             raise NotImplementedError()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return CommonTypes.void()
+        return ConventionMovAst, CommonTypes.void()
 
 
 @dataclass
@@ -401,7 +401,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
             match argument.value:
                 case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
-                case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst): sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
+                case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst) and type(argument.value.lhs) in [IdentifierAst, PostfixExpressionAst]: sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
@@ -1129,7 +1129,7 @@ class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
             scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return self.members[-1].infer_type(scope_handler) if self.members else CommonTypes.void()
+        return self.members[-1].infer_type(scope_handler) if self.members else (ConventionMovAst, CommonTypes.void())
 
 
 @dataclass
@@ -1216,24 +1216,59 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         s.current_scope.add_symbol(VariableSymbol(self.assign_to.identifier, self._sup_let_type))
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        sym = VariableSymbol(
-            name=self.assign_to.identifier,
-            type=self.value.infer_type(scope_handler)[1],
-            is_mutable=self.assign_to.is_mutable is not None,
-            memory_info=MemoryStatus(ast_initialized=self))
+        match self.assign_to:
+            case LocalVariableSingleAst():
+                # Add the symbol to the current scope
+                sym = VariableSymbol(
+                    name=self.assign_to.identifier,
+                    type=self.value.infer_type(scope_handler)[1],
+                    is_mutable=self.assign_to.is_mutable is not None,
+                    memory_info=MemoryStatus(ast_initialized=self))
 
-        scope_handler.current_scope.add_symbol(sym)
+                scope_handler.current_scope.add_symbol(sym)
 
-        if not self._sup_let_type:
-            from SyntacticAnalysis.Parser import Parser
-            from LexicalAnalysis.Lexer import Lexer
-            code = f"({self.value})"
-            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.value.pos - 1).parse_function_call_arguments().parse_once()
-            # function_call_ast.arguments[0].pos = self.value.pos
-            # function_call_ast.arguments[0].value.pos = self.value.pos
-            function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
-        else:
-            self.value.do_semantic_analysis(scope_handler, **kwargs)
+                if not self._sup_let_type:
+                    from SyntacticAnalysis.Parser import Parser
+                    from LexicalAnalysis.Lexer import Lexer
+                    code = f"({self.value})"
+                    function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.value.pos - 1).parse_function_call_arguments().parse_once()
+                    function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+                else:
+                    self.value.do_semantic_analysis(scope_handler, **kwargs)
+
+            case LocalVariableTupleAst():
+                # Check there are the same number of elements on the LHS as the RHS
+                rhs_tuple_type_element_count = self.value.infer_type(scope_handler)[1].parts[-1].generic_arguments.arguments
+                if len(self.assign_to.items) != len(rhs_tuple_type_element_count):
+                    exception = SemanticError(f"Invalid tuple assignment:")
+                    exception.add_traceback(self.assign_token.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
+                    exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_element_count)} elements.")
+                    raise exception
+
+                for i, current_let_statement in enumerate(self.assign_to.items):
+                    new_rhs = PostfixExpressionAst(
+                        pos=self.pos,
+                        lhs=self.value,
+                        op=PostfixExpressionOperatorMemberAccessAst(
+                            pos=self.pos,
+                            dot_token=TokenAst.dummy(TokenType.TkDot),
+                            identifier=LiteralNumberBase10Ast(-1, None, TokenAst.dummy(TokenType.LxDecDigits, info=str(i)), None),
+                        )
+                    )
+                    new_let_statement = LetStatementInitializedAst(
+                        pos=self.pos,
+                        let_keyword=self.let_keyword,
+                        assign_to=current_let_statement,
+                        assign_token=self.assign_token,
+                        value=new_rhs,
+                        residual=self.residual,
+                        _sup_let_type=self._sup_let_type)
+
+                    # print(new_let_statement)
+
+                    new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
+
+            case LocalVariableDestructureAst(): ...
 
 
 @dataclass
@@ -1360,7 +1395,7 @@ class LiteralArrayNonEmptyAst(Ast, SemanticAnalysis, TypeInfer):
             raise exception
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, CommonTypes.arr(self.elements[0].infer_type(scope_handler), pos=self.pos)
+        return ConventionMovAst, CommonTypes.arr(self.elements[0].infer_type(scope_handler, **kwargs)[1], pos=self.pos)
 
 
 @dataclass
@@ -1386,7 +1421,7 @@ LiteralArrayAst = (
 
 
 @dataclass
-class LiteralTupleAst(Ast, SemanticAnalysis):
+class LiteralTupleAst(Ast, SemanticAnalysis, TypeInfer):
     paren_l_token: TokenAst
     items: List[ExpressionAst]
     paren_r_token: TokenAst
@@ -1397,6 +1432,9 @@ class LiteralTupleAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         Seq(self.items).for_each(lambda i: i.do_semantic_analysis(scope_handler, **kwargs))
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs)[1]).value, pos=self.pos)
 
 
 @dataclass
@@ -1985,7 +2023,8 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
         #
         if isinstance(self.identifier, LiteralNumberBase10Ast):
-            return ConventionMovAst, lhs.infer_type().parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)]
+            index = int(self.identifier.number.token.token_metadata)
+            return ConventionMovAst, lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments[index].type
 
         #
         elif isinstance(self.identifier, IdentifierAst):
@@ -2276,8 +2315,8 @@ class TokenAst(Ast):
     token: Token
 
     @staticmethod
-    def dummy(token_type: TokenType) -> Self:
-        return TokenAst(-1, Token(token_type.value, token_type))
+    def dummy(token_type: TokenType, info=None) -> Self:
+        return TokenAst(-1, Token(info or token_type.value, token_type))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -2317,7 +2356,9 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
         # Check that the number of generic arguments given to the type is <= the number of generic parameters.
         # TODO : bypass this if the final generic parameter is variadic.
-        if sym.type and len(self.parts[-1].generic_arguments.arguments) > len(sym.type.generic_parameters.parameters):
+        if (sym.type
+                and len(self.parts[-1].generic_arguments.arguments) > len(sym.type.generic_parameters.parameters)
+                and not isinstance(sym.type.generic_parameters.parameters[-1], GenericParameterVariadicAst)):
             exception = SemanticError(f"Too many generic arguments given to type '{self.without_generics()}':")
             exception.add_traceback(sym.type.pos, f"Type {self.without_generics()} declared here.")
             exception.add_traceback(self.pos, f"Type '{self}' used here.")
@@ -2462,7 +2503,7 @@ class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         self.else_block.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return CommonTypes.void(pos=self.pos)
+        return ConventionMovAst, CommonTypes.void(pos=self.pos)
 
 
 @dataclass
@@ -2522,7 +2563,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler)
-        return CommonTypes.void(pos=self.pos)
+        return ConventionMovAst, CommonTypes.void(pos=self.pos)
 
 
 @dataclass
