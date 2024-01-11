@@ -1232,7 +1232,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         match self.assign_to:
             case LocalVariableSingleAst():
                 # Add the symbol to the current scope
-                # Defer for postfix function calls that need analysing before return type from overload is known
+                # Defer the type for postfix function calls that need analysing before return type from overload is known
+                # This is fine because a symbol can never refer to itself in its own definition (just not possible)
                 sym = VariableSymbol(
                     name=self.assign_to.identifier,
                     type=None,
@@ -1245,8 +1246,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     wrapped_value = FunctionArgumentNormalAst(self.value.pos, ConventionMovAst(self.value.pos), None, self.value)
                     wrapped_value = FunctionArgumentGroupAst(self.value.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
                     wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
-
                     sym.type = self.value.infer_type(scope_handler)[1]
+
                 else:
                     self.value.do_semantic_analysis(scope_handler, **kwargs)
                     sym.type = self.value.infer_type(scope_handler)[1]
@@ -1941,9 +1942,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         import inspect
 
         function_name = kwargs.get("postfix-lhs")
-        print("-" * 100)
-        print(inspect.stack()[1].lineno)
-        print(function_name)
         match function_name:
             case PostfixExpressionAst():
                 function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler)[1]).associated_scope
@@ -1971,7 +1969,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
         argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
 
-        error_message = f""
+        overload_errors = SemanticError("Invalid function call")
+        overload_errors.add_traceback(self.pos, (
+            f"Function call"
+            f" '({", ".join(argument_types.map(lambda t: f"{t[0].default()}{t[1]}").value)})'"
+            f" found here."))
+
         for function_overload in function_overloads:
             function_overload = copy.deepcopy(function_overload)
 
@@ -1981,17 +1984,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 # TODO : inject the lhs as argument 0 (self), don't skip parameter 0
                 parameter_types = parameter_types.skip(1)
 
-            # Create the error prefix message in-case this overload is not valid.
-            error_message += (
-                f"\n\t{function_name.infer_type(scope_handler)[1]}"
-                f"({", ".join(Seq(function_overload.parameters.parameters).map(lambda p: str(p)).value)}) "
-                f"-> {function_overload.return_type}")
-
-            generic_map = self.infer_generic_argument_values(scope_handler, function_overload, argument_types.map(lambda x: x[1]).value)
+            # Get the generic map for this function overload. Any errors are added in the function & None is returned,
+            # so if the generic map is None then continue.
+            generic_map = self.infer_generic_argument_values(scope_handler, function_overload, argument_types.map(lambda x: x[1]).value, overload_errors)
+            if generic_map is None:
+                continue
 
             # Check that inferred generics haven't been given
             if len(generic_map.keys()) + len(self.generic_arguments.arguments) > len(function_overload.generic_parameters.parameters):
-                error_message += f": Too many generic arguments given. Inferred generics: {generic_map.keys()}."
+                generic_arguments = generic_map.keys()
+                overload_errors.add_traceback(function_overload.pos, f"")
+                overload_errors.add_traceback_minimal(Seq(self.generic_arguments.arguments).skip(len(function_overload.generic_parameters.parameters))[0].pos, f"Generic arguments {generic_arguments} have already been inferred.")
+                continue
 
             # Replace all instances of the generic parameters with the inferred arguments.
             for k, v in generic_map.items():
@@ -1999,21 +2003,25 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                     parameter.type_declaration.substitute_generics(k, v)
                 function_overload.return_type.substitute_generics(k, v)
 
-            print(function_overload)
-
             # Not enough arguments for the function overload to be called.
             if argument_types.length < parameter_types.length:
-                error_message += f": Missing arguments for {Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value}."
+                missing_parameters = Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value
+                overload_errors.add_traceback(function_overload.pos, f"")
+                overload_errors.add_traceback_minimal(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Missing argument found here: {missing_parameters[0]}")
                 continue
 
             # Too many arguments for the function overload to be called.
             if argument_types.length > parameter_types.length and not isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst):
-                error_message += f": Unexpected arguments {Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length).map(lambda a: str(a.value)).value}."
+                unexpected_arguments = Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length).map(lambda a: str(a.value)).value
+                overload_errors.add_traceback(function_overload.pos, f"")
+                overload_errors.add_traceback_minimal(Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length)[0].pos, f"Unexpected argument found here: {unexpected_arguments[0]}")
                 continue
 
             # Incorrect type or convention next to the type (&Str != Str)
             if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[1][0]) or t[0][1] != t[1][1]):
-                error_message += f": Incorrect type or convention"
+                i, type_mismatch = argument_types.zip(parameter_types).enumerate().filter(lambda t: t[1][0][0] != type(t[1][1][0]) or t[1][0][1] != t[1][1][1])[0]
+                overload_errors.add_traceback(function_overload.pos, f"")
+                overload_errors.add_traceback_minimal(self.arguments.arguments[i].pos, f"Argument '{self.arguments.arguments[i].value}' has type '{type_mismatch[0][0].default()}{type_mismatch[0][1]}', instead of '{type_mismatch[1][0].default()}{type_mismatch[1][1]}'.")
                 continue
 
             # Get the required generic parameters for this overload. Not required if they appear in the parameter types.
@@ -2034,40 +2042,30 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
-        exception = SemanticError(f"Invalid function call:")
-        exception.add_traceback(self.pos, (
-            f"Function call"
-            f" '({", ".join(argument_types.map(lambda t: f"{t[0].default()}{t[1]}").value)})'"
-            f" found here."))
-        exception.add_footer(f"Valid overloads are:{error_message}")
-        raise exception
+        raise overload_errors
 
-    def infer_generic_argument_values(self, scope_handler: ScopeHandler, function_overload: FunctionPrototypeAst, replacements) -> Dict[TypeAst, TypeAst]:
+    def infer_generic_argument_values(self, scope_handler: ScopeHandler, function_overload: FunctionPrototypeAst, replacements, exception: SemanticError) -> Dict[TypeAst, TypeAst] | None:
         # Infer any generic type arguments that can be inferred (from parameter types etc)
         # Return a list of non-inferred generic argument types.
 
         generic_map = {}
-        # for generic_parameter in function_overload.generic_parameters.parameters:
-        #     for i, parameter_type in Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration).enumerate():
-        #         print(f"substituting {generic_parameter.identifier} in {parameter_type} with {replacements[i][1]}")
-        #         sub_parameter_type = copy.deepcopy(parameter_type).substitute_generics(generic_parameter.identifier, replacements[i][1])
-        #         if parameter_type != sub_parameter_type:
-        #             generic_map[generic_parameter.identifier] = sub_parameter_type
-        #             break
-
         for generic_parameter in function_overload.generic_parameters.parameters:
             for parameter_t, argument_t in Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration).zip(Seq(replacements)):
 
                 # TODO : if the generic parameter is already in the parameter type, don't substitute it
                 # TODO : if the generic parameter is already in the parameter type, ensure type is inferred the same
 
+                # Check if the generic argument has already been inferred.
+                if generic_parameter.identifier in generic_map.keys() and generic_map[generic_parameter.identifier] != argument_t:
+                    exception.add_traceback(function_overload.pos, f"")
+                    exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{generic_map[generic_parameter.identifier]}.")
+                    return None
+
                 for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
                     if generic_parameter.identifier.parts[-1] == p_1:  # and p_2[1] != generic_parameter.identifier:
                         generic_map[generic_parameter.identifier] = TypeSingleAst(p_2.pos, [p_2])
                         break
 
-        for k, v in generic_map.items():
-            print(f"{k} -> {v}")
         return generic_map
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
