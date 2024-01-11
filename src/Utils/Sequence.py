@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Callable, Iterator
+from typing import List, Callable, Iterator, Optional
 
 
 class Seq[T]:
@@ -73,6 +73,12 @@ class Seq[T]:
     def zip[U](self, other: Seq[U]) -> Seq[tuple[T, U]]:
         return Seq(list(zip(self._value, other._value)))
 
+    def find(self, func: Callable[[T], bool]) -> Optional[T]:
+        for x in self._value:
+            if func(x):
+                return x
+        return None
+
     def all(self, func: Callable[[T], bool]) -> bool:
         return all(func(x) for x in self._value)
 
@@ -81,6 +87,9 @@ class Seq[T]:
 
     def contains(self, item: T) -> bool:
         return item in self._value
+
+    def enumerate(self) -> Seq[tuple[int, T]]:
+        return Seq(list(enumerate(self._value)))
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
