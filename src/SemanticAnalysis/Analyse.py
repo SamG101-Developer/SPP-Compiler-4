@@ -36,6 +36,5 @@ class Analyser:
         except SemanticError as e:
             final_error = str(e)
             for error in e.additional_info:
-                final_error += err_fmt.error(error[0], message=error[1])
-            final_error += f"\n{e.footer}"
+                final_error += err_fmt.error(error[0], message=error[1], minimal=error[2])
             raise SystemExit(final_error) from None

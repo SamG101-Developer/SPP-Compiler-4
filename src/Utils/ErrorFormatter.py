@@ -13,7 +13,7 @@ class ErrorFormatter:
         self._tokens = tokens
         self._file_path = file_path
 
-    def error(self, start_pos: int, end_pos: int = -1, message: str = ""):
+    def error(self, start_pos: int, end_pos: int = -1, message: str = "", minimal: bool = False) -> str:
         while self._tokens[start_pos].token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
             start_pos += 1
 
@@ -45,7 +45,7 @@ class ErrorFormatter:
 
         left_padding = " " * len(str(error_line_number))
         final_error_message = "\n".join([
-            f"\n\n{Fore.WHITE}{Style.BRIGHT}Error in file {self._file_path} on line {error_line_number}:",
+            f"\n\n{Fore.WHITE}{Style.BRIGHT}Error in file {self._file_path} on line {error_line_number}:" * (not minimal),
             f"{left_padding} |",
             f"{Fore.RED}{error_line_number} | {error_line_as_string}",
             f"{left_padding} | {Style.RESET_ALL}{carets_line_as_string}{formatted_message}"
