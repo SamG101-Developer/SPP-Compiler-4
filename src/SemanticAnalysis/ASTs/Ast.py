@@ -1980,7 +1980,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
             # Get the parameter conventions & types for this function overload.
             parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: (p.convention, p.type_declaration))
-            if isinstance(function_overload.parameters.parameters[0], FunctionParameterSelfAst):
+            if function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[0], FunctionParameterSelfAst):
                 # TODO : inject the lhs as argument 0 (self), don't skip parameter 0
                 parameter_types = parameter_types.skip(1)
 
@@ -1997,6 +1997,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 overload_errors.add_traceback_minimal(Seq(self.generic_arguments.arguments).skip(len(function_overload.generic_parameters.parameters))[0].pos, f"Generic arguments {generic_arguments} have already been inferred.")
                 continue
 
+            if len(generic_map.keys()) + len(self.generic_arguments.arguments) < len(function_overload.generic_parameters.parameters):
+                missing_generic_argument = Seq(function_overload.generic_parameters.parameters).skip(len(generic_map.keys()) + len(self.generic_arguments.arguments))[0]
+                overload_errors.add_traceback(missing_generic_argument.pos, f"Generic parameter '{missing_generic_argument.identifier}' required here.")
+                overload_errors.add_traceback_minimal(self.pos, f"Missing generic argument '{missing_generic_argument.identifier}'.")
+                continue
+
             # Replace all instances of the generic parameters with the inferred arguments.
             for k, v in generic_map.items():
                 for parameter in function_overload.parameters.parameters:
@@ -2006,14 +2012,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             # Not enough arguments for the function overload to be called.
             if argument_types.length < parameter_types.length:
                 missing_parameters = Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value
-                overload_errors.add_traceback(function_overload.pos, f"")
-                overload_errors.add_traceback_minimal(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Missing argument found here: {missing_parameters[0]}")
+                overload_errors.add_traceback(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Missing argument found here: {missing_parameters[0]}")
+                overload_errors.add_traceback_minimal(function_name.pos, f"Function call only has {len(self.arguments.arguments)} arguments, instead of {len(function_overload.parameters.parameters)}.")
                 continue
 
             # Too many arguments for the function overload to be called.
             if argument_types.length > parameter_types.length and not isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst):
                 unexpected_arguments = Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length).map(lambda a: str(a.value)).value
-                overload_errors.add_traceback(function_overload.pos, f"")
+                overload_errors.add_traceback(function_overload.identifier.pos, f"Function '{function_name}' overload declared here with {len(function_overload.parameters.parameters)} parameters.")
                 overload_errors.add_traceback_minimal(Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length)[0].pos, f"Unexpected argument found here: {unexpected_arguments[0]}")
                 continue
 
@@ -2058,7 +2064,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 # Check if the generic argument has already been inferred.
                 if generic_parameter.identifier in generic_map.keys() and generic_map[generic_parameter.identifier] != argument_t:
                     exception.add_traceback(function_overload.pos, f"")
-                    exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{generic_map[generic_parameter.identifier]}.")
+                    exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{generic_map[generic_parameter.identifier]}'.")
                     return None
 
                 for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
