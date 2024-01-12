@@ -70,6 +70,9 @@ class Seq[T]:
     def skip(self, n: int) -> Seq[T]:
         return Seq(self._value[n:])
 
+    def take(self, n: int) -> Seq[T]:
+        return Seq(self._value[:n])
+
     def zip[U](self, other: Seq[U]) -> Seq[tuple[T, U]]:
         return Seq(list(zip(self._value, other._value)))
 
@@ -95,6 +98,8 @@ class Seq[T]:
         return iter(self._value)
 
     def __getitem__(self, key: int) -> T:
+        if isinstance(key, int) and key > len(self._value) - 1:
+            raise IndexError(f"Index {key} is out of bounds for sequence of length {len(self._value)}")
         return self._value[key]
 
     def __setitem__(self, key: int, value: T) -> None:
