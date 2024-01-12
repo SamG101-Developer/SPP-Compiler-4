@@ -64,16 +64,15 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{Seq(self.lhs).print(printer, ", ")} {self.op.print(printer)} {self.rhs.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SyntacticAnalysis.Parser import Parser
-        from LexicalAnalysis.Lexer import Lexer
-        code = f"({self.rhs})"
-        function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=self.rhs.pos - 1).parse_function_call_arguments().parse_once()
-        function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
+        wrapped_value = FunctionArgumentNormalAst(self.rhs.pos, ConventionMovAst(self.rhs.pos), None, self.rhs)
+        wrapped_value = FunctionArgumentGroupAst(self.rhs.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
+        wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
 
         lhs_symbols = []
 
         # Check the LHS is a valid assignment target
         for lhs in self.lhs:
+            lhs.do_semantic_analysis(scope_handler, **kwargs)
             match lhs:
                 case IdentifierAst():
                     sym = scope_handler.current_scope.get_symbol(lhs)
@@ -1990,11 +1989,25 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if generic_map is None:
                 continue
 
+            # Make sure that inferrable generics always come AFTER required generics. Check that the N amount of inferrable
+            # generics are the first N generic parameters in the overload.
+            # TODO : this might restrict for variadics that come after
+            # if Seq(list(generic_map.keys())).any(lambda k: k not in Seq(function_overload.generic_parameters.parameters).take(len(generic_map)).map(lambda p: p.identifier).value):
+            #     overload_errors.add_traceback(function_overload.pos, f"Inferrable generic parameters must come after required generic parameters.")
+            #     continue
+
             # Check that inferred generics haven't been given
             if len(generic_map.keys()) + len(self.generic_arguments.arguments) > len(function_overload.generic_parameters.parameters):
-                generic_arguments = generic_map.keys()
-                overload_errors.add_traceback(function_overload.pos, f"")
-                overload_errors.add_traceback_minimal(Seq(self.generic_arguments.arguments).skip(len(function_overload.generic_parameters.parameters))[0].pos, f"Generic arguments {generic_arguments} have already been inferred.")
+                print(Seq(self.generic_arguments.arguments).map(str).value)
+                print(len(generic_map.keys()))
+                if function_overload.generic_parameters.parameters:
+                    unrequired_given_generic_argument = function_overload.generic_parameters.parameters[0]
+                    overload_errors.add_traceback(unrequired_given_generic_argument.pos, f"Inferrable generic parameter '{unrequired_given_generic_argument}' declared here.")
+                    overload_errors.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
+                else:
+                    overload_errors.add_traceback(function_overload.parameters.paren_l_token.pos, f"No generic parameters declared here.")
+                    overload_errors.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
+                # Seq(self.generic_arguments.arguments).skip(len(function_overload.generic_parameters.parameters))[0].pos, f"Generic arguments {generic_arguments} have already been inferred.")
                 continue
 
             if len(generic_map.keys()) + len(self.generic_arguments.arguments) < len(function_overload.generic_parameters.parameters):
@@ -2004,15 +2017,16 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 continue
 
             # Replace all instances of the generic parameters with the inferred arguments.
-            for k, v in generic_map.items():
+            # Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.value)).value:
+            for k, v in {**generic_map, **{p[1] : a.type for p, a in zip(parameter_types, self.generic_arguments.arguments)}}.items():
                 for parameter in function_overload.parameters.parameters:
                     parameter.type_declaration.substitute_generics(k, v)
                 function_overload.return_type.substitute_generics(k, v)
 
             # Not enough arguments for the function overload to be called.
             if argument_types.length < parameter_types.length:
-                missing_parameters = Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value
-                overload_errors.add_traceback(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Missing argument found here: {missing_parameters[0]}")
+                missing_parameter = Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value[0]
+                overload_errors.add_traceback(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Parameter '{missing_parameter}' declared here.")
                 overload_errors.add_traceback_minimal(function_name.pos, f"Function call only has {len(self.arguments.arguments)} arguments, instead of {len(function_overload.parameters.parameters)}.")
                 continue
 
