@@ -1938,8 +1938,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> FunctionPrototypeAst:
-        import inspect
-
         function_name = kwargs.get("postfix-lhs")
         match function_name:
             case PostfixExpressionAst():
