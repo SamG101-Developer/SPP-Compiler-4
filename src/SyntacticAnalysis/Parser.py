@@ -848,6 +848,10 @@ class Parser:
         p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
         return p7
 
+    # TODO : change these pattern variants:
+    #   1. Copy parser code out of function call in these parsers
+    #   2. Change the "local-variable" part to a "pattern" part
+
     @parser_rule
     @tested_parser_rule
     def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
@@ -1082,7 +1086,7 @@ class Parser:
     @tested_parser_rule
     def parse_object_initializer_argument_normal(self) -> ObjectInitializerArgumentNormalAst:
         c1 = self.current_pos()
-        p1 = self.parse_object_initializer_argument_named_key().parse_once()
+        p1 = self.parse_identifier().parse_once()
         return ObjectInitializerArgumentNormalAst(c1, p1)
 
     @parser_rule
@@ -1143,7 +1147,7 @@ class Parser:
     def parse_lambda_capture_item_normal(self):
         c1 = self.current_pos()
         p1 = self.parse_convention().parse_once()
-        p2 = self.parse_identifier().parse_once()
+        p2 = self.parse_expression().parse_once()
         return LambdaCaptureItemNormalAst(c1, p1, p2)
 
     @parser_rule
@@ -1153,7 +1157,7 @@ class Parser:
         p1 = self.parse_identifier().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         p3 = self.parse_convention().parse_once()
-        p4 = self.parse_identifier().parse_once()
+        p4 = self.parse_expression().parse_once()
         return LambdaCaptureItemNamedAst(c1, p1, p2, p3, p4)
 
     # ===== TYPES =====
@@ -1419,7 +1423,7 @@ class Parser:
     def parse_literal_array_non_empty(self) -> LiteralArrayNonEmptyAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBrackL).parse_once()
-        p2 = self.parse_literal().parse_one_or_more(TokenType.TkComma)
+        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
         p3 = self.parse_token(TokenType.TkBrackR).parse_once()
         return LiteralArrayNonEmptyAst(c1, p1, p2, p3)
 
