@@ -455,7 +455,7 @@ class Parser:
     def parse_binary_expression_precedence_level_n_rhs(self, op, rhs) -> Tuple[TokenAst, ExpressionAst]:
         p1 = op().parse_once()
         p2 = rhs().parse_once()
-        return (p1, p2)
+        return p1, p2
 
     @parser_rule
     @tested_parser_rule
