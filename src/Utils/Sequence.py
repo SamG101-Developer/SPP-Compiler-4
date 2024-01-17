@@ -9,6 +9,9 @@ class Seq[T]:
     def __init__(self, value: List[T]) -> None:
         self._value = value
 
+    def append(self, item: T) -> None:
+        self._value.append(item)
+
     def for_each[U](self, func: Callable[[T], U]) -> None:
         for v in self._value: func(v)
 
@@ -54,6 +57,12 @@ class Seq[T]:
     def contains_duplicates(self) -> bool:
         return self.non_unique_items().not_empty()
 
+    def contains(self, item: T) -> bool:
+        return item in self._value
+
+    def contains_any(self, items: Seq[T]) -> Seq[T]:
+        return Seq([x for x in items if x in self._value])
+
     def sort(self, key: Callable[[T], any] = None, reverse: bool = False) -> Seq[T]:
         return Seq(sorted(self._value, key=key, reverse=reverse))
 
@@ -88,11 +97,25 @@ class Seq[T]:
     def any(self, func: Callable[[T], bool]) -> bool:
         return any(func(x) for x in self._value)
 
-    def contains(self, item: T) -> bool:
-        return item in self._value
-
     def enumerate(self) -> Seq[tuple[int, T]]:
         return Seq(list(enumerate(self._value)))
+
+    def remove(self, item: T) -> Seq[T]:
+        self._value.remove(item)
+        return self
+
+    def replace(self, item: T, replacement: T) -> Seq[T]:
+        self._value = [replacement if x == item else x for x in self._value]
+        return self
+
+    def pop(self, index: int) -> T:
+        return self._value.pop(index)
+
+    def first(self, default: Optional[T] = None):
+        return self._value[0] if self.not_empty() else default
+
+    def last(self, default: Optional[T] = None):
+        return self._value[-1] if self.not_empty() else default
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
