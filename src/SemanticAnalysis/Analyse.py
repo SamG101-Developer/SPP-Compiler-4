@@ -37,4 +37,8 @@ class Analyser:
             final_error = str(e)
             for error in e.additional_info:
                 final_error += err_fmt.error(error[0], message=error[1], minimal=error[2])
+            for error in e.next_exceptions:
+                final_error += f"\n\n{error}"
+                for inner_error in error.additional_info:
+                    final_error += err_fmt.error(inner_error[0], message=inner_error[1], minimal=inner_error[2])
             raise SystemExit(final_error) from None
