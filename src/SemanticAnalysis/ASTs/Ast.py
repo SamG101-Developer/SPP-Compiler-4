@@ -393,7 +393,6 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
         # Begin memory checks here to prevent overlaps of borrows.
         borrows_ref = OrderedSet()
         borrows_mut = OrderedSet()
-        # function = kwargs["function-called"]
 
         for argument in self.arguments:
             argument.value.do_semantic_analysis(scope_handler, **kwargs)
@@ -443,16 +442,14 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                         sym.memory_info.ast_partial_moves.append(argument)
 
                 case ConventionMutAst():
-                    # Can only take a borrow from a (postfix) identifier.
+                    # Can only take a borrow from a (postfix) identifier. TODO : remove this soon
                     if not sym:
                         exception = SemanticError(f"Cannot take an borrow from a non-identifier:")
                         exception.add_traceback(argument.convention.pos, f"Borrow '{argument.convention}' taken here.")
                         raise exception
 
-                    print(sym.name, sym.is_mutable)
-
                     # Can only take a mutable borrow from a mutable symbol
-                    if not sym.is_mutable:
+                    if not (sym.is_mutable or sym.memory_info.is_borrow_mut):
                         exception = SemanticError(f"Cannot take a mutable borrow from an immutable variable:")
                         exception.add_traceback(sym.memory_info.ast_initialized.pos, f"Variable '{argument.value}' declared immutably here.")
                         exception.add_traceback(argument.convention.pos, f"Mutable borrow '{argument.value}' taken here.")
@@ -477,7 +474,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                     borrows_mut.add((argument.value.pos, str(argument.value)))
 
                 case ConventionRefAst():
-                    # Can only take a borrow from a (postfix) identifier.
+                    # Can only take a borrow from a (postfix) identifier. TODO : remove this soon
                     if not sym:
                         exception = SemanticError(f"Cannot take a borrow from a non-identifier:")
                         exception.add_traceback(argument.convention.pos, f"Borrow '{argument.convention}' taken here.")
@@ -1258,7 +1255,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     name=self.assign_to.identifier,
                     type=None,
                     is_mutable=self.assign_to.is_mutable is not None,
-                    memory_info=MemoryStatus(ast_initialized=self))
+                    memory_info=MemoryStatus(ast_initialized=self.assign_to))
 
                 scope_handler.current_scope.add_symbol(sym)
 
@@ -2162,13 +2159,13 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
-            if not isinstance(lhs.infer_type().without_generics(), CommonTypes.tuple([])):
+            if lhs.infer_type(scope_handler, **kwargs)[1].without_generics() != CommonTypes.tuple([]):
                 exception = SemanticError(f"Numeric member access requires a tuple type:")
                 exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here.")
                 exception.add_traceback(self.identifier.pos, f"Numeric member access found here.")
                 raise exception
 
-            if int(self.identifier.number.token.token_metadata) >= len(lhs.infer_type().parts[-1].generic_arguments.arguments):
+            if int(self.identifier.number.token.token_metadata) >= len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments):
                 exception = SemanticError(f"Numeric member access out of bounds:")
                 exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here, with {len(lhs.infer_type().parts[-1].gemeric_arguments.arguments)} elements.")
                 exception.add_traceback(self.identifier.pos, f"Numeric member access found here to element {self.identifier.number.token.token_metadata}.")
