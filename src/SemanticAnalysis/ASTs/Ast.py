@@ -95,7 +95,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                     raise exception
 
                 match self.lhs[i]:
-                    case IdentifierAst(): lhs_symbol.memory_info.ast_initialized = self
+                    case IdentifierAst() if not lhs_symbol.memory_info.ast_initialized: lhs_symbol.memory_info.ast_initialized = self
                     case PostfixExpressionAst(): ...  # TODO : sym.memory_info.ast_partial_moves.remove()
 
             # Check that the type of the RHS is the same as the LHS
@@ -106,7 +106,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                     pass
                 else:
                     exception = SemanticError(f"Type mismatch in assignment:")
-                    exception.add_traceback(self.lhs[0].pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")  # TODO : should be symbol's initialization AST
+                    exception.add_traceback(lhs_symbols[0].memory_info.ast_initialized.pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")  # TODO : should be symbol's initialization AST
                     exception.add_traceback(self.rhs.pos, f"Assignment value '{self.rhs}' inferred here with type '{rhs_type[0].default()}{rhs_type[1]}'.")
                     raise exception
 
@@ -515,7 +515,7 @@ class FunctionParameterSelfAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         symbol = VariableSymbol(self.identifier, CommonTypes.self(), is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
-            ast_initialized=self,
+            ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self.convention))
@@ -540,7 +540,7 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
-            ast_initialized=self,
+            ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self.convention))
@@ -570,7 +570,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
-            ast_initialized=self,
+            ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self.convention))
@@ -613,7 +613,7 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
         # TODO : type declaration for variadics will need to be checked later: tuple?
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
-            ast_initialized=self,
+            ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self.convention))
@@ -1255,7 +1255,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     name=self.assign_to.identifier,
                     type=None,
                     is_mutable=self.assign_to.is_mutable is not None,
-                    memory_info=MemoryStatus(ast_initialized=self.assign_to))
+                    memory_info=MemoryStatus(ast_initialized=self.assign_to.identifier))
 
                 scope_handler.current_scope.add_symbol(sym)
 
@@ -1263,11 +1263,11 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     wrapped_value = FunctionArgumentNormalAst(self.value.pos, ConventionMovAst(self.value.pos), None, self.value)
                     wrapped_value = FunctionArgumentGroupAst(self.value.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
                     wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
-                    sym.type = self.value.infer_type(scope_handler)[1]
+                    sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
 
                 else:
                     self.value.do_semantic_analysis(scope_handler, **kwargs)
-                    sym.type = self.value.infer_type(scope_handler)[1]
+                    sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
 
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
@@ -2184,8 +2184,8 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
         lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)[1]).associated_scope
 
         #
-        if isinstance(self.identifier, LiteralNumberBase10Ast):
-            index = int(self.identifier.number.token.token_metadata)
+        if isinstance(self.identifier, TokenAst) and self.identifier.token.token_type == TokenType.LxDecDigits:
+            index = int(self.identifier.token.token_metadata)
             return ConventionMovAst, lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments[index].type
 
         #
