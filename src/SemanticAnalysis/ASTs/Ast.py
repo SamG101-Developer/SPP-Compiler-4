@@ -449,10 +449,19 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                         exception.add_traceback(argument.convention.pos, f"Borrow '{argument.convention}' taken here.")
                         raise exception
 
+                    print(sym.name, sym.is_mutable)
+
                     # Can only take a mutable borrow from a mutable symbol
                     if not sym.is_mutable:
                         exception = SemanticError(f"Cannot take a mutable borrow from an immutable variable:")
                         exception.add_traceback(sym.memory_info.ast_initialized.pos, f"Variable '{argument.value}' declared immutably here.")
+                        exception.add_traceback(argument.convention.pos, f"Mutable borrow '{argument.value}' taken here.")
+                        raise exception
+
+                    # Cannot take a mutable borrow from an immutable borrow
+                    if sym.memory_info.is_borrow_ref:
+                        exception = SemanticError(f"Cannot take a mutable borrow from an immutable borrow:")
+                        exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{argument.value}' borrowed immutably here.")
                         exception.add_traceback(argument.convention.pos, f"Mutable borrow '{argument.value}' taken here.")
                         raise exception
 
@@ -512,7 +521,7 @@ class FunctionParameterSelfAst(Ast, SemanticAnalysis):
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
-            ast_borrow=self))
+            ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
 
 
@@ -537,7 +546,7 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
-            ast_borrow=self))
+            ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
@@ -567,7 +576,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
-            ast_borrow=self))
+            ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
 
         # self.default_value.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
@@ -610,7 +619,7 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
             ast_initialized=self,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
-            ast_borrow=self))
+            ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
@@ -668,6 +677,9 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
             raise exception
 
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
+
+    def get_self(self) -> Optional[FunctionParameterSelfAst]:
+        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterSelfAst)).first(None)
 
     def get_req(self) -> List[FunctionParameterRequiredAst]:
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterRequiredAst)).value
@@ -897,8 +909,8 @@ class GenericArgumentGroupAst(Ast, SemanticAnalysis):
         if named_arguments.contains_duplicates():
             duplicate_named_arguments = named_arguments.non_unique_items()[0]
             exception = SemanticError(f"Duplicate generic argument names '{duplicate_named_arguments[0]}' found:")
-            exception.add_traceback(duplicate_named_arguments[0].pos, f"Argument '{duplicate_named_arguments[0]}' declared here.")
-            exception.add_traceback(duplicate_named_arguments[1].pos, f"Argument '{duplicate_named_arguments[1]}' re-declared here.")
+            exception.add_traceback(duplicate_named_arguments[0].pos, f"Argument <{duplicate_named_arguments[0]}> declared here.")
+            exception.add_traceback(duplicate_named_arguments[1].pos, f"Argument <{duplicate_named_arguments[1]}> re-declared here.")
             raise exception
 
         # Check argument order is Normal -> Named
@@ -2016,23 +2028,23 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
             arguments = Seq(copy.deepcopy(self.arguments.arguments))
 
-            if function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[0], FunctionParameterSelfAst):
+            if self_param := function_overload.parameters.get_self():
                 # TODO
                 match function_name:
                     case PostfixExpressionAst():
                         sym = scope_handler.current_scope.get_symbol(function_name.lhs)
-                        arguments.append(FunctionArgumentNamedAst(-1, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), sym.memory_info.as_ast(), function_name.lhs))
+                        arguments.append(FunctionArgumentNamedAst(function_name.lhs.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
                     case IdentifierAst():
                         sym = scope_handler.current_scope.get_symbol(function_name)
-                        arguments.append(FunctionArgumentNamedAst(-1, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), sym.memory_info.as_ast(), function_name.lhs))
+                        arguments.append(FunctionArgumentNamedAst(function_name.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
                     case _:
-                        ...
+                        raise NotImplementedError()
 
             # Check if there are any named arguments with names that don't match any parameter names.
             if invalid_argument_names := Seq(self.arguments.arguments).filter(lambda a: isinstance(a, FunctionArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in parameter_names):
                 exception = SemanticError(f"Invalid argument names given to function call:")
                 exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {parameter_names.map(str).join(", ")}")
-                exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument '{invalid_argument_names[0]}' found here.")
+                exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.")
                 function_overload_errors.append(exception)
                 continue
 
@@ -2066,10 +2078,15 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             for argument in arguments:
                 corresponding_parameter = Seq(function_overload.parameters.parameters).find(lambda p: p.identifier == argument.identifier)
                 argument_type = argument.value.infer_type(scope_handler)
+
+                # Special case for "self" => use the param.convention, not the inferred type convention.
+                if argument.identifier.value == "self":
+                    argument_type = (type(corresponding_parameter.convention), argument_type[1])
+
                 if argument_type[1] != corresponding_parameter.type_declaration or argument_type[0] != type(corresponding_parameter.convention):
                     exception = SemanticError(f"Invalid argument type given to function call:")
                     exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {Seq(function_overload.parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
-                    exception.add_traceback_minimal(argument.pos, f"Argument {argument} found here with type '{argument_type[0].default()}{argument_type[1]}', instead of '{corresponding_parameter.type_declaration}'.")
+                    exception.add_traceback_minimal(argument.pos, f"Argument <{argument}> found here with type '{argument_type[0].default()}{argument_type[1]}', instead of '{corresponding_parameter.convention}{corresponding_parameter.type_declaration}'.")
                     function_overload_errors.append(exception)
                     type_error = True
                     break
@@ -2078,7 +2095,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 continue
 
             self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            if arguments.any(lambda a: a.identifier.value == "self"):
+                self_argument = arguments.find(lambda a: a.identifier.value == "self")
+                self.arguments.arguments.append(self_argument)
+                self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+                self.arguments.arguments.pop(-1)
+            else:
+                self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             valid_overloads.append(function_overload)
 
         if not valid_overloads:
@@ -2093,112 +2116,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         # TODO: Select the most precise match: this is the overload with the least amount of parameters that have generic types.
         self._function_prototype = valid_overloads[0]
         return self._function_prototype
-
-
-        # # Check each function overload if it valid for this function call
-        # # TODO : generics, named arguments
-        # # TODO : variadic parameter, optional parameters
-        # # TODO : this will need to change to number of **required** parameters
-        # # TODO : this will need to change for the variadic parameter
-        # # TODO : decide how this will work for the variadic parameter
-        #
-        # argument_types = Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler))
-        #
-        # overload_errors = SemanticError("Invalid function call")
-        # overload_errors.add_traceback(self.pos, (
-        #     f"Function call"
-        #     f" '({", ".join(argument_types.map(lambda t: f"{t[0].default()}{t[1]}").value)})'"
-        #     f" found here."))
-        #
-        # for function_overload in function_overloads:
-        #     function_overload = copy.deepcopy(function_overload)
-        #
-        #     # Get the parameter conventions & types for this function overload.
-        #     parameter_types = Seq(function_overload.parameters.parameters).map(lambda p: (p.convention, p.type_declaration))
-        #     if function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[0], FunctionParameterSelfAst):
-        #         # TODO : inject the lhs as argument 0 (self), don't skip parameter 0
-        #         parameter_types = parameter_types.skip(1)
-        #
-        #     # Get the generic map for this function overload. Any errors are added in the function & None is returned,
-        #     # so if the generic map is None then continue.
-        #     generic_map = self.infer_generic_argument_values(scope_handler, function_overload, argument_types.map(lambda x: x[1]).value, overload_errors)
-        #     if generic_map is None:
-        #         continue
-        #
-        #     # Make sure that inferrable generics always come AFTER required generics. Check that the N amount of inferrable
-        #     # generics are the first N generic parameters in the overload.
-        #     # TODO : this might restrict for variadics that come after
-        #     # if Seq(list(generic_map.keys())).any(lambda k: k not in Seq(function_overload.generic_parameters.parameters).take(len(generic_map)).map(lambda p: p.identifier).value):
-        #     #     overload_errors.add_traceback(function_overload.pos, f"Inferrable generic parameters must come after required generic parameters.")
-        #     #     continue
-        #
-        #     # Check that inferred generics haven't been given
-        #     if len(generic_map.keys()) + len(self.generic_arguments.arguments) > len(function_overload.generic_parameters.parameters):
-        #         print(Seq(self.generic_arguments.arguments).map(str).value)
-        #         print(len(generic_map.keys()))
-        #         if function_overload.generic_parameters.parameters:
-        #             unrequired_given_generic_argument = function_overload.generic_parameters.parameters[0]
-        #             overload_errors.add_traceback(unrequired_given_generic_argument.pos, f"Inferrable generic parameter '{unrequired_given_generic_argument}' declared here.")
-        #             overload_errors.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
-        #         else:
-        #             overload_errors.add_traceback(function_overload.parameters.paren_l_token.pos, f"No generic parameters declared here.")
-        #             overload_errors.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
-        #         # Seq(self.generic_arguments.arguments).skip(len(function_overload.generic_parameters.parameters))[0].pos, f"Generic arguments {generic_arguments} have already been inferred.")
-        #         continue
-        #
-        #     if len(generic_map.keys()) + len(self.generic_arguments.arguments) < len(function_overload.generic_parameters.parameters):
-        #         missing_generic_argument = Seq(function_overload.generic_parameters.parameters).skip(len(generic_map.keys()) + len(self.generic_arguments.arguments))[0]
-        #         overload_errors.add_traceback(missing_generic_argument.pos, f"Generic parameter '{missing_generic_argument.identifier}' required here.")
-        #         overload_errors.add_traceback_minimal(self.pos, f"Missing generic argument '{missing_generic_argument.identifier}'.")
-        #         continue
-        #
-        #     # Replace all instances of the generic parameters with the inferred arguments.
-        #     # Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.value)).value:
-        #     for k, v in {**generic_map, **{p[1] : a.type for p, a in zip(parameter_types, self.generic_arguments.arguments)}}.items():
-        #         for parameter in function_overload.parameters.parameters:
-        #             parameter.type_declaration.substitute_generics(k, v)
-        #         function_overload.return_type.substitute_generics(k, v)
-        #
-        #     # Not enough arguments for the function overload to be called.
-        #     if argument_types.length < parameter_types.length:
-        #         missing_parameter = Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length).map(lambda p: str(p.identifier)).value[0]
-        #         overload_errors.add_traceback(Seq(function_overload.parameters.parameters).skip(Seq(self.arguments.arguments).length)[0].pos, f"Parameter '{missing_parameter}' declared here.")
-        #         overload_errors.add_traceback_minimal(function_name.pos, f"Function call only has {len(self.arguments.arguments)} arguments, instead of {len(function_overload.parameters.parameters)}.")
-        #         continue
-        #
-        #     # Too many arguments for the function overload to be called.
-        #     if argument_types.length > parameter_types.length and not isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst):
-        #         unexpected_arguments = Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length).map(lambda a: str(a.value)).value
-        #         overload_errors.add_traceback(function_overload.identifier.pos, f"Function '{function_name}' overload declared here with {len(function_overload.parameters.parameters)} parameters.")
-        #         overload_errors.add_traceback_minimal(Seq(self.arguments.arguments).skip(Seq(function_overload.parameters.parameters).length)[0].pos, f"Unexpected argument found here: {unexpected_arguments[0]}")
-        #         continue
-        #
-        #     # Incorrect type or convention next to the type (&Str != Str)
-        #     if argument_types.zip(parameter_types).any(lambda t: t[0][0] != type(t[1][0]) or t[0][1] != t[1][1]):
-        #         i, type_mismatch = argument_types.zip(parameter_types).enumerate().filter(lambda t: t[1][0][0] != type(t[1][1][0]) or t[1][0][1] != t[1][1][1])[0]
-        #         overload_errors.add_traceback(function_overload.pos, f"")
-        #         overload_errors.add_traceback_minimal(self.arguments.arguments[i].pos, f"Argument '{self.arguments.arguments[i].value}' has type '{type_mismatch[0][0].default()}{type_mismatch[0][1]}', instead of '{type_mismatch[1][0].default()}{type_mismatch[1][1]}'.")
-        #         continue
-        #
-        #     # Get the required generic parameters for this overload. Not required if they appear in the parameter types.
-        #     # inferrable_generic_parameters = self.infer_generic_argument_values(scope_handler, function_overload, argument_types)
-        #     # required_generic_parameters = Seq(function_overload.generic_parameters.parameters).filter(lambda p: p.identifier not in inferrable_generic_parameters.keys())
-        #     #
-        #     # if required_generic_parameters.length + Seq(self.generic_arguments.arguments).length < required_generic_parameters.length:
-        #     #     error_message += f": Missing generic arguments {required_generic_parameters.map(lambda p: str(p.identifier)).value}."
-        #     #     continue
-        #
-        #     # Analyse the generic arguments & function arguments for the valid overload.
-        #     self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        #     self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-        #     self._function_prototype = function_overload
-        #     return function_overload
-        #
-        # # Analyse the generic arguments & function arguments anyway.
-        # self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        # self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-        #
-        # raise overload_errors
 
     def infer_generic_argument_values(self, scope_handler: ScopeHandler, function_overload: FunctionPrototypeAst, replacements, exceptions: List[SemanticError]) -> Dict[TypeAst, TypeAst] | None:
         # Infer any generic type arguments that can be inferred (from parameter types etc)
