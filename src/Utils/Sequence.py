@@ -104,6 +104,10 @@ class Seq[T]:
         self._value.remove(item)
         return self
 
+    def remove_if(self, func: Callable[[T], bool]) -> Seq[T]:
+        self._value = [x for x in self._value if not func(x)]
+        return self
+
     def replace(self, item: T, replacement: T) -> Seq[T]:
         self._value = [replacement if x == item else x for x in self._value]
         return self
