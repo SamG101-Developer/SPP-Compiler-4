@@ -4,6 +4,7 @@ import json_fix
 
 
 class TokenType(Enum):
+    # Tokens
     # Logical operations (AND, OR, NOT)
     TkLogicalAnd = "&&"
     TkLogicalAndAssign = "&&="
@@ -78,29 +79,43 @@ class TokenType(Enum):
     TkNewLine = "\n"
 
     # Keywords
+    # Module level declarations
     KwMod = "mod"
     KwCls = "cls"
     KwSup = "sup"
     KwFun = "fun"
     KwUse = "use"
+
+    # Variable declarations
     KwLet = "let"
     KwMut = "mut"
-    KwIf = "if"
+
+    # Control flow
+    KwCase = "case"
     KwElse = "else"
-    KwWhile = "while"
+    KwLoop = "loop"
     KwWith = "with"
+
+    # Control flow exit
     KwRet = "ret"
-    KwYield = "yield"
+    KwGen = "gen"
+
+    # Type helpers
     KwWhere = "where"
     KwIs = "is"
     KwAs = "as"
+
+    # Types
     KwTrue = "true"
     KwFalse = "false"
     KwSelf = "self"
     KwSelfType = "Self"
+
+    # Misc
     KwOn = "on"
     KwAsync = "async"
 
+    # Lexemes
     # Don't change order of these (regex are matched in this order)
     # 0x12 must be HexDigits not DecDigits(0) then Identifier(x12)
     LxRegex = r"r\".*\""

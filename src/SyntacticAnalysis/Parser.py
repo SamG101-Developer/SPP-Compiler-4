@@ -570,7 +570,7 @@ class Parser:
     @tested_parser_rule
     def parse_if_expression(self) -> IfExpressionAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwIf).parse_once()
+        p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_pattern_comp_op().parse_optional()
         # p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
@@ -581,7 +581,7 @@ class Parser:
     @tested_parser_rule
     def parse_while_expression(self) -> WhileExpressionAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwWhile).parse_once()
+        p1 = self.parse_token(TokenType.KwLoop).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_inner_scope(self.parse_statement).parse_once()
         p4 = self.parse_residual_inner_scope().parse_optional()
@@ -591,7 +591,7 @@ class Parser:
     @tested_parser_rule
     def parse_yield_expression(self) -> YieldExpressionAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwYield).parse_once()
+        p1 = self.parse_token(TokenType.KwGen).parse_once()
         p2 = self.parse_token(TokenType.KwWith).parse_optional()
         p3 = self.parse_convention().parse_once()
         p4 = self.parse_expression().parse_optional()

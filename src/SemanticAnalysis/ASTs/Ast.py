@@ -428,7 +428,6 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
             # Check conventions of arguments to enforce the law of exclusivity. Note that "&mut a", "&mut a.b" is an
             # overlap, but "&mut a.b", "&mut a.c" is not.
-            # TODO: replacing partial moves once fulfilled.
             match argument.convention:
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
@@ -439,7 +438,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                     elif sym.memory_info.is_borrow:
                         exception = SemanticError(f"Cannot move from a borrowed context:")
                         exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{argument.value}' borrowed here.")
-                        exception.add_traceback(argument.pos, f"Partial move '{argument}' taken here.")
+                        exception.add_traceback(argument.pos, f"Partial move '{argument}' attempted here.")
                         raise exception
 
                     # Otherwise, mark the left most identifier as partially moved.
