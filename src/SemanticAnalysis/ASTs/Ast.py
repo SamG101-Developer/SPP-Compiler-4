@@ -95,8 +95,13 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                     raise exception
 
                 match self.lhs[i]:
-                    case IdentifierAst() if not lhs_symbol.memory_info.ast_initialized: lhs_symbol.memory_info.ast_initialized = self
-                    case PostfixExpressionAst(): ...  # TODO : sym.memory_info.ast_partial_moves.remove()
+                    # For non initialized symbol, set the initialization ast to this assignment.
+                    case IdentifierAst() if not lhs_symbol.memory_info.ast_initialized:
+                        lhs_symbol.memory_info.ast_initialized = self
+
+                    # For postfix identifiers, ensure to remove the partial moves.
+                    case PostfixExpressionAst():
+                        lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda arg: arg.value != self.lhs[i]).value
 
             # Check that the type of the RHS is the same as the LHS
             if len(self.lhs) == 1:
@@ -1936,6 +1941,9 @@ class PostfixExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return self.op.infer_type(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
 
+    def __eq__(self, other):
+        return isinstance(other, PostfixExpressionAst) and self.lhs == other.lhs and self.op == other.op
+
 
 @dataclass
 class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer):
@@ -2191,6 +2199,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
         #
         elif isinstance(self.identifier, IdentifierAst):
             return ConventionMovAst, lhs_type_scope.get_symbol(self.identifier).type
+
+    def __eq__(self, other):
+        return isinstance(other, PostfixExpressionOperatorMemberAccessAst) and self.identifier == other.identifier
 
 
 @dataclass
@@ -2483,6 +2494,9 @@ class TokenAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return self.token.token_metadata + (" " if self.token.token_type.name.startswith("Kw") else "")
+
+    def __eq__(self, other):
+        return isinstance(other, TokenAst) and self.token.token_type == other.token.token_type
 
 
 @dataclass
