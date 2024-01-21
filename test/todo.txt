@@ -1,0 +1,44 @@
+Generics:
+-- Change the mapping to match the function call parameter mapping.
+-- Allow the checks for function-call and object-initialization (move code to GenericArgumentGroup AST?)
+-- Move the function call argument checks to FunctionArgumentGroup AST (same as moving the generic checks)?
+-- Ban generic arguments from being `Void` -> causes too many problems to have unique behavior for.
+-- All things generic constraints (for `sup` just remove sup-scopes?).
+
+Binary expressions:
+-- Rearrange from parsed AST order to correct AST order.
+-- Do operator-chaining with compatible comparison operators.
+
+Coroutines:
+-- Check memory status of yielded objects.
+-- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
+
+Async function calls:
+-- Wrap the returned value type in a `Fut[T]` type.
+
+Conditional branching:
+-- Remove the initial `{ }` around all the patterns.
+-- Begin testing and identify all issues (there will be a lot)
+
+Namespaced types:
+-- Searching scopes/symbol-tables for namespaced types.
+-- Allowing `use` to link new type names to namespaced types' class prototypes.
+
+Keyword `is`:
+-- Everything
+
+Memory status
+-- Of returned objects.
+-- Of yielded objects.
+
+Sup classes
+-- Ensure overriden methods exist on the `sup` class.
+-- Allow specialization of sup-class methods in the `sup` block.
+
+Parser
+-- Remove the residual block (use `??`)
+
+Other
+-- Rename `FunOne` to `FunMov` => aligns with convention names (also call_mov)
+-- Change struct initialization to use `()` instead of `{}` => same as functions, easier, more consistent.
+-- Default struct values
