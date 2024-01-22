@@ -2322,34 +2322,16 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         self.expression.do_semantic_analysis(scope_handler, **kwargs) if self.expression else None
         target_return_type = kwargs.get("target-return-type")
 
-        # match self.expression:
-        #     case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(self.expression)
-        #     case PostfixExpressionAst() if isinstance(self.expression.op, PostfixExpressionOperatorMemberAccessAst): sym = scope_handler.current_scope.get_symbol(self.expression.lhs)
-        #     case _: sym = None
+        if self.expression:
+            wrapped_value = FunctionArgumentNormalAst(self.expression.pos, ConventionMovAst(self.expression.pos), None, self.expression)
+            wrapped_value = FunctionArgumentGroupAst(self.expression.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
+            wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
 
-        # if sym and sym.memory_info.ast_consumed:
-        #     exception = SemanticError(f"Returning uninitialized variable:")
-        #     exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{self.expression}' uninitialized/moved here.")
-        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-        #     raise exception
-
-        # if sym and sym.memory_info.ast_borrow:
-        #     exception = SemanticError(f"Returning borrowed variable:")
-        #     exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{self.expression}' borrowed here.")
-        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-        #     raise exception
-
-        # if sym and sym.memory_info.ast_partial_moves:
-        #     exception = SemanticError(f"Returning partially moved variable:")
-        #     exception.add_traceback(sym.memory_info.ast_partial_moves[0].pos, f"Variable '{self.expression}' partially moved here.")
-        #     exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here.")
-        #     raise exception
-
-        found_return_type = self.expression.infer_type(scope_handler)
-        if found_return_type != (ConventionMovAst, target_return_type):
+        return_type = self.expression.infer_type(scope_handler)
+        if return_type != (ConventionMovAst, target_return_type):
             exception = SemanticError(f"Returning variable of incorrect type:")
             exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{found_return_type[0].default()}{found_return_type[1]}'.")
+            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{return_type[0].default()}{return_type[1]}'.")
             raise exception
 
 
