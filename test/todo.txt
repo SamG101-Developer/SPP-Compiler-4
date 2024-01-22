@@ -2,6 +2,7 @@ Generics:
 -- Change the mapping to match the function call parameter mapping.
 -- Allow the checks for function-call and object-initialization (move code to GenericArgumentGroup AST?)
 -- Move the function call argument checks to FunctionArgumentGroup AST (same as moving the generic checks)?
+    -- Will need to be called from struct initialization and function calls.
 -- Ban generic arguments from being `Void` -> causes too many problems to have unique behavior for.
 -- All things generic constraints (for `sup` just remove sup-scopes?).
 
