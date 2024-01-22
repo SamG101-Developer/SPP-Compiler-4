@@ -172,16 +172,18 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
             def is_comparison_operator(token):
                 return token in {TokenType.TkEq, TokenType.TkNe, TokenType.TkLt, TokenType.TkGt, TokenType.TkLe, TokenType.TkGe}
 
-            if not is_comparison_operator(ast.op.token.token_type):
+            # If the ast isn't a binary expression, or the binary operator is not comparable-combinable, then return the
+            # current AST, whatever it is.
+            if not isinstance(ast.lhs, BinaryExpressionAst) or not is_comparison_operator(ast.op.token.token_type):
                 return ast
 
-            if isinstance(ast, BinaryExpressionAst) and is_comparison_operator(ast.lhs.op.token.token_type):
-                lhs = ast.lhs
-                rhs = ast.rhs
-                lhs = lhs.rhs
-                ast.rhs = BinaryExpressionAst(ast.pos, lhs, ast.op, rhs)
-                ast.op  = TokenAst.dummy(TokenType.TkLogicalAnd)
-                combine_comparison_operators(ast.lhs)
+            # Combine the comparison into separate binary expressions, so that "a < b < c" becomes "a < b && b < c".
+            lhs = ast.lhs
+            rhs = ast.rhs
+            lhs = lhs.rhs
+            ast.rhs = BinaryExpressionAst(ast.pos, lhs, ast.op, rhs)
+            ast.op  = TokenAst.dummy(TokenType.TkLogicalAnd)
+            combine_comparison_operators(ast.lhs)
                 
             return ast
 
@@ -230,9 +232,7 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
             ast.rhs = convert_all_to_function(ast.rhs)
             return convert_to_function(ast)
 
-        print(self, end=" => ")
         ast = fix_associativity(self)
-        print(ast)
         ast = combine_comparison_operators(ast)
         ast = convert_all_to_function(ast)
 
@@ -2699,13 +2699,25 @@ class TypeNamespaceAst(Ast):
 
 
 @dataclass
-class UnaryExpressionAst(Ast):
+class UnaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     op: UnaryOperatorAst
     rhs: ExpressionAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.op.print(printer)}{self.rhs.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Check that the rhs is a function call (only unary is async)
+        if not isinstance(self.rhs, PostfixExpressionAst) or not isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst):
+            exception = SemanticError(f"Invalid 'async' usage:")
+            exception.add_traceback(self.pos, f"'{self}' is not a function call.")
+            raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        # The type is a Fut[T] where T is the return type of the function call.
+        # TODO: this will cause an error, because the RHS hasn't been analysed yet
+        return ConventionMovAst, CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs)[1], pos=self.pos)
 
 
 UnaryOperatorAst = TokenAst

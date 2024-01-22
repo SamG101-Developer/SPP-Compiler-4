@@ -40,6 +40,13 @@ class CommonTypes:
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Ctx", None)])
 
     @staticmethod
+    def fut(inner_type, pos: int = -1):
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        inner_type = GenericArgumentNormalAst(-1, inner_type)
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Fut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [inner_type], TokenAst.dummy(TokenType.TkBrackR)))])
+
+    @staticmethod
     def arr(elem_type, pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
