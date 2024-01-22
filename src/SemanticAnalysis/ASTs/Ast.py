@@ -64,9 +64,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{Seq(self.lhs).print(printer, ", ")} {self.op.print(printer)} {self.rhs.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        wrapped_value = FunctionArgumentNormalAst(self.rhs.pos, ConventionMovAst(self.rhs.pos), None, self.rhs)
-        wrapped_value = FunctionArgumentGroupAst(self.rhs.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
-        wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
+        ensure_memory_integrity_of_expression(self.rhs, scope_handler, **kwargs)
 
         lhs_symbols = []
 
@@ -1332,9 +1330,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                 scope_handler.current_scope.add_symbol(sym)
 
                 if not self._sup_let_type:
-                    wrapped_value = FunctionArgumentNormalAst(self.value.pos, ConventionMovAst(self.value.pos), None, self.value)
-                    wrapped_value = FunctionArgumentGroupAst(self.value.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
-                    wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
+                    ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **kwargs)
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
 
                 else:
@@ -1715,78 +1711,86 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{self.class_type.print(printer)}{self.arguments.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        type_scope = scope_handler.current_scope.get_symbol(self.class_type).associated_scope
-        attributes = type_scope.all_symbols(exclusive=True)
+        type_sym = scope_handler.current_scope.get_symbol(self.class_type)
+        type_scope = type_sym.associated_scope
+        attributes = Seq(type_sym.type.body.members)
+        attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
 
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+        arguments = Seq(self.arguments.arguments)
 
         # Check if a default value has been given in "else=":
-        default_value_given = (Seq(self.arguments.arguments)
-               .filter(lambda a: isinstance(a, ObjectInitializerArgumentNamedAst))
-               .filter(lambda a: isinstance(a.identifier, TokenAst) and a.identifier.token.token_type == TokenType.KwElse))
+        default_value_given = (arguments
+                .filter(lambda a: isinstance(a, ObjectInitializerArgumentNamedAst))
+                .filter(lambda a: isinstance(a.identifier, TokenAst) and a.identifier.token.token_type == TokenType.KwElse))
+        sup_value_given = (arguments
+                .filter(lambda a: isinstance(a, ObjectInitializerArgumentNamedAst))
+                .filter(lambda a: isinstance(a.identifier, TokenAst) and a.identifier.token.token_type == TokenType.KwSup))
+        arguments = arguments.filter(lambda a: isinstance(a.identifier, IdentifierAst))
 
         # Check there is a maximum of 1 default value given:
         if default_value_given.length > 1:
             exception = SemanticError(f"Multiple default values given in object initializer:")
             exception.add_traceback(default_value_given[0].pos, f"1st default value given here.")
-            exception.add_traceback(default_value_given[1].pos, f"2nd default value given here.")
+            exception.add_traceback_minimal(default_value_given[1].pos, f"2nd default value given here.")
             raise exception
+
+        # Check that the default value's memory status is correct:
+        if default_value_given:
+            ensure_memory_integrity_of_expression(default_value_given[0].value, scope_handler, **kwargs)
 
         # Check that the default value is of the correct type:
-        if default_value_given and self.class_type != default_value_given[0].value.infer_type(scope_handler):
-            exception = SemanticError(f"Invalid type '{default_value_given[0].value.infer_type(scope_handler)}' given to object initializer:")
-            exception.add_traceback(self.class_type.pos, f"Object initializer declared here with type '{self.class_type}'.")
-            exception.add_traceback(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given[0].value.infer_type(scope_handler)}'.")
+        if default_value_given and (ConventionMovAst, self.class_type) != (default_value_given_type := default_value_given[0].value.infer_type(scope_handler)):
+            exception = SemanticError(f"Invalid type default value type:")
+            exception.add_traceback(type_sym.type.identifier.pos, f"Object initializer declared here with type '{self.class_type}'.")
+            exception.add_traceback_minimal(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0].default()}{default_value_given_type[1]}'.")
             raise exception
 
-        # Check that each attribute has been given a value if there is no default value:
-        if not default_value_given:
-            for attribute in Seq(attributes).filter(lambda s: isinstance(s, VariableSymbol)):
-                if not Seq(self.arguments.arguments).map(lambda a: a.identifier).contains(attribute.name):
-                    exception = SemanticError(f"Missing attribute '{attribute.name}' in object initializer:")
-                    exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here.")
-                    exception.add_traceback(self.pos, f"Object initializer declared here.")
-                    raise exception
+        # Mark the symbol for the default value as consumed:
+        if default_value_given:
+            ensure_memory_integrity_of_expression(default_value_given[0].value, scope_handler, keep_consume=True, **kwargs)
 
-        # Check no arguments are given that don't exist on the class:
-        for argument in Seq(self.arguments.arguments).map(lambda a: a.identifier):
-            if not Seq(attributes).map(lambda a: a.name).contains(argument):
-                exception = SemanticError(f"Invalid attribute '{argument}' given in object initializer:")
-                exception.add_traceback(argument.pos, f"Attribute '{argument}' given here.")
-                exception.add_traceback(self.pos, f"Object initializer declared here.")
-                raise exception
+        # Check no arguments are given that don't exist on the class; this picks up when too many arguments too via the
+        # Pigeonhole Principle:
+        if invalid_argument_names := arguments.map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in attribute_names):
+            exception = SemanticError(f"Invalid argument names given to function call:")
+            exception.add_traceback(type_sym.type.identifier.pos, f"Class {self.class_type} declared here with attributes: {attribute_names.map(str).join(", ")}")
+            exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.")
+            raise exception
+
+        # Check that all required attributes have been given a value:
+        if not default_value_given and (unfilled_required_attributes := attribute_names.set_subtract(arguments.map(lambda a: a.identifier))):
+            exception = SemanticError(f"Missing attribute(s) in object initializer for type '{self.class_type}':")
+            exception.add_traceback(type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attribute_names.map(str).join(", ")}'.")
+            exception.add_traceback(self.pos, f"Object initializer missing attributes '{unfilled_required_attributes.map(str).join(", ")}'.")
+            raise exception
 
         # Check that each attribute's given value is of the correct type:
-        for attribute in Seq(attributes).filter(lambda s: isinstance(s, VariableSymbol)):
-            given_argument = Seq(self.arguments.arguments).filter(lambda a: a.identifier == attribute.name)
+        for attribute in attributes:
+            given_argument = arguments.find(lambda a: a.identifier == attribute.identifier)
 
             # No argument given means that the default value will be used.
+            # TODO : partial move needs to be registered for the default value
             if not given_argument:
                 continue
 
-            given_argument = given_argument[0]
             original_pos = given_argument.pos
             given_argument = given_argument.value if isinstance(given_argument, ObjectInitializerArgumentNamedAst) else given_argument.identifier
 
-            from SyntacticAnalysis.Parser import Parser
-            from LexicalAnalysis.Lexer import Lexer
-            code = f"({given_argument})"
-            function_call_ast = Parser(Lexer(code).lex(), "<temp>", pos_shift=original_pos - 1).parse_function_call_arguments().parse_once()
+            # Check the memory status of the object initializer argument
+            ensure_memory_integrity_of_expression(given_argument, scope_handler, **kwargs)
 
+            # Type check
             given_argument_type = given_argument.infer_type(scope_handler)
-            if given_argument_type != (ConventionMovAst, attribute.type):
-                function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
-                exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.name}':")
-                exception.add_traceback(attribute.name.pos, f"Attribute '{attribute.name}' declared here with type '{attribute.type}'.")
-                exception.add_traceback(given_argument.pos, f"Attribute '{attribute.name}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
+            if given_argument_type != (ConventionMovAst, attribute.type_declaration):
+                exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
+                exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
+                exception.add_traceback(given_argument.pos, f"Attribute '{attribute.identifier}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
                 raise exception
 
-            function_call_ast.do_semantic_analysis(scope_handler, **kwargs)
-
-            # argument = Seq(self.arguments.arguments).map(lambda a: a.value if isinstance(a, ObjectInitializerArgumentNamedAst) else a.identifier)[0]
-            # argument_symbol = scope_handler.current_scope.get_symbol(argument)
-            # argument_symbol.memory_info.ast_consumed = argument
+        # Check that each parent class has a value given in "sup=", if the parent class is stateful:
+        parent_classes = type_scope.exclusive_sup_scopes
 
         # TODO : below
         # Check that each parent class has a value given in "sup=", if the parent class is stateful:
@@ -1811,7 +1815,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         #         raise exception
 
         # TODO : generic arguments
-        # TODO : check the memory status of the object initializer arguments
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, self.class_type
@@ -2120,7 +2123,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             for argument in arguments.filter(lambda a: isinstance(a, FunctionArgumentNamedAst)):
                 parameter_names.remove(argument.identifier)
 
-            # Check there are enough parameters for the remaining arguments.
+            # Check there aren't too many arguments provided for this overload
             if arguments.length > len(function_overload.parameters.parameters):
                 exception = SemanticError(f"Too many arguments given to function call:")
                 exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {Seq(function_overload.parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
@@ -2136,8 +2139,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             # Check that all required parameters have been given an argument.
             if unfilled_required_parameters := Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier).contains_any(parameter_names):
                 exception = SemanticError(f"Missing arguments in function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with required parameters: {unfilled_required_parameters.map(str).join(", ")}")
-                exception.add_traceback_minimal(self.pos, f"Missing arguments: {parameter_names.map(str).join(", ")}")
+                exception.add_traceback(function_overload.pos, f"Function overload declared here with required parameters: {parameter_names.map(str).join(", ")}")
+                exception.add_traceback_minimal(self.pos, f"Missing arguments: {unfilled_required_parameters.map(str).join(", ")}")
                 function_overload_errors.append(exception)
                 continue
 
@@ -2334,14 +2337,7 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         target_return_type = kwargs.get("target-return-type")
 
         if self.expression:
-            wrapped_value = FunctionArgumentNormalAst(self.expression.pos, ConventionMovAst(self.expression.pos), None, self.expression)
-            wrapped_value = FunctionArgumentGroupAst(self.expression.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
-            wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
-
-            # For identifiers, the symbol will be "moved" by the memory check above, so mark as non-consumed.
-            match self.expression:
-                case IdentifierAst(): scope_handler.current_scope.get_symbol(self.expression).memory_info.ast_consumed = None
-                case PostfixExpressionAst() if isinstance(self.expression.op, PostfixExpressionOperatorMemberAccessAst): scope_handler.current_scope.get_symbol(self.expression.lhs).memory_info.ast_consumed = None
+            ensure_memory_integrity_of_expression(self.expression, scope_handler)
 
         return_type = self.expression.infer_type(scope_handler)
         if return_type != (ConventionMovAst, target_return_type):
@@ -2871,3 +2867,19 @@ ModuleMemberAst = (
         SupPrototypeNormalAst |
         SupPrototypeInheritanceAst |
         LetStatementAst)
+
+
+def ensure_memory_integrity_of_expression(expression: ExpressionAst, scope_handler: ScopeHandler, keep_consume: bool = False, **kwargs) -> None:
+    wrapped_value = FunctionArgumentNormalAst(expression.pos, ConventionMovAst(expression.pos), None, expression)
+    wrapped_value = FunctionArgumentGroupAst(expression.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
+    wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
+
+    # For identifiers, the symbol will be "moved" by the memory check above, so mark as non-consumed.
+    if not keep_consume:
+        match expression:
+            case IdentifierAst():
+                scope_handler.current_scope.get_symbol(expression).memory_info.ast_consumed = None
+
+            case PostfixExpressionAst() if isinstance(expression.op, PostfixExpressionOperatorMemberAccessAst):
+                # TODO: potentially something with partial moves needs to be resolved here
+                scope_handler.current_scope.get_symbol(expression.lhs).memory_info.ast_consumed = None
