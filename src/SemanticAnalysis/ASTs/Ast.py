@@ -472,8 +472,12 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
             if sym and sym.memory_info.ast_consumed:
+                match sym.memory_info.ast_consumed:
+                    case LetStatementUninitializedAst(): error_message = "declared as uninitialized here"
+                    case _: error_message = "moved here"
+
                 exception = SemanticError(f"Variable '{argument.value}' used before being initialized:")
-                exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' uninitialized/moved here.")
+                exception.add_traceback(sym.memory_info.ast_consumed.pos, f"Variable '{argument.value}' {error_message}.")
                 exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
                 raise exception
 
@@ -1142,7 +1146,6 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
         sym = scope_handler.current_scope.get_symbol(self)
 
         if sym.memory_info.ast_consumed:
-            print(sym.memory_info.ast_consumed)
             convention = ConventionNonInitAst
         elif sym.memory_info.ast_partial_moves:
             convention = ConventionPartInitAst
@@ -2025,7 +2028,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         s += f"{self.fold_token.print(printer)}" if self.fold_token else ""
         return s
 
-    def __get_matching_overload(self, scope_handler: ScopeHandler, function_name: ExpressionAst) -> FunctionPrototypeAst:
+    def __get_matching_overload(self, scope_handler: ScopeHandler, function_name: ExpressionAst) -> tuple[FunctionPrototypeAst, Optional[FunctionArgumentNamedAst]]:
         match function_name:
             case PostfixExpressionAst():
                 function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler)[1]).associated_scope
@@ -2092,7 +2095,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 function_overload.return_type.substitute_generics(k, v)
 
             parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
-            arguments = Seq(copy.deepcopy(self.arguments.arguments))
+            arguments = Seq(copy.deepcopy(self.arguments.arguments))  # TODO : Seq(...).deepcopy()
 
             # If the function is an instance method (the first parameter is a "self" parameter), then the lhs as the
             # "self" argument, as this is the instance the method is being applied over.
@@ -2158,7 +2161,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
             # No argument type errors => this is a valid overload.
             if not type_error:
-                valid_overloads.append(function_overload)
+                valid_overloads.append((function_overload, arguments.find(lambda a: a.identifier.value == "self")))
 
         if not valid_overloads:
             error = SemanticError("Invalid function call")
@@ -2193,12 +2196,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         return generic_map
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))
+        _, self_arg = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))
         Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
-        Seq(self.arguments.arguments).for_each(lambda x: x.value.do_semantic_analysis(scope_handler, **kwargs))
+
+        if self_arg:
+            self.arguments.arguments.append(self_arg)
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.arguments.remove(self_arg)
+        else:
+            Seq(self.arguments.arguments).for_each(lambda x: x.value.do_semantic_analysis(scope_handler, **kwargs))
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs")).return_type
+        return ConventionMovAst, self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))[0].return_type
 
 
 @dataclass
