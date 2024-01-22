@@ -88,7 +88,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
         if self.op.token.token_type == TokenType.TkAssign:
             # Check that the LHS is mutable (given that it has already been initialized)
             for i, lhs_symbol in enumerate(lhs_symbols):
-                if not lhs_symbol.is_mutable and lhs_symbol.memory_info.ast_initialized:
+                if (not lhs_symbol.is_mutable or lhs_symbol.memory_info.is_borrow_ref) and lhs_symbol.memory_info.ast_initialized:
                     exception = SemanticError(f"Cannot assign to an immutable variable:")
                     exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
                     exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
