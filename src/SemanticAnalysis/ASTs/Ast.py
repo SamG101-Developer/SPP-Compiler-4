@@ -2709,7 +2709,7 @@ class UnaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Check that the rhs is a function call (only unary is async)
-        if not isinstance(self.rhs, PostfixExpressionAst) or not isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst):
+        if not (isinstance(self.rhs, PostfixExpressionAst) and isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst)):
             exception = SemanticError(f"Invalid 'async' usage:")
             exception.add_traceback(self.pos, f"'{self}' is not a function call.")
             raise exception
