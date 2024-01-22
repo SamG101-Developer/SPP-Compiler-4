@@ -8,9 +8,6 @@ Generics:
 Binary expressions:
 -- Rearrange from parsed AST order to correct AST order [IMPL + BUGGED].
 
-Functions
--- Calling `self` methods doesn't consume object at the moment.
-
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
