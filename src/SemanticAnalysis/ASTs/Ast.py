@@ -149,7 +149,7 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
             # To mitigate the issue of left-hand recursive parsing, the parser uses right-hand recursive parsing. This
             # puts equal precedence operators on the right hand side of the tree, ie 1 + 2 + 3 would be 1 + (2 + 3), not
             # (1 + 2) + 3. This function fixes the associativity of the tree, so that the left hand side is always the
-            # first operand, and the right hand side is always the last operand.
+            # first operand, and the right hand side is always the last operand. TODO : this is bugged
             if not isinstance(ast.rhs, BinaryExpressionAst):
                 return ast
 
@@ -230,7 +230,9 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
             ast.rhs = convert_all_to_function(ast.rhs)
             return convert_to_function(ast)
 
+        print(self, end=" => ")
         ast = fix_associativity(self)
+        print(ast)
         ast = combine_comparison_operators(ast)
         ast = convert_all_to_function(ast)
 
@@ -493,6 +495,9 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                     # Mark the symbol as consumed, if the argument is a single identifier.
                     if isinstance(argument.value, IdentifierAst):
                         sym.memory_info.ast_consumed = argument.value
+
+                    # Cannot move an identifier if is borrowed as a previous argument.
+                    # TODO (include overlaps?)
 
                     # Cannot move from a borrowed context, so enforce this here too.
                     elif sym.memory_info.is_borrow:
