@@ -35,6 +35,11 @@ Parser
 -- Remove the residual block (use `??`)
 
 Other
--- Rename `FunOne` to `FunMov` => aligns with convention names (also call_mov)
 -- Change struct initialization to use `()` instead of `{}` => same as functions, easier, more consistent.
 -- Default struct values
+-- Numeric postfix classes aren't define but dont throw errors
+
+Random failures:
+let mut x = a.function1("hello")
+let mut y = a.function2("hello")
+x = y
