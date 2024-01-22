@@ -828,7 +828,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
                         brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
                         arguments=[],
                         brace_r_token=TokenAst.dummy(TokenType.TkBraceR))),
-                residual=None,
                 _sup_let_type=function_class_type)
 
             context.body.members.append(mock_class_ast)
@@ -1298,7 +1297,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     assign_to: LocalVariableAst
     assign_token: TokenAst
     value: ExpressionAst
-    residual: Optional[ResidualInnerScopeAst]
     _sup_let_type: TypeAst = dataclasses.field(default=None)
 
     @ast_printer_method
@@ -1363,7 +1361,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         assign_to=current_let_statement,
                         assign_token=self.assign_token,
                         value=new_rhs,
-                        residual=self.residual,
                         _sup_let_type=self._sup_let_type)
 
                     # print(new_let_statement)

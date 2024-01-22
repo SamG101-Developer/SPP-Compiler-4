@@ -38,6 +38,7 @@ Other
 -- Change struct initialization to use `()` instead of `{}` => same as functions, easier, more consistent.
 -- Default struct values
 -- Numeric postfix classes aren't define but dont throw errors
+-- Attribute assignment respects outer `mut` but not `&`
 
 Random failures:
 let mut x = a.function1("hello")

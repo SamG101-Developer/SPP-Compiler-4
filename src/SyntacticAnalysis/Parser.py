@@ -584,8 +584,16 @@ class Parser:
         p1 = self.parse_token(TokenType.KwLoop).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_inner_scope(self.parse_statement).parse_once()
-        p4 = self.parse_residual_inner_scope().parse_optional()
+        p4 = self.parse_while_else_expression().parse_optional()
         return WhileExpressionAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    @tested_parser_rule
+    def parse_while_else_expression(self) -> ResidualInnerScopeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwElse).parse_once()
+        p2 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return ResidualInnerScopeAst(c1, p1, p2)
 
     @parser_rule
     @tested_parser_rule
@@ -607,6 +615,8 @@ class Parser:
         p4 = self.parse_inner_scope(self.parse_statement).parse_once()
         return WithExpressionAst(c1, p1, p2, p3, p4)
 
+    # ===== STATEMENTS =====
+
     @parser_rule
     @tested_parser_rule
     def parse_with_expression_lhs_alias(self) -> WithExpressionAliasAst:
@@ -614,8 +624,6 @@ class Parser:
         p1 = self.parse_local_variable().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         return WithExpressionAliasAst(c1, p1, p2)
-
-    # ===== STATEMENTS =====
 
     @parser_rule
     @tested_parser_rule
@@ -633,14 +641,6 @@ class Parser:
         p2 = rule().parse_zero_or_more(TokenType.TkNewLine)
         p3 = self.parse_token(TokenType.TkBraceR).parse_once()
         return InnerScopeAst(c1, p1, p2, p3)
-
-    @parser_rule
-    @tested_parser_rule
-    def parse_residual_inner_scope(self) -> ResidualInnerScopeAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwElse).parse_once()
-        p2 = self.parse_inner_scope(self.parse_statement).parse_once()
-        return ResidualInnerScopeAst(c1, p1, p2)
 
     @parser_rule
     @tested_parser_rule
@@ -724,8 +724,7 @@ class Parser:
         p2 = self.parse_local_variable().parse_once()
         p3 = self.parse_token(TokenType.TkAssign).parse_once()
         p4 = self.parse_expression().parse_once()
-        p5 = self.parse_residual_inner_scope().parse_optional()
-        return LetStatementInitializedAst(c1, p1, p2, p3, p4, p5)
+        return LetStatementInitializedAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     @tested_parser_rule
