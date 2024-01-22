@@ -876,7 +876,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             match convention:
                 case ConventionRefAst(): return CommonTypes.fun_ref(return_type, parameter_types, pos=self.pos)
                 case ConventionMutAst(): return CommonTypes.fun_mut(return_type, parameter_types, pos=self.pos)
-                case ConventionMovAst(): return CommonTypes.fun_one(return_type, parameter_types, pos=self.pos)
+                case ConventionMovAst(): return CommonTypes.fun_mov(return_type, parameter_types, pos=self.pos)
                 case _: raise SystemExit(f"Unknown convention '{convention}' being deduced. Report as bug.")
         else:
             return CommonTypes.fun_ref(return_type, parameter_types, pos=self.pos)
@@ -885,7 +885,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         match function_class_type.parts[-1].value:
             case "FunRef": return IdentifierAst(self.identifier.pos, "call_ref")
             case "FunMut": return IdentifierAst(self.identifier.pos, "call_mut")
-            case "FunOne": return IdentifierAst(self.identifier.pos, "call_one")
+            case "FunMov": return IdentifierAst(self.identifier.pos, "call_mov")
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
     def generate(self, s: ScopeHandler) -> None:
@@ -2419,7 +2419,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
-        if self.super_class.parts[-1].value in ["FunRef", "FunMut", "FunOne"]:
+        if self.super_class.parts[-1].value in ["FunRef", "FunMut", "FunMov"]:
             return
         super().pre_process(context)
 
