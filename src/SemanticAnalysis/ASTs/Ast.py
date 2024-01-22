@@ -98,6 +98,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                     # For non initialized symbol, set the initialization ast to this assignment.
                     case IdentifierAst() if not lhs_symbol.memory_info.ast_initialized:
                         lhs_symbol.memory_info.ast_initialized = self
+                        lhs_symbol.memory_info.ast_consumed = None
 
                     # For postfix identifiers, ensure to remove the partial moves.
                     case PostfixExpressionAst():
@@ -493,6 +494,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
             match argument.convention:
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
+                    # TODO: remove initialization AST?
                     if isinstance(argument.value, IdentifierAst):
                         sym.memory_info.ast_consumed = argument.value
 
@@ -825,9 +827,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
                     class_type=copy.deepcopy(mock_class_name),
                     arguments=ObjectInitializerArgumentGroupAst(
                         pos=-1,
-                        brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
+                        paren_l_token=TokenAst.dummy(TokenType.TkBraceL),
                         arguments=[],
-                        brace_r_token=TokenAst.dummy(TokenType.TkBraceR))),
+                        paren_r_token=TokenAst.dummy(TokenType.TkBraceR))),
                 _sup_let_type=function_class_type)
 
             context.body.members.append(mock_class_ast)
@@ -1140,6 +1142,7 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
         sym = scope_handler.current_scope.get_symbol(self)
 
         if sym.memory_info.ast_consumed:
+            print(sym.memory_info.ast_consumed)
             convention = ConventionNonInitAst
         elif sym.memory_info.ast_partial_moves:
             convention = ConventionPartInitAst
@@ -1303,7 +1306,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{self.let_keyword.print(printer)}{self.assign_to.print(printer)} {self.assign_token.print(printer)} {self.value.print(printer)}"
-        s += f"{self.residual.print(printer)}" if self.residual else ""
         return s
 
     def pre_process(self, context) -> None:
@@ -1684,16 +1686,16 @@ ObjectInitializerArgumentAst = (
 
 @dataclass
 class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalysis):
-    brace_l_token: TokenAst
+    paren_l_token: TokenAst
     arguments: List[ObjectInitializerArgumentAst]
-    brace_r_token: TokenAst
+    paren_r_token: TokenAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
-        s += f"{self.brace_l_token.print(printer)}"
-        s += f"\n{Seq(self.arguments).print(printer, ", ")}\n" if self.arguments else ""
-        s += f"{self.brace_r_token.print(printer)}"
+        s += f"{self.paren_l_token.print(printer)}"
+        s += f"{Seq(self.arguments).print(printer, ", ")}" if self.arguments else ""
+        s += f"{self.paren_r_token.print(printer)}"
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
@@ -2326,6 +2328,11 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
             wrapped_value = FunctionArgumentNormalAst(self.expression.pos, ConventionMovAst(self.expression.pos), None, self.expression)
             wrapped_value = FunctionArgumentGroupAst(self.expression.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
             wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
+
+            # For identifiers, the symbol will be "moved" by the memory check above, so mark as non-consumed.
+            match self.expression:
+                case IdentifierAst(): scope_handler.current_scope.get_symbol(self.expression).memory_info.ast_consumed = None
+                case PostfixExpressionAst() if isinstance(self.expression.op, PostfixExpressionOperatorMemberAccessAst): scope_handler.current_scope.get_symbol(self.expression.lhs).memory_info.ast_consumed = None
 
         return_type = self.expression.infer_type(scope_handler)
         if return_type != (ConventionMovAst, target_return_type):

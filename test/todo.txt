@@ -33,11 +33,7 @@ Sup classes
 -- Ensure overriden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
 
-Parser
--- Remove the residual block (use `??`)
-
 Other
--- Change struct initialization to use `()` instead of `{}` => same as functions, easier, more consistent.
 -- Default struct values
 -- Numeric postfix classes aren't define but dont throw errors
 

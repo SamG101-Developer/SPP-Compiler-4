@@ -1068,9 +1068,9 @@ class Parser:
     @tested_parser_rule
     def parse_object_initializer_arguments(self) -> ObjectInitializerArgumentGroupAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
         p2 = self.parse_object_initializer_argument().parse_zero_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkBraceR).parse_once()
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return ObjectInitializerArgumentGroupAst(c1, p1, p2, p3)
 
     @parser_rule
