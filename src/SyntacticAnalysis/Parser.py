@@ -686,9 +686,9 @@ class Parser:
     @tested_parser_rule
     def parse_typedef_statement_specific_items(self) -> TypedefStatementSpecificItemsAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
         p2 = self.parse_typedef_statement_specific_item().parse_one_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkBraceR).parse_once()
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return TypedefStatementSpecificItemsAst(c1, p1, p2, p3)
 
     @parser_rule
@@ -772,9 +772,9 @@ class Parser:
 
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
-        p2 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p2 = self.parse_token(TokenType.TkParenL).parse_once()
         p3 = self.parse_local_variable().parse_one_or_more(TokenType.TkComma)
-        p4 = self.parse_token(TokenType.TkBraceR).parse_once()
+        p4 = self.parse_token(TokenType.TkParenR).parse_once()
         return LocalVariableDestructureAst(c1, p1, p2, p3, p4)
 
     # ===== ASSIGNMENT =====

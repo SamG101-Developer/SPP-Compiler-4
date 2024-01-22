@@ -2473,13 +2473,13 @@ class TypedefStatementSpecificItemAst(Ast):
 
 @dataclass
 class TypedefStatementSpecificItemsAst(Ast):
-    brace_l_token: TokenAst
+    paren_l_token: TokenAst
     aliases: List[TypedefStatementSpecificItemAst]
-    brace_r_token: TokenAst
+    paren_r_token: TokenAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.brace_l_token.print(printer)}{Seq(self.aliases).print(printer, ", ")}{self.brace_r_token.print(printer)}"
+        return f"{self.paren_l_token.print(printer)}{Seq(self.aliases).print(printer, ", ")}{self.paren_r_token.print(printer)}"
 
 
 @dataclass
