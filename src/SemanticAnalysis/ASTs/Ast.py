@@ -13,7 +13,7 @@ from typing import List, Optional, Self, Any, Tuple, Type, Dict
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol, MemoryStatus
 from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis, BIN_OP_FUNCS
+from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis, BIN_OP_FUNCS, OP_PREC
 from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
 from src.SemanticAnalysis.ASTs.AstPrinter import AstPrinter, ast_printer_method, ast_printer_method_indent
 from src.SemanticAnalysis.TypeInfer import TypeInfer
@@ -130,57 +130,117 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     lhs: ExpressionAst
     op: TokenAst
     rhs: ExpressionAst
+    _as_func: Optional[PostfixExpressionAst] = dataclasses.field(default=None)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.lhs.print(printer)} {self.op.print(printer)} {self.rhs.print(printer)}"
-
-    def _as_function_call(self) -> PostfixExpressionAst:
-        # TODO : move to parser/lexer implementation
-
-        function = PostfixExpressionAst(
-            pos=self.pos,
-            lhs=self.lhs,
-            op=PostfixExpressionOperatorMemberAccessAst(
-                pos=self.op.pos,
-                dot_token=TokenAst.dummy(TokenType.TkDot),
-                identifier=IdentifierAst(self.op.pos, BIN_OP_FUNCS[self.op.token.token_type])))
-
-        function_call = PostfixExpressionAst(
-            pos=self.pos,
-            lhs=function,
-            op=PostfixExpressionOperatorFunctionCallAst(
-                pos=self.op.pos,
-                arguments=FunctionArgumentGroupAst(
-                    pos=self.op.pos,
-                    paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                    arguments=[FunctionArgumentNormalAst(
-                        pos=self.op.pos,
-                        convention=ConventionMovAst(self.rhs.pos),
-                        unpack_token=None,
-                        value=self.rhs)],
-                    paren_r_token=TokenAst.dummy(TokenType.TkParenR)),
-                generic_arguments=None,
-                fold_token=None))
-
-        return function_call
+        return f"({self.lhs.print(printer)} {self.op.print(printer)} {self.rhs.print(printer)})"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        # Transform the binary expression to a function call. This doesn't have to go in pre-processing, because the
-        # transformation is only temporary, and doesn't affect the tree at all. The original binary expression is still
-        # used for the rest of the semantic analysis.
-
         # TODO : special cases for ?? and "is".
         # TODO : special case for ".." as an operand
 
-        function_call = self._as_function_call()
-        function_call.do_semantic_analysis(scope_handler, **kwargs)
+        # 3 stage mutation operation
+        #   1. Re-arrange the arguments in the binary expression. To mitigate left-hand parsing issues, right hand parsing was used.
+        #   2. Chain any comparison operators together, so that "a < b < c" becomes "a < b && b < c".
+        #   3. Transform the binary expression to a function call.
+
+        def fix_associativity(ast: BinaryExpressionAst) -> BinaryExpressionAst:
+            # To mitigate the issue of left-hand recursive parsing, the parser uses right-hand recursive parsing. This
+            # puts equal precedence operators on the right hand side of the tree, ie 1 + 2 + 3 would be 1 + (2 + 3), not
+            # (1 + 2) + 3. This function fixes the associativity of the tree, so that the left hand side is always the
+            # first operand, and the right hand side is always the last operand.
+            if not isinstance(ast.rhs, BinaryExpressionAst):
+                return ast
+
+            if OP_PREC[ast.op.token.token_type] >= OP_PREC[ast.rhs.op.token.token_type]:
+                rhs = ast.rhs
+                ast.rhs = rhs.rhs
+                rhs.rhs = rhs.lhs
+                rhs.lhs = ast.lhs
+                rhs.op, ast.op = ast.op, rhs.op
+                ast.lhs = rhs
+                return fix_associativity(ast)
+
+            return ast
+        
+        def combine_comparison_operators(ast: BinaryExpressionAst) -> BinaryExpressionAst:
+            # A Python-borrowed feature is the combination of comparison operators, such as "a < b < c". This function
+            # recursively combines comparison operators into a single binary expression, so that "a < b < c" becomes
+            # "a < b && b < c".
+
+            def is_comparison_operator(token):
+                return token in {TokenType.TkEq, TokenType.TkNe, TokenType.TkLt, TokenType.TkGt, TokenType.TkLe, TokenType.TkGe}
+
+            if not is_comparison_operator(ast.op.token.token_type):
+                return ast
+
+            if isinstance(ast, BinaryExpressionAst) and is_comparison_operator(ast.lhs.op.token.token_type):
+                lhs = ast.lhs
+                rhs = ast.rhs
+                lhs = lhs.rhs
+                ast.rhs = BinaryExpressionAst(ast.pos, lhs, ast.op, rhs)
+                ast.op  = TokenAst.dummy(TokenType.TkLogicalAnd)
+                combine_comparison_operators(ast.lhs)
+                
+            return ast
+
+        def convert_to_function(ast: BinaryExpressionAst) -> PostfixExpressionAst:
+            # Transform the binary expression to a function call. This doesn't have to go in pre-processing, because the
+            # transformation is only temporary, and doesn't affect the tree at all. The original binary expression is
+            # still used for the rest of the semantic analysis.
+
+            # For "a + b", this would be "a.add"
+            mock_function = PostfixExpressionAst(
+                pos=ast.pos,
+                lhs=ast.lhs,
+                op=PostfixExpressionOperatorMemberAccessAst(
+                    pos=ast.op.pos,
+                    dot_token=TokenAst.dummy(TokenType.TkDot),
+                    identifier=IdentifierAst(ast.op.pos, BIN_OP_FUNCS[ast.op.token.token_type])))
+
+            # For "a + b", this would be "b"
+            mock_function_call_argument = FunctionArgumentNormalAst(
+                pos=ast.op.pos,
+                convention=ConventionMovAst(ast.rhs.pos),
+                unpack_token=None,
+                value=ast.rhs)
+
+            # For "a + b", this would be "a.add(b)"
+            mock_function_call = PostfixExpressionAst(
+                pos=ast.pos,
+                lhs=mock_function,
+                op=PostfixExpressionOperatorFunctionCallAst(
+                    pos=ast.op.pos,
+                    arguments=FunctionArgumentGroupAst(
+                        pos=ast.op.pos,
+                        paren_l_token=TokenAst.dummy(TokenType.TkParenL),
+                        arguments=[mock_function_call_argument],
+                        paren_r_token=TokenAst.dummy(TokenType.TkParenR)),
+                    generic_arguments=None,
+                    fold_token=None))
+            
+            return mock_function_call
+        
+        def convert_all_to_function(ast: BinaryExpressionAst) -> PostfixExpressionAst:
+            if not isinstance(ast, BinaryExpressionAst):
+                return ast
+            
+            ast.lhs = convert_all_to_function(ast.lhs)
+            ast.rhs = convert_all_to_function(ast.rhs)
+            return convert_to_function(ast)
+
+        ast = fix_associativity(self)
+        ast = combine_comparison_operators(ast)
+        ast = convert_all_to_function(ast)
+
+        self._as_func = ast
+        self._as_func.do_semantic_analysis(scope_handler, **kwargs)
+        return self._as_func
 
     def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         # TODO : special case for ".." as an operand
-
-        function_call = self._as_function_call()
-        return function_call.infer_type(scope_handler, **kwargs)
+        return self._as_func.infer_type(scope_handler, **kwargs)
 
 
 @dataclass
@@ -432,7 +492,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case ConventionMovAst() if sym:
                     # Mark the symbol as consumed, if the argument is a single identifier.
                     if isinstance(argument.value, IdentifierAst):
-                        sym.memory_info.ast_consumed = argument
+                        sym.memory_info.ast_consumed = argument.value
 
                     # Cannot move from a borrowed context, so enforce this here too.
                     elif sym.memory_info.is_borrow:
@@ -1964,6 +2024,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> FunctionPrototypeAst:
         function_name = kwargs.get("postfix-lhs")
+
         match function_name:
             case PostfixExpressionAst():
                 function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler)[1]).associated_scope
@@ -2032,17 +2093,25 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
             arguments = Seq(copy.deepcopy(self.arguments.arguments))
 
+            # If the function is an instance method (the first parameter is a "self" parameter), then the lhs as the
+            # "self" argument, as this is the instance the method is being applied over.
             if self_param := function_overload.parameters.get_self():
+                arguments.append(FunctionArgumentNamedAst(
+                    pos=function_name.lhs.pos,
+                    identifier=IdentifierAst(-1, "self"),
+                    assignment_token=TokenAst.dummy(TokenType.TkAssign),
+                    convention=self_param.convention,
+                    value=function_name.lhs
+                ))
                 # TODO
-                match function_name:
-                    case PostfixExpressionAst():
-                        sym = scope_handler.current_scope.get_symbol(function_name.lhs)
-                        arguments.append(FunctionArgumentNamedAst(function_name.lhs.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
-                    case IdentifierAst():
-                        sym = scope_handler.current_scope.get_symbol(function_name)
-                        arguments.append(FunctionArgumentNamedAst(function_name.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
-                    case _:
-                        raise NotImplementedError()
+                # match function_name:
+                #     case PostfixExpressionAst() if isinstance(function_name.op, PostfixExpressionOperatorMemberAccessAst):
+                #         arguments.append(FunctionArgumentNamedAst(function_name.lhs.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
+                #     case IdentifierAst():
+                #         arguments.append(FunctionArgumentNamedAst(function_name.pos, IdentifierAst(-1, "self"), TokenAst.dummy(TokenType.TkAssign), self_param.convention, function_name.lhs))
+                #     case _:
+                #         # pass
+                #         raise NotImplementedError()
 
             # Check if there are any named arguments with names that don't match any parameter names.
             if invalid_argument_names := Seq(self.arguments.arguments).filter(lambda a: isinstance(a, FunctionArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in parameter_names):
@@ -2099,13 +2168,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 continue
 
             self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-            if arguments.any(lambda a: a.identifier.value == "self"):
-                self_argument = arguments.find(lambda a: a.identifier.value == "self")
-                self.arguments.arguments.append(self_argument)
-                self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-                self.arguments.arguments.pop(-1)
-            else:
-                self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            # if arguments.any(lambda a: a.identifier.value == "self"):
+            #     self_argument = arguments.find(lambda a: a.identifier.value == "self")
+            #     self.arguments.arguments.append(self_argument)
+            #     self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            #     self.arguments.arguments.pop(-1)
+            # else:
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             valid_overloads.append(function_overload)
 
         if not valid_overloads:
