@@ -6,15 +6,11 @@ Generics:
 -- All things generic constraints (for `sup` just remove sup-scopes?).
 
 Binary expressions:
--- Rearrange from parsed AST order to correct AST order.
--- Do operator-chaining with compatible comparison operators.
+-- Rearrange from parsed AST order to correct AST order [IMPL + BUGGED].
 
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
-
-Async function calls:
--- Wrap the returned value type in a `Fut[T]` type.
 
 Conditional branching:
 -- Remove the initial `{ }` around all the patterns.
