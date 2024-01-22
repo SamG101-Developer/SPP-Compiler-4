@@ -91,14 +91,20 @@ class Seq[T]:
                 return x
         return None
 
+    # All/any operations
+
     def all(self, func: Callable[[T], bool]) -> bool:
         return all(func(x) for x in self._value)
 
     def any(self, func: Callable[[T], bool]) -> bool:
         return any(func(x) for x in self._value)
 
+    # Indexing operations
+
     def enumerate(self) -> Seq[tuple[int, T]]:
         return Seq(list(enumerate(self._value)))
+
+    # Remove & replace operations
 
     def remove(self, item: T) -> Seq[T]:
         self._value.remove(item)
@@ -115,11 +121,24 @@ class Seq[T]:
     def pop(self, index: int) -> T:
         return self._value.pop(index)
 
+    # Getter operations
+
     def first(self, default: Optional[T] = None):
         return self._value[0] if self.not_empty() else default
 
     def last(self, default: Optional[T] = None):
         return self._value[-1] if self.not_empty() else default
+
+    # Set-oriented operations
+
+    def set_subtract(self, other: Seq[T]) -> Seq[T]:
+        return Seq([x for x in self._value if x not in other])
+
+    def set_intersect(self, other: Seq[T]) -> Seq[T]:
+        return Seq([x for x in self._value if x in other])
+
+    def set_union(self, other: Seq[T]) -> Seq[T]:
+        return Seq(self._value + [x for x in other if x not in self._value])
 
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
