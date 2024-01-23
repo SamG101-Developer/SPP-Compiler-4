@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Callable, Iterator, Optional
+from typing import List, Callable, Iterator, Optional, Iterable
 
 
 class Seq[T]:
     _value: List[T]
 
-    def __init__(self, value: List[T]) -> None:
-        self._value = value
+    def __init__(self, value: Iterable[T]) -> None:
+        self._value = list(value)
 
     def append(self, item: T) -> None:
         self._value.append(item)
@@ -152,13 +152,19 @@ class Seq[T]:
         self._value[key] = value
 
     def __sub__(self, other):
-        return Seq([x for x in self._value if x not in other])
+        return self.set_subtract(other)
+
+    def __add__(self, other):
+        return self.set_union(other)
 
     def __eq__(self, other):
         return self._value == other._value
 
     def __bool__(self):
         return self.not_empty()
+
+    def __str__(self):
+        return self.map(str).join(", ")
 
     @property
     def value(self) -> List[T]:
