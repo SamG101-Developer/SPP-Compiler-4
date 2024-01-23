@@ -19,9 +19,13 @@ from src.SemanticAnalysis.ASTs.AstPrinter import AstPrinter, ast_printer_method,
 from src.SemanticAnalysis.TypeInfer import TypeInfer
 from src.SemanticAnalysis.PreProcessor import PreProcessor
 from src.SemanticAnalysis.CommonTypes import CommonTypes
+from src.SemanticAnalysis.LLVMGeneration import LLVMGeneration
 
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.Utils.Sequence import Seq
+
+import llvmlite.ir as llvm_ir
+import llvmlite.binding as llvm_binding
 
 
 @dataclass
@@ -2764,8 +2768,7 @@ class WithExpressionAliasAst(Ast, SemanticAnalysis):
             let_keyword=TokenAst.dummy(TokenType.KwLet),
             assign_to=self.variable,
             assign_token=self.assign_token,
-            value=kwargs.get("with-expression-value"),
-            residual=None)
+            value=kwargs.get("with-expression-value"))
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
