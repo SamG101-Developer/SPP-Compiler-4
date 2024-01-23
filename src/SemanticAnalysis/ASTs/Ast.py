@@ -2070,19 +2070,23 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
             # Get the generic map for this function overload. Any errors are added in the function & None is returned,
             # so if the generic map is None then continue to the next overload.
-            inferred_generic_arguments = self.__infer_generic_argument_values(scope_handler, function_overload, Seq(self.arguments.arguments).map(lambda x: x.value.infer_type(scope_handler)[1]).value, function_overload_errors)
-            if inferred_generic_arguments is None:
-                continue
 
             generic_arguments = Seq(copy.deepcopy(self.generic_arguments.arguments))
 
             try:
+                inferred_generic_arguments = infer_generic_argument_values(
+                    scope_handler=scope_handler,
+                    generic_parameters=Seq(function_overload.generic_parameters.parameters),
+                    infer_from=Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration),
+                    replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler)[1]),
+                    obj_definition=function_overload)
+
                 all_generic_arguments = verify_generic_arguments(
                     generic_parameters=Seq(function_overload.generic_parameters.parameters),
                     inferred_generic_arguments=inferred_generic_arguments,
                     generic_arguments=Seq(self.generic_arguments.arguments),
-                    obj_definition=function_overload,
-                )
+                    obj_definition=function_overload)
+
             except SemanticError as e:
                 function_overload_errors.append(e)
                 continue
@@ -2177,6 +2181,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if not type_error:
                 valid_overloads.append((function_overload, arguments.find(lambda a: a.identifier.value == "self")))
 
+        # If there were no valid overloads, display each overload and why it couldn't be selected. Raise the error here
+        # so no valid overload is attempted to be pulled from an empty list.
         if not valid_overloads:
             error = SemanticError("Invalid function call")
             error.add_traceback(self.pos, f"Function call {self} found here.")
@@ -2187,35 +2193,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         # TODO: This can lead to ambiguities: func(a: Str, b: Vec[T) and func(a: T, b: Arr[I8]) for func("hello", [1, 2, 3])
         return valid_overloads[0]
 
-    def __infer_generic_argument_values(self, scope_handler: ScopeHandler, function_overload: FunctionPrototypeAst, replacements, exceptions: List[SemanticError]) -> Optional[Seq[GenericArgumentNamedAst]]:
-        # Infer any generic type arguments that can be inferred (from parameter types etc)
-        # Return a list of non-inferred generic argument types.
-
-        inferred_generic_parameters = Seq([])
-        for generic_parameter in function_overload.generic_parameters.parameters:
-            for parameter_t, argument_t in Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration).zip(Seq(replacements)):
-                # Check if the generic argument has already been inferred.
-                duplicate_inferred_parameter = inferred_generic_parameters.find(lambda p: p.identifier == generic_parameter.identifier)
-                if duplicate_inferred_parameter and duplicate_inferred_parameter.type != argument_t:
-                    exception = SemanticError(f"Generic argument has already been inferred:")
-                    exception.add_traceback(function_overload.pos, f"")
-                    exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.")
-                    exceptions.append(exception)
-                    return None
-
-                if not duplicate_inferred_parameter:
-                    for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
-                        if generic_parameter.identifier.parts[-1] == p_1:  # and p_2[1] != generic_parameter.identifier:
-                            inferred_generic_parameters.append(GenericArgumentNamedAst(p_2.pos, argument_t, generic_parameter.identifier, TokenAst.dummy(TokenType.TkAssign)))
-                            # generic_map[generic_parameter.identifier] = TypeSingleAst(p_2.pos, [p_2])
-                            break
-
-        return inferred_generic_parameters
-
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
         _, self_arg = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))
         Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
 
+        # Analyse the arguments (including the "self" argument, to check for conflicting borrows)
         if self_arg:
             self.arguments.arguments.append(self_arg)
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
@@ -2224,6 +2207,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             Seq(self.arguments.arguments).for_each(lambda x: x.value.do_semantic_analysis(scope_handler, **kwargs))
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
+        # owned, ie ConventionMovAst.
         return ConventionMovAst, self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))[0].return_type
 
 
@@ -2353,7 +2338,7 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         if self.expression:
             ensure_memory_integrity_of_expression(self.expression, scope_handler)
 
-        return_type = self.expression.infer_type(scope_handler)
+        return_type = self.expression.infer_type(scope_handler) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type != (ConventionMovAst, target_return_type):
             exception = SemanticError(f"Returning variable of incorrect type:")
             exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
@@ -2584,7 +2569,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
         # Check that the type exists in the symbol table.
         if not sym:
-            # TODO: remove MOCK_ classes from this check
+            # TODO: remove MOCK-func classes from the list of available symbols
             all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
             closest_match = difflib.get_close_matches(str(self), all_symbols.map(lambda s: str(s.name)).value, n=1)
             closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
@@ -2592,18 +2577,6 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             exception = SemanticError(f"Type '{self}' is not defined:")
             exception.add_traceback(self.pos, f"Type '{self}' used here.{closest_match}")
             raise exception
-
-        # Check that the number of generic arguments given to the type is <= the number of generic parameters.
-        # TODO : bypass this if the final generic parameter is variadic.
-        # if (sym.type
-        #         and len(self.parts[-1].generic_arguments.arguments) > len(sym.type.generic_parameters.parameters)
-        #         and not isinstance(sym.type.generic_parameters.parameters[-1], GenericParameterVariadicAst)):
-        #     exception = SemanticError(f"Too many generic arguments given to type '{self.without_generics()}':")
-        #     exception.add_traceback(sym.type.pos, f"Type {self.without_generics()} declared here.")
-        #     exception.add_traceback(self.pos, f"Type '{self}' used here.")
-        #     raise exception
-
-        # TODO : check if < required amount of generic parameters have been given too.
 
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
@@ -2887,12 +2860,19 @@ ModuleMemberAst = (
         LetStatementAst)
 
 
-def ensure_memory_integrity_of_expression(expression: ExpressionAst, scope_handler: ScopeHandler, keep_consume: bool = False, **kwargs) -> None:
+def ensure_memory_integrity_of_expression(
+        expression: ExpressionAst,
+        scope_handler: ScopeHandler,
+        keep_consume: bool = False,
+        **kwargs) -> None:
+
+    # Wrap the expression as a function argument and analyse it, which applies the memory rules to it
     wrapped_value = FunctionArgumentNormalAst(expression.pos, ConventionMovAst(expression.pos), None, expression)
     wrapped_value = FunctionArgumentGroupAst(expression.pos, TokenAst.dummy(TokenType.TkParenL), [wrapped_value], TokenAst.dummy(TokenType.TkParenR))
     wrapped_value.do_semantic_analysis(scope_handler, **kwargs)
 
-    # For identifiers, the symbol will be "moved" by the memory check above, so mark as non-consumed.
+    # For identifiers, the symbol will be "moved" by the memory check above, so mark as non-consumed. An exception is
+    # the "keep_consume" flag, which will keep the symbol "consumed"
     if not keep_consume:
         match expression:
             case IdentifierAst():
@@ -2956,3 +2936,33 @@ def verify_generic_arguments(
         raise exception
 
     return inferred_generic_arguments + generic_arguments
+
+
+def infer_generic_argument_values(
+        scope_handler: ScopeHandler,
+        generic_parameters: Seq[GenericParameterAst],
+        infer_from: Seq[TypeAst],
+        replace_with: Seq[TypeAst],
+        obj_definition: IdentifierAst) -> Seq[GenericArgumentNamedAst]:
+
+    # Infer any generic type arguments that can be inferred (from parameter types etc)
+    # Return a list of non-inferred generic argument types.
+    inferred_generic_parameters = Seq([])
+    for generic_parameter in generic_parameters:
+        for parameter_t, argument_t in infer_from.zip(replace_with):
+
+            # Check if the generic argument has already been inferred.
+            duplicate_inferred_parameter = inferred_generic_parameters.find(lambda p: p.identifier == generic_parameter.identifier)
+            if duplicate_inferred_parameter and duplicate_inferred_parameter.type != argument_t:
+                exception = SemanticError(f"Generic argument has already been inferred:")
+                exception.add_traceback(obj_definition.pos, f"")
+                exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.")
+                raise exception
+
+            if not duplicate_inferred_parameter:
+                for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
+                    if generic_parameter.identifier.parts[-1] == p_1:
+                        inferred_generic_parameters.append(GenericArgumentNamedAst(p_2.pos, argument_t, generic_parameter.identifier, TokenAst.dummy(TokenType.TkAssign)))
+                        break
+
+    return inferred_generic_parameters
