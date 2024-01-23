@@ -1139,6 +1139,7 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
             exception.add_traceback(self.pos, f"Identifier '{self.value}' used here.")
             raise exception
 
+        print(self)
         scope_handler.current_scope.get_symbol(self).type.do_semantic_analysis(scope_handler, **kwargs)  # ?
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
@@ -2067,8 +2068,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             if inferred_generic_arguments is None:
                 continue
 
-            available_generic_parameter_names = Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier)
             generic_arguments = Seq(copy.deepcopy(self.generic_arguments.arguments))
+
+            try:
+                all_generic_arguments = verify_generic_arguments(
+                    generic_parameters=Seq(function_overload.generic_parameters.parameters),
+                    inferred_generic_arguments=inferred_generic_arguments,
+                    generic_arguments=Seq(self.generic_arguments.arguments),
+                    obj_definition=function_overload,
+                )
+            except SemanticError as e:
+                function_overload_errors.append(e)
+                continue
 
 # FROM HERE
             # Make sure that inferrable generics always come AFTER required generics. Check that the N amount of
@@ -2081,57 +2092,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             #     continue
 # TO HERE TODO needs to be in the FunctionPrototypeAst.do_semantic_analysis check (maybe even pre-process)
 
-            # Check that inferred generics haven't been given explicitly:
-            if inferred_generic_arguments.length + len(self.generic_arguments.arguments) > len(function_overload.generic_parameters.parameters):
-                if function_overload.generic_parameters.parameters:
-                    exception = SemanticError(f"Generic arguments have already been inferred:")
-                    exception.add_traceback(function_overload.generic_parameters.parameters[0].pos, f"Inferrable generic parameter '{function_overload.generic_parameters.parameters[0]}' declared here.")
-                    exception.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
-                else:
-                    exception = SemanticError(f"Generic arguments have already been inferred:")
-                    exception.add_traceback(function_overload.parameters.paren_l_token.pos, f"No generic parameters declared here.")
-                    exception.add_traceback_minimal(self.generic_arguments.arguments[0].pos, f"Generic argument '{self.generic_arguments.arguments[0]}' given here.")
-                function_overload_errors.append(exception)
-                continue
-
-            # Check if there are any named generic arguments with names that don't match any generic parameter names:
-            if invalid_generic_argument_names := generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
-                exception = SemanticError(f"Invalid generic argument names given to function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
-                exception.add_traceback_minimal(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.")
-                function_overload_errors.append(exception)
-                continue
-
-            # Remove all named generic arguments from the available generic parameter names list:
-            for generic_argument in generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)) + inferred_generic_arguments:
-                available_generic_parameter_names.remove(generic_argument.identifier)
-
-            # Check there aren't too many generic arguments provided for this overload:
-            if generic_arguments.length > len(function_overload.generic_parameters.parameters):
-                exception = SemanticError(f"Too many generic arguments given to function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with generic parameters: {Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
-                exception.add_traceback_minimal(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - len(function_overload.generic_parameters.parameters)} extra generic arguments found here.")
-                function_overload_errors.append(exception)
-                continue
-
-            # Convert each normal generic argument to a named generic argument with the next available generic parameter
-            # name:
-            for generic_argument in generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNormalAst)):
-                new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument.type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
-                generic_arguments.replace(generic_argument, new_generic_argument)
-
-            # Check that all required generic parameters have been given an argument:
-            if unfilled_required_generic_parameters := Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
-                exception = SemanticError(f"Missing generic arguments in function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
-                exception.add_traceback_minimal(self.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
-                function_overload_errors.append(exception)
-                continue
+            # TODO
 
             # Replace all instances of the generic parameters with the inferred arguments.
             original_function_overload = function_overload
             function_overload = copy.deepcopy(function_overload)
-            for generic_argument in inferred_generic_arguments + generic_arguments:
+            for generic_argument in all_generic_arguments:
                 for parameter in function_overload.parameters.parameters:
                     parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
                 function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
@@ -2203,7 +2169,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
             # No argument type errors => this is a valid overload.
             if not type_error:
-                valid_overloads.append((original_function_overload, arguments.find(lambda a: a.identifier.value == "self")))
+                valid_overloads.append((function_overload, arguments.find(lambda a: a.identifier.value == "self")))
 
         if not valid_overloads:
             error = SemanticError("Invalid function call")
@@ -2612,19 +2578,22 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
         # Check that the type exists in the symbol table.
         if not sym:
+            import inspect
+            print(inspect.stack()[1].lineno)
+
             exception = SemanticError(f"Type '{self}' is not defined:")
             exception.add_traceback(self.pos, f"Type '{self}' used here.")
             raise exception
 
         # Check that the number of generic arguments given to the type is <= the number of generic parameters.
         # TODO : bypass this if the final generic parameter is variadic.
-        if (sym.type
-                and len(self.parts[-1].generic_arguments.arguments) > len(sym.type.generic_parameters.parameters)
-                and not isinstance(sym.type.generic_parameters.parameters[-1], GenericParameterVariadicAst)):
-            exception = SemanticError(f"Too many generic arguments given to type '{self.without_generics()}':")
-            exception.add_traceback(sym.type.pos, f"Type {self.without_generics()} declared here.")
-            exception.add_traceback(self.pos, f"Type '{self}' used here.")
-            raise exception
+        # if (sym.type
+        #         and len(self.parts[-1].generic_arguments.arguments) > len(sym.type.generic_parameters.parameters)
+        #         and not isinstance(sym.type.generic_parameters.parameters[-1], GenericParameterVariadicAst)):
+        #     exception = SemanticError(f"Too many generic arguments given to type '{self.without_generics()}':")
+        #     exception.add_traceback(sym.type.pos, f"Type {self.without_generics()} declared here.")
+        #     exception.add_traceback(self.pos, f"Type '{self}' used here.")
+        #     raise exception
 
         # TODO : check if < required amount of generic parameters have been given too.
 
@@ -2924,3 +2893,58 @@ def ensure_memory_integrity_of_expression(expression: ExpressionAst, scope_handl
             case PostfixExpressionAst() if isinstance(expression.op, PostfixExpressionOperatorMemberAccessAst):
                 # TODO: potentially something with partial moves needs to be resolved here
                 scope_handler.current_scope.get_symbol(expression.lhs).memory_info.ast_consumed = None
+
+
+def verify_generic_arguments(
+        generic_parameters: Seq[GenericParameterAst],
+        inferred_generic_arguments: Seq[GenericArgumentAst],
+        generic_arguments: Seq[GenericArgumentAst],
+        obj_definition: IdentifierAst) -> Seq[GenericArgumentAst]:
+
+    available_generic_parameter_names = generic_parameters.map(lambda p: p.identifier)
+    required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
+
+    # Check that inferred generics haven't been given explicitly:
+    if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length:
+        if generic_parameters:
+            exception = SemanticError(f"Generic arguments have already been inferred:")
+            exception.add_traceback(generic_parameters[0].pos, f"Inferrable generic parameter '{generic_parameters[0]}' declared here.")
+            exception.add_traceback_minimal(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.")
+        else:
+            exception = SemanticError(f"Generic arguments have already been inferred:")
+            exception.add_traceback(obj_definition.pos, f"No generic parameters declared here.")
+            exception.add_traceback_minimal(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.")
+        raise exception
+
+    # Check if there are any named generic arguments with names that don't match any generic parameter names:
+    if invalid_generic_argument_names := generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
+        exception = SemanticError(f"Invalid generic argument names given to function call:")
+        exception.add_traceback(obj_definition.pos, f"Function overload declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
+        exception.add_traceback_minimal(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.")
+        raise exception
+
+    # Remove all named generic arguments from the available generic parameter names list:
+    for generic_argument in generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)) + inferred_generic_arguments:
+        available_generic_parameter_names.remove(generic_argument.identifier)
+
+    # Check there aren't too many generic arguments provided for this overload:
+    if generic_arguments.length > generic_parameters.length:
+        exception = SemanticError(f"Too many generic arguments given to function call:")
+        exception.add_traceback(obj_definition.pos, f"Function overload declared here with generic parameters: {generic_parameters.map(lambda p: p.identifier).map(str).join(", ")}")
+        exception.add_traceback_minimal(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - generic_parameters.length} extra generic arguments found here.")
+        raise exception
+
+    # Convert each normal generic argument to a named generic argument with the next available generic parameter
+    # name:
+    for generic_argument in generic_arguments.filter(lambda a: type(a) == GenericArgumentNormalAst):
+        new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument.type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
+        generic_arguments.replace(generic_argument, new_generic_argument)
+
+    # Check that all required generic parameters have been given an argument:
+    if unfilled_required_generic_parameters := Seq(required_generic_parameters).map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
+        exception = SemanticError(f"Missing generic arguments in function call:")
+        exception.add_traceback(obj_definition.pos, f"Function overload declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
+        exception.add_traceback_minimal(generic_arguments[-1].pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
+        raise exception
+
+    return inferred_generic_arguments + generic_arguments
