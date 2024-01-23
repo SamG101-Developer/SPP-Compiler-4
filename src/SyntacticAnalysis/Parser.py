@@ -353,7 +353,7 @@ class Parser:
         p1 = self.parse_upper_identifier().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         p3 = self.parse_generic_argument_normal().parse_once()
-        return GenericArgumentNamedAst(**p3.__dict__, identifier=p1, assignment_token=p2)
+        return GenericArgumentNamedAst(**p3.__dict__, identifier=TypeSingleAst(p1.pos, [GenericIdentifierAst(p1.pos, p1.value, None)]), assignment_token=p2)
 
     @parser_rule
     @tested_parser_rule
