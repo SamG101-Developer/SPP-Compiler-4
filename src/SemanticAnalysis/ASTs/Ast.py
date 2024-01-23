@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import hashlib
+import difflib
 
 import json_fix
 from abc import ABC, abstractmethod
@@ -1135,11 +1136,14 @@ class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         if not scope_handler.current_scope.has_symbol(self):
+            all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, VariableSymbol))
+            closest_match = difflib.get_close_matches(self.value, all_symbols.map(lambda s: s.name.value).value, n=1)
+            closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
+
             exception = SemanticError(f"Undefined identifier '{self.value}':")
-            exception.add_traceback(self.pos, f"Identifier '{self.value}' used here.")
+            exception.add_traceback(self.pos, f"Identifier '{self.value}' used here.{closest_match}")
             raise exception
 
-        print(self)
         scope_handler.current_scope.get_symbol(self).type.do_semantic_analysis(scope_handler, **kwargs)  # ?
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
@@ -1713,6 +1717,8 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{self.class_type.print(printer)}{self.arguments.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.class_type.do_semantic_analysis(scope_handler, **kwargs)
+
         type_sym = scope_handler.current_scope.get_symbol(self.class_type)
         type_scope = type_sym.associated_scope
         attributes = Seq(type_sym.type.body.members)
@@ -2578,11 +2584,13 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
         # Check that the type exists in the symbol table.
         if not sym:
-            import inspect
-            print(inspect.stack()[1].lineno)
+            # TODO: remove MOCK_ classes from this check
+            all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
+            closest_match = difflib.get_close_matches(str(self), all_symbols.map(lambda s: str(s.name)).value, n=1)
+            closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
 
             exception = SemanticError(f"Type '{self}' is not defined:")
-            exception.add_traceback(self.pos, f"Type '{self}' used here.")
+            exception.add_traceback(self.pos, f"Type '{self}' used here.{closest_match}")
             raise exception
 
         # Check that the number of generic arguments given to the type is <= the number of generic parameters.
