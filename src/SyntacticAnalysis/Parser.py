@@ -1385,15 +1385,16 @@ class Parser:
     @parser_rule
     @tested_parser_rule
     def parse_numeric_postfix_type(self) -> TokenType:
-        p1 = self.parse_characters("i8").for_alt()
-        p2 = self.parse_characters("i16").for_alt()
-        p3 = self.parse_characters("i32").for_alt()
-        p4 = self.parse_characters("i64").for_alt()
-        p5 = self.parse_characters("i128").for_alt()
-        p6 = self.parse_characters("i256").for_alt()
-        p7 = self.parse_characters("u8").for_alt()
-        p8 = self.parse_characters("u16").for_alt()
-        p9 = self.parse_characters("u32").for_alt()
+        # TODO : start with a underscore
+        p1  = self.parse_characters("i8").for_alt()
+        p2  = self.parse_characters("i16").for_alt()
+        p3  = self.parse_characters("i32").for_alt()
+        p4  = self.parse_characters("i64").for_alt()
+        p5  = self.parse_characters("i128").for_alt()
+        p6  = self.parse_characters("i256").for_alt()
+        p7  = self.parse_characters("u8").for_alt()
+        p8  = self.parse_characters("u16").for_alt()
+        p9  = self.parse_characters("u32").for_alt()
         p10 = self.parse_characters("u64").for_alt()
         p11 = self.parse_characters("u128").for_alt()
         p12 = self.parse_characters("u256").for_alt()
