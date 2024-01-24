@@ -74,47 +74,68 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
 
         lhs_symbols = []
 
-        # Check the LHS is a valid assignment target
+        # Check the LHS is a valid assignment target. Valid assignment targets are identifiers or postfix member access
+        # expressions (assigning to a class attribute for example).
         for lhs in self.lhs:
+
+            # Ensure the LHS is valid (ie the identifier or attribute exists etc), before performing AST specific
+            # instructions.
             lhs.do_semantic_analysis(scope_handler, **kwargs)
             match lhs:
+
+                # If assigning to an identifier then append the symbol to the list of symbols to be assigned to. If
+                # assigning to an attribute: append the symbol of the class owner of the attribute to the list of
+                # symbols being assigned to. Otherwise, the assignment target is invalid, so raise an exception.
                 case IdentifierAst():
                     sym = scope_handler.current_scope.get_symbol(lhs)
                     lhs_symbols.append(sym)
+
                 case PostfixExpressionAst() if isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
                     sym = scope_handler.current_scope.get_symbol(lhs.lhs)
                     lhs_symbols.append(sym)
+
                 case _:
                     exception = SemanticError(f"Invalid assignment target (must be an identifier):")
                     exception.add_traceback(lhs.pos, f"Assignment target '{lhs}' invalid.")
                     raise exception
 
+        # Regular assignment with the "=" operator. Compound assignment, ie "+=" is not supported for semantic analysis
+        # yet.
         if self.op.token.token_type == TokenType.TkAssign:
-            # Check that the LHS is mutable (given that it has already been initialized)
             for i, lhs_symbol in enumerate(lhs_symbols):
+
+                # If the symbol isn't muutable or is the "&" borrow type, then this symbol cannot be mutated.
+                # TODO: this is slightly wrong: it won't allow "&" variables to be re-assigned but it should.
+                # TODO: it  should prevent "&" from being used in "&mut" i think? maybe just remove the "or ..."?
                 if (not lhs_symbol.is_mutable or lhs_symbol.memory_info.is_borrow_ref) and lhs_symbol.memory_info.ast_initialized:
                     exception = SemanticError(f"Cannot assign to an immutable variable:")
                     exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
                     exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
                     raise exception
 
+                # Resolve any (partial-) moves from the memory status information in the symbols acquired earlier. For
+                # identifiers, mark the symbol as initialized and not consumed. For attributes, remove the attribute
+                # from the list of partial moves (if it was a partial move)
                 match self.lhs[i]:
-                    # For non initialized symbol, set the initialization ast to this assignment.
                     case IdentifierAst() if not lhs_symbol.memory_info.ast_initialized:
                         lhs_symbol.memory_info.ast_initialized = self
                         lhs_symbol.memory_info.ast_consumed = None
 
-                    # For postfix identifiers, ensure to remove the partial moves.
                     case PostfixExpressionAst():
                         lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda arg: arg.value != self.lhs[i]).value
 
-            # Check that the type of the RHS is the same as the LHS
+            # Perform a type check between the LHS and RHS, to ensure that the types are the same. There is no implicit
+            # casting due to the strong type system, all that's needed is a symbol eq check between the 2 types.
             if len(self.lhs) == 1:
                 lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
                 rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
 
+                # If the conventions are the same, or the LHS is uninitialized (being resolved), and the types are the
+                # same, then the match is valid.
                 if (lhs_type[0] == rhs_type[0] or lhs_type[0] == ConventionNonInitAst) and lhs_type[1].symbolic_eq(rhs_type[1], scope_handler.current_scope):
                     pass
+
+                # Otherwise, there is a type mismatch, so raise an exception.
                 else:
                     exception = SemanticError(f"Type mismatch in assignment:")
                     exception.add_traceback(lhs_symbols[0].memory_info.ast_initialized.pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0].default()}{lhs_type[1]}'.")  # TODO : should be symbol's initialization AST
@@ -128,6 +149,8 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
             raise NotImplementedError()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        # Assignment never returns anything, so return the Void type. This is so that the memory rules of the language
+        # can be adhered to.
         return ConventionMovAst, CommonTypes.void()
 
 
@@ -263,6 +286,7 @@ class ClassAttributeAst(Ast, SemanticAnalysis):
         return f"{Seq(self.annotations).print(printer, "\n")}{self.identifier.print(printer)}{self.colon_token.print(printer)} {self.type_declaration.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Check the annotations and that the type is valid.
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -278,6 +302,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
     _mod: ModuleIdentifierAst = dataclasses.field(default=None)
 
     def __post_init__(self):
+        # Fill the generic parameters and where block with empty objects if they are None.
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
         self.where_block = self.where_block or WhereBlockAst(-1, TokenAst.dummy(TokenType.KwWhere), WhereConstraintsGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR)))
 
@@ -291,29 +316,41 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         return s
 
     def pre_process(self, context: ModulePrototypeAst) -> None:
+        # Replace "Self" in the generic parameters and attribute types so that they refer to the current class.
         Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
 
     def generate(self, s: ScopeHandler) -> None:
+        # Add a new TypeSymbol to the current scope, representing this class being generated. Move into the new scope
+        # (representing the new type symbol). Associate the scope with the symbol.
         sym = TypeSymbol(self.identifier, self)
         s.current_scope.add_symbol(sym)
         s.into_new_scope(self.identifier)
         sym.associated_scope = s.current_scope
+
+        # Add new TypeSymbols for each generic parameter to the scope, representing "None". This is because the
+        # attributes may rely on these generic types. Build VariableSymbols for each attribute of the class. Add "Self"
+        # as a TypeSymbol pointing to the current class.
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
         s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
+
+        # Move back into the parent scope.
         s.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Move into the class scope to have access to types defined on the class (generics parameters)
         scope_handler.move_to_next_scope()
 
+        # Analyse the annotations, generic parameters, where block and the body of the class, to ensure everything being
+        # contained is valid.
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
         self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
 
-        # Check that no attributes have the same name as each other.
+        # Check that no attributes have the same name as each other. Raise an exception if they do.
         if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
             duplicate_attributes = Seq(self.body.members).map(lambda m: m.identifier).non_unique_items()[0]
             exception = SemanticError(f"Duplicate attributes '{duplicate_attributes[0]}' found on type '{self.identifier}':")
@@ -321,6 +358,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
             exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' re-declared here.")
             raise exception
 
+        # Move back into the parent scope.
         scope_handler.exit_cur_scope()
 
     def __json__(self):
@@ -398,7 +436,7 @@ ConventionAst = (
 
 
 @dataclass
-class FunctionArgumentNormalAst(Ast):
+class FunctionArgumentNormalAst(Ast, SemanticAnalysis):
     convention: ConventionAst
     unpack_token: Optional[TokenAst]
     value: ExpressionAst
@@ -411,9 +449,12 @@ class FunctionArgumentNormalAst(Ast):
         s += f"{self.value.print(printer)}"
         return s
 
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
+
 
 @dataclass
-class FunctionArgumentNamedAst(Ast):
+class FunctionArgumentNamedAst(Ast, SemanticAnalysis):
     identifier: IdentifierAst
     assignment_token: TokenAst
     convention: ConventionAst
@@ -422,6 +463,9 @@ class FunctionArgumentNamedAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.convention.print(printer)}{self.value.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
 FunctionArgumentAst = (
@@ -468,7 +512,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
         borrows_mut = OrderedSet()
 
         for argument in self.arguments:
-            argument.value.do_semantic_analysis(scope_handler, **kwargs)
+            argument.do_semantic_analysis(scope_handler, **kwargs)
 
             match argument.value:
                 case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
