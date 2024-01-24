@@ -4,6 +4,7 @@ import copy
 import dataclasses
 import hashlib
 import difflib
+import json
 
 import json_fix
 from abc import ABC, abstractmethod
@@ -11,7 +12,7 @@ from dataclasses import dataclass
 from ordered_set import OrderedSet
 from typing import List, Optional, Self, Any, Tuple, Type, Dict
 
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler, Scope
 from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol, MemoryStatus
 from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis, BIN_OP_FUNCS, OP_PREC
@@ -111,7 +112,8 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
             if len(self.lhs) == 1:
                 lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
                 rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
-                if (lhs_type == rhs_type) or (lhs_type[0] == ConventionNonInitAst and lhs_type[1] == rhs_type[1]):
+
+                if (lhs_type[0] == rhs_type[0] or lhs_type[0] == ConventionNonInitAst) and lhs_type[1].symbolic_eq(rhs_type[1], scope_handler.current_scope):
                     pass
                 else:
                     exception = SemanticError(f"Type mismatch in assignment:")
@@ -661,7 +663,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
             exception.add_traceback(self.convention.pos, f"Convention '{self.convention}' used here.")
             raise exception
 
-        if self.type_declaration != (default_value_type := self.default_value.infer_type(scope_handler, **kwargs))[1]:
+        if not self.type_declaration.symbolic_eq((default_value_type := self.default_value.infer_type(scope_handler, **kwargs))[1], scope_handler.current_scope):
             exception = SemanticError(f"Optional parameter type does not match default value type:")
             exception.add_traceback(self.type_declaration.pos, f"Parameter type '{self.type_declaration}' declared here.")
             exception.add_traceback(self.default_value.pos, f"Default value type '{default_value_type[1]}' inferred here.")
@@ -913,7 +915,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         self.body.do_semantic_analysis(scope_handler, **(kwargs | {"target-return-type": self.return_type, "inline-block": True}))
 
         # Check that there a return statement at the end fo a non-Void function
-        if self.return_type != CommonTypes.void() and self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst):
+        if not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope) and self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst):
             exception = SemanticError(f"Missing return statement in non-Void function:")
             exception.add_traceback(self.pos, f"Function '{self.identifier}' declared here.")
             exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
@@ -1193,7 +1195,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, **kwargs))
 
         if kwargs.get("assignment", False):
-            if Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler)).unique_items().length > 1:
+            if Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler, **kwargs)).unique_items().length > 1:
                 conflicting_types = Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(
                     scope_handler)).non_unique_items_flat()
                 exception = SemanticError(f"Duplicate types '{conflicting_types[0]}' found in assign-if-expression:")
@@ -1210,7 +1212,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
     def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         if self.branches and self.branches[0].body.members:
-            return self.branches[0].body.members[-1].infer_type(scope_handler)
+            return self.branches[0].body.members[-1].infer_type(scope_handler, **kwargs)
         return ConventionMovAst, CommonTypes.void()
 
 
@@ -1230,14 +1232,16 @@ class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         if kwargs.get("inline-block", False):
+            kwargs.pop("inline-block")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
         else:
+            kwargs.pop("inline-block")
             scope_handler.into_new_scope("<inner-scope>")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
             scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return self.members[-1].infer_type(scope_handler) if self.members else (ConventionMovAst, CommonTypes.void())
+        return self.members[-1].infer_type(scope_handler, **kwargs) if self.members else (ConventionMovAst, CommonTypes.void())
 
 
 @dataclass
@@ -1332,20 +1336,18 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     type=None,
                     is_mutable=self.assign_to.is_mutable is not None,
                     memory_info=MemoryStatus(ast_initialized=self.assign_to.identifier))
-
                 scope_handler.current_scope.add_symbol(sym)
 
                 if not self._sup_let_type:
                     ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **kwargs)
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
-
                 else:
                     self.value.do_semantic_analysis(scope_handler, **kwargs)
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
 
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
-                rhs_tuple_type_element_count = self.value.infer_type(scope_handler)[1].parts[-1].generic_arguments.arguments
+                rhs_tuple_type_element_count = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
                 if len(self.assign_to.items) != len(rhs_tuple_type_element_count):
                     exception = SemanticError(f"Invalid tuple assignment:")
                     exception.add_traceback(self.assign_token.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
@@ -1492,7 +1494,7 @@ class LiteralArrayNonEmptyAst(Ast, SemanticAnalysis, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         Seq(self.elements).for_each(lambda i: i.do_semantic_analysis(scope_handler, **kwargs))
-        non_matching_types = Seq(self.elements).map(lambda i: i.infer_type(scope_handler)).unique_items()
+        non_matching_types = Seq(self.elements).map(lambda i: i.infer_type(scope_handler, **kwargs)).unique_items()
 
         if non_matching_types.length > 1:
             exception = SemanticError(f"Array items must have the same type:")
@@ -1711,6 +1713,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalysis):
 class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
     class_type: TypeAst
     arguments: ObjectInitializerArgumentGroupAst
+    _modified_type: Optional[TypeAst] = dataclasses.field(default=None)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -1724,6 +1727,47 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         attributes = Seq(type_sym.type.body.members)
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
+
+        inferred_generic_arguments = infer_generic_argument_values(
+            scope_handler=scope_handler,
+            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+            infer_from=attributes.map(lambda p: p.type_declaration),
+            replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler, **kwargs)[1]),
+            obj_definition=type_sym.type)
+
+        all_generic_arguments = verify_generic_arguments(
+            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+            inferred_generic_arguments=inferred_generic_arguments,
+            generic_arguments=Seq(self.class_type.parts[-1].generic_arguments.arguments),
+            obj_definition=type_sym.type,
+            usage=self)
+
+        # Alter the generic symbol for type-checking the arguments
+        for generic_argument in all_generic_arguments:
+            generic_argument_type_class_prototype = type_scope.get_symbol(generic_argument.type).type
+            type_scope.get_symbol(generic_argument.identifier).type = generic_argument_type_class_prototype
+
+        # Create a new type symbol & scope for the type with its generic arguments filled in
+        # TODO : don't create if it already exists
+        if all_generic_arguments:
+            parent_scope = type_scope._parent_scope
+            modified_type_scope = copy.deepcopy(type_scope)
+            modified_type_scope._scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+
+            modified_type_with_generics = copy.deepcopy(self.class_type)
+            modified_type_with_generics.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+
+            for attribute in modified_type_scope.all_symbols(exclusive=True):
+                if attribute.type in all_generic_arguments.map(lambda a: a.identifier):
+                    attribute.type = all_generic_arguments.find(lambda a: a.identifier == attribute.type).type
+
+            parent_scope._children_scopes.append(modified_type_scope)
+            parent_scope.add_symbol(TypeSymbol(modified_type_with_generics, type_sym.type, modified_type_scope))
+            self.class_type = modified_type_with_generics
+
+        # Update the symbol table to map each generic parameter to its generic argument's type. Then analyse the body,
+        # and then reset the generic parameter's mapped type to None.
+        # TODO
 
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         arguments = Seq(self.arguments.arguments)
@@ -1753,11 +1797,13 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
             ensure_memory_integrity_of_expression(default_value_given[0].value, scope_handler, **kwargs)
 
         # Check that the default value is of the correct type:
-        if default_value_given and (ConventionMovAst, self.class_type) != (default_value_given_type := default_value_given[0].value.infer_type(scope_handler)):
-            exception = SemanticError(f"Invalid type default value type:")
-            exception.add_traceback(type_sym.type.identifier.pos, f"Object initializer declared here with type '{self.class_type}'.")
-            exception.add_traceback_minimal(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0].default()}{default_value_given_type[1]}'.")
-            raise exception
+        if default_value_given:
+            default_value_given_type = default_value_given[0].value.infer_type(scope_handler, **kwargs)
+            if ConventionMovAst == default_value_given_type[0] and self.class_type.symbolic_eq(default_value_given_type[1], scope_handler.current_scope):
+                exception = SemanticError(f"Invalid type default value type:")
+                exception.add_traceback(type_sym.type.identifier.pos, f"Object initializer declared here with type '{self.class_type}'.")
+                exception.add_traceback_minimal(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0].default()}{default_value_given_type[1]}'.")
+                raise exception
 
         # Mark the symbol for the default value as consumed:
         if default_value_given:
@@ -1795,8 +1841,8 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
             ensure_memory_integrity_of_expression(given_argument, scope_handler, **kwargs)
 
             # Type check
-            given_argument_type = given_argument.infer_type(scope_handler)
-            if given_argument_type != (ConventionMovAst, attribute.type_declaration):
+            given_argument_type = given_argument.infer_type(scope_handler, **kwargs)
+            if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope):
                 exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
                 exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
                 exception.add_traceback(given_argument.pos, f"Attribute '{attribute.identifier}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
@@ -1821,9 +1867,9 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         #
         #     # Check that the "sup=" argument is of the correct type:
         #     sup_class_types = Seq(sup_classes).map(lambda s: s.type).value
-        #     if sup_argument and sup_argument[0].value.infer_type(scope_handler) != CommonTypes.tuple(sup_class_types):
-        #         exception = SemanticError(f"Invalid type '{sup_argument[0].value.infer_type(scope_handler)}' given to 'sup=':")
-        #         exception.add_traceback(sup_argument[0].value.pos, f"'sup=' argument given here with type '{sup_argument[0].value.infer_type(scope_handler)}', instead of '{CommonTypes.tuple(sup_class_types)}'.")
+        #     if sup_argument and sup_argument[0].value.infer_type(scope_handler, **kwargs) != CommonTypes.tuple(sup_class_types):
+        #         exception = SemanticError(f"Invalid type '{sup_argument[0].value.infer_type(scope_handler, **kwargs)}' given to 'sup=':")
+        #         exception.add_traceback(sup_argument[0].value.pos, f"'sup=' argument given here with type '{sup_argument[0].value.infer_type(scope_handler, **kwargs)}', instead of '{CommonTypes.tuple(sup_class_types)}'.")
         #         exception.add_traceback(self.pos, f"Object initializer declared here.")
         #         raise exception
 
@@ -1847,7 +1893,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return self.expression.infer_type(scope_handler)
+        return self.expression.infer_type(scope_handler, **kwargs)
 
 
 @dataclass
@@ -2000,8 +2046,8 @@ class PatternGuardAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-        expression_type = self.expression.infer_type(scope_handler)
-        if expression_type != CommonTypes.bool():
+        expression_type = self.expression.infer_type(scope_handler, **kwargs)[1]
+        if not expression_type.symbolic_eq(CommonTypes.bool(), scope_handler.current_scope):
             exception = SemanticError(f"Guard expression must be of type 'Bool':")
             exception.add_traceback(self.expression.pos, f"Expression '{self.expression}' has type '{expression_type}'.")
             raise exception
@@ -2044,13 +2090,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         s += f"{self.fold_token.print(printer)}" if self.fold_token else ""
         return s
 
-    def __get_matching_overload(self, scope_handler: ScopeHandler, function_name: ExpressionAst) -> tuple[FunctionPrototypeAst, Optional[FunctionArgumentNamedAst]]:
+    def __get_matching_overload(self, scope_handler: ScopeHandler, function_name: ExpressionAst, **kwargs) -> tuple[FunctionPrototypeAst, Scope, Optional[FunctionArgumentNamedAst]]:
         match function_name:
             case PostfixExpressionAst():
-                function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler)[1]).associated_scope
+                function_name_lhs_part_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
                 function_name_rhs_part_scope = function_name_lhs_part_scope.get_symbol(TypeSingleAst(pos=-1, parts=[GenericIdentifierAst(pos=-1, value=f"MOCK_{function_name.op.identifier}", generic_arguments=None)])).associated_scope
             case IdentifierAst():
-                function_name_rhs_part_scope = scope_handler.current_scope.get_symbol(function_name.infer_type(scope_handler)[1]).associated_scope
+                function_name_rhs_part_scope = scope_handler.current_scope.get_symbol(function_name.infer_type(scope_handler, **kwargs)[1]).associated_scope
             case _:
                 exception = SemanticError(f"Invalid function call:")
                 exception.add_traceback(function_name.pos, f"Function call '{function_name}' found here. Can only call identifiers.")
@@ -2063,57 +2109,38 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         valid_overloads = []
 
         # Check the argument values are valid (names only) for type inference. The rest of argument checks are after.
-        Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler))
+        Seq(self.arguments.arguments).map(lambda a: a.value.do_semantic_analysis(scope_handler, **kwargs))
 
         # Convert each normal argument into a named argument that maps to the overload's parameter names.
-        for function_overload in function_overloads:
-
-            # Get the generic map for this function overload. Any errors are added in the function & None is returned,
-            # so if the generic map is None then continue to the next overload.
-
-            generic_arguments = Seq(copy.deepcopy(self.generic_arguments.arguments))
-
+        for i, function_overload in function_overloads.enumerate():
             try:
                 inferred_generic_arguments = infer_generic_argument_values(
                     scope_handler=scope_handler,
                     generic_parameters=Seq(function_overload.generic_parameters.parameters),
                     infer_from=Seq(function_overload.parameters.parameters).map(lambda p: p.type_declaration),
-                    replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler)[1]),
+                    replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler, **kwargs)[1]),
                     obj_definition=function_overload)
 
                 all_generic_arguments = verify_generic_arguments(
                     generic_parameters=Seq(function_overload.generic_parameters.parameters),
                     inferred_generic_arguments=inferred_generic_arguments,
                     generic_arguments=Seq(self.generic_arguments.arguments),
-                    obj_definition=function_overload)
+                    obj_definition=function_overload,
+                    usage=self)
 
             except SemanticError as e:
                 function_overload_errors.append(e)
                 continue
 
-# FROM HERE
-            # Make sure that inferrable generics always come AFTER required generics. Check that the N amount of
-            # inferrable generics are the first N generic parameters in the overload.
-            # if wrong_pos_inferred_generic_parameter := inferred_generic_arguments.find(lambda a: a.identifier not in Seq(function_overload.generic_parameters.parameters).skip(inferred_generic_arguments.length).map(lambda p: p.identifier).value):
-            #     exception = SemanticError(f"Inferrable generic parameters must come after required generic parameters:")
-            #     exception.add_traceback(function_overload.generic_parameters.parameters[0].pos, f"Required generic parameter '{function_overload.generic_parameters.parameters[0]}' declared here.")
-            #     exception.add_traceback(wrong_pos_inferred_generic_parameter.pos, f"Inferrable generic parameter '{wrong_pos_inferred_generic_parameter}' declared here.")
-            #     function_overload_errors.append(exception)
-            #     continue
-# TO HERE TODO needs to be in the FunctionPrototypeAst.do_semantic_analysis check (maybe even pre-process)
-
-            # TODO
-
-            # Replace all instances of the generic parameters with the inferred arguments.
-            original_function_overload = function_overload
-            function_overload = copy.deepcopy(function_overload)
+            # Update the symbol table to map each generic parameter to its generic argument's type. Then analyse the body,
+            # and then reset the generic parameter's mapped type to None.
+            function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[0]
             for generic_argument in all_generic_arguments:
-                for parameter in function_overload.parameters.parameters:
-                    parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
-                function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                generic_argument_type_class_prototype = function_overload_scope.get_symbol(generic_argument.type).type
+                function_overload_scope.get_symbol(generic_argument.identifier).type = generic_argument_type_class_prototype
 
             available_parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
-            arguments = Seq(copy.deepcopy(self.arguments.arguments))  # TODO : Seq(...).deepcopy()
+            arguments = Seq(copy.deepcopy(self.arguments.arguments))
 
             # If the function is an instance method (the first parameter is a "self" parameter), then the lhs as the
             # "self" argument, as this is the instance the method is being applied over.
@@ -2163,13 +2190,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             type_error = False
             for argument in arguments:
                 corresponding_parameter = Seq(function_overload.parameters.parameters).find(lambda p: p.identifier == argument.identifier)
-                argument_type = argument.value.infer_type(scope_handler)
+                argument_type = argument.value.infer_type(scope_handler, **kwargs)
 
                 # Special case for "self" => use the param.convention, not the inferred type convention.
                 if argument.identifier.value == "self":
                     argument_type = (type(corresponding_parameter.convention), argument_type[1])
 
-                if argument_type[1] != corresponding_parameter.type_declaration or argument_type[0] != type(corresponding_parameter.convention):
+                if not argument_type[1].symbolic_eq(corresponding_parameter.type_declaration, function_overload_scope) or argument_type[0] != type(corresponding_parameter.convention):
                     exception = SemanticError(f"Invalid argument type given to function call:")
                     exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {Seq(function_overload.parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
                     exception.add_traceback_minimal(argument.pos, f"Argument <{argument}> found here with type '{argument_type[0].default()}{argument_type[1]}', instead of '{corresponding_parameter.convention}{corresponding_parameter.type_declaration}'.")
@@ -2179,7 +2206,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
             # No argument type errors => this is a valid overload.
             if not type_error:
-                valid_overloads.append((function_overload, arguments.find(lambda a: a.identifier.value == "self")))
+                valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))
 
         # If there were no valid overloads, display each overload and why it couldn't be selected. Raise the error here
         # so no valid overload is attempted to be pulled from an empty list.
@@ -2195,7 +2222,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
-        _, self_arg = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))
+        _, _, self_arg = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"), **kwargs)
         Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
 
         # Analyse the arguments (including the "self" argument, to check for conflicting borrows)
@@ -2209,7 +2236,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
         # owned, ie ConventionMovAst.
-        return ConventionMovAst, self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"))[0].return_type
+        function_proto, function_scope, _ = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"), **kwargs)
+        function_return_type = copy.deepcopy(function_proto.return_type)
+        function_return_type = function_scope.get_symbol(function_return_type).type.identifier  # TODO: this is a hack (namespaced types won't work here)
+        return ConventionMovAst, function_return_type
 
 
 @dataclass
@@ -2223,11 +2253,11 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)[1]).associated_scope
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
-            if lhs.infer_type(scope_handler, **kwargs)[1].without_generics() != CommonTypes.tuple([]):
+            if not lhs.infer_type(scope_handler, **kwargs)[1].without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
                 exception = SemanticError(f"Numeric member access requires a tuple type:")
                 exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here.")
                 exception.add_traceback(self.identifier.pos, f"Numeric member access found here.")
@@ -2241,7 +2271,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
         # Check that, for attribute access, the attribute exists on the type being accessed.
         elif isinstance(self.identifier, IdentifierAst) and not lhs_type_scope.has_symbol(self.identifier):
-            lhs_type = lhs.infer_type(scope_handler)
+            lhs_type = lhs.infer_type(scope_handler, **kwargs)
             exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
             exception.add_traceback(lhs.pos, f"Type '{lhs_type[0].default()}{lhs_type[1]}' inferred here.")
             exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
@@ -2249,7 +2279,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler)[1]).associated_scope
+        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
 
         #
         if isinstance(self.identifier, TokenAst) and self.identifier.token.token_type == TokenType.LxDecDigits:
@@ -2338,8 +2368,8 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         if self.expression:
             ensure_memory_integrity_of_expression(self.expression, scope_handler)
 
-        return_type = self.expression.infer_type(scope_handler) if self.expression else (ConventionMovAst, CommonTypes.void())
-        if return_type != (ConventionMovAst, target_return_type):
+        return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
+        if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
             exception = SemanticError(f"Returning variable of incorrect type:")
             exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
             exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{return_type[0].default()}{return_type[1]}'.")
@@ -2378,7 +2408,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
 
     def generate(self, s: ScopeHandler) -> None:
         s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP-functions"))
-        cls_scope = s.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope = s.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((s.current_scope, self))
         Seq(self.body.members).for_each(lambda m: m.generate(s))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
@@ -2415,7 +2445,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
 
     def generate(self, s: ScopeHandler) -> None:
         s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
-        cls_scope = s.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope = s.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((s.current_scope, self))
         Seq(self.body.members).for_each(lambda m: m.generate(s))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
@@ -2565,7 +2595,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        sym = scope_handler.current_scope.get_symbol(self)
+        sym = scope_handler.current_scope.get_symbol(self.without_generics())
 
         # Check that the type exists in the symbol table.
         if not sym:
@@ -2577,6 +2607,14 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             exception = SemanticError(f"Type '{self}' is not defined:")
             exception.add_traceback(self.pos, f"Type '{self}' used here.{closest_match}")
             raise exception
+
+        # elif sym.type:
+        #     verify_generic_arguments(
+        #         generic_parameters=Seq(sym.type.generic_parameters.parameters),
+        #         inferred_generic_arguments=Seq([]),
+        #         generic_arguments=Seq(self.parts[-1].generic_arguments.arguments),
+        #         obj_definition=sym.type,
+        #         usage=self)
 
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
@@ -2593,8 +2631,14 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             parts.append(GenericIdentifierAst(-1, part.value, GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))) if isinstance(part, GenericIdentifierAst) else part)
         return TypeSingleAst(self.pos, parts)
 
-    def __eq__(self, other):
-        return isinstance(other, TypeSingleAst) and self.parts == other.parts
+    def __eq__(self, that):
+        return isinstance(that, TypeSingleAst) and self.parts == that.parts
+
+    def symbolic_eq(self, that, scope: Scope) -> bool:
+        # Allows for generics and aliases to match base types etc.
+        this_type = scope.get_symbol(self).type
+        that_type = scope.get_symbol(that).type
+        return this_type == that_type
 
     def __hash__(self):
         return int.from_bytes(hashlib.md5("".join([str(p) for p in self.parts]).encode()).digest())
@@ -2621,6 +2665,10 @@ class TypeTupleAst(Ast):
     def __eq__(self, other):
         return isinstance(other, TypeTupleAst) and self.items == other.items
 
+    def symbolic_eq(self, that: TypeTupleAst, scope: Scope) -> bool:
+        if len(self.items) != len(that.items): return False
+        return isinstance(that, TypeTupleAst) and Seq(self.items).zip(Seq(that.items)).all(lambda t: t[0].symbolic_eq(t[1], scope))
+
 
 @dataclass
 class TypeUnionAst(Ast):
@@ -2636,6 +2684,10 @@ class TypeUnionAst(Ast):
 
     def __eq__(self, other):
         return isinstance(other, TypeUnionAst) and self.items == other.items
+
+    def symbolic_eq(self, that: TypeUnionAst, scope: Scope) -> bool:
+        if len(self.items) != len(that.items): return False
+        return isinstance(that, TypeUnionAst) and Seq(self.items).zip(Seq(that.items)).all(lambda t: t[0].symbolic_eq(t[1], scope))
 
 
 TypeAst = (
@@ -2780,7 +2832,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Check that the type of object used in the "with" expression superimposes Ctx
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
-        object_type = self.expression.infer_type(scope_handler)
+        object_type = self.expression.infer_type(scope_handler, **kwargs)
         object_type_sup_types = scope_handler.current_scope.get_symbol(object_type).associated_scope.sup_scopes
         if CommonTypes.ctx() not in object_type_sup_types:
             exception = SemanticError(f"Type '{object_type}' does not superimpose Ctx:")
@@ -2796,7 +2848,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         if self.body.members:
-            return self.body.members[-1].infer_type(scope_handler)
+            return self.body.members[-1].infer_type(scope_handler, **kwargs)
         return ConventionMovAst, CommonTypes.void(pos=self.pos)
 
 
@@ -2887,7 +2939,8 @@ def verify_generic_arguments(
         generic_parameters: Seq[GenericParameterAst],
         inferred_generic_arguments: Seq[GenericArgumentAst],
         generic_arguments: Seq[GenericArgumentAst],
-        obj_definition: IdentifierAst) -> Seq[GenericArgumentAst]:
+        obj_definition: IdentifierAst,
+        usage: Ast) -> Seq[GenericArgumentAst]:
 
     available_generic_parameter_names = generic_parameters.map(lambda p: p.identifier)
     required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
@@ -2932,7 +2985,7 @@ def verify_generic_arguments(
     if unfilled_required_generic_parameters := Seq(required_generic_parameters).map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
         exception = SemanticError(f"Missing generic arguments in function call:")
         exception.add_traceback(obj_definition.pos, f"Function overload declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
-        exception.add_traceback_minimal(generic_arguments[-1].pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
+        exception.add_traceback_minimal(usage.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
         raise exception
 
     return inferred_generic_arguments + generic_arguments
@@ -2953,7 +3006,7 @@ def infer_generic_argument_values(
 
             # Check if the generic argument has already been inferred.
             duplicate_inferred_parameter = inferred_generic_parameters.find(lambda p: p.identifier == generic_parameter.identifier)
-            if duplicate_inferred_parameter and duplicate_inferred_parameter.type != argument_t:
+            if duplicate_inferred_parameter and not duplicate_inferred_parameter.type.symbolic_eq(argument_t, scope_handler.current_scope):
                 exception = SemanticError(f"Generic argument has already been inferred:")
                 exception.add_traceback(obj_definition.pos, f"")
                 exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.")
