@@ -28,11 +28,14 @@ class Analyser:
         self._ast.generate(scope_handler)
         scope_handler.reset()
 
-        with open("../bin/symbol_table.json", "w") as f:
+        with open("../bin/symbol_table_pre.json", "w") as f:
             f.write(json.dumps(scope_handler.current_scope, indent=4))
 
         try:
             self._ast.do_semantic_analysis(scope_handler)
+            with open("../bin/symbol_table.json", "w") as f:
+                f.write(json.dumps(scope_handler.current_scope, indent=4))
+
         except SemanticError as e:
             final_error = str(e)
             for error in e.additional_info:
