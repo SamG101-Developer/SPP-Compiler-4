@@ -34,16 +34,11 @@ class Scope:
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
         assert isinstance(name, IdentifierAst) or type(name) in TypeAst.__args__, f"Expected IdentifierAst or TypeAst, got {type(name)}"
 
-        if not isinstance(name, IdentifierAst):
-            name = name.without_generics()
-
         sym = self._symbol_table.get(name)
         if not sym and self._parent_scope:
             sym = self._parent_scope.get_symbol(name)
         if sym:
             return sym
-
-        # TODO : search in sup scopes too
 
         for sup_scope, _ in self._sup_scopes:
             sym = sup_scope.get_symbol(name)
