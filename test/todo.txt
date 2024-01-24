@@ -1,8 +1,10 @@
 Generics:
--- Allow the checks for function-call and object-initialization (move code to GenericArgumentGroup AST?)
 -- Ban generic arguments from being `Void` for attributes
 -- All things generic constraints (for `sup` just remove sup-scopes?).
--- Analysing function body requires a generic map for type checking against generic params/ret type
+-- Ban member access on generic types (for now, until constraints are implemented).
+-- New instances currently generated for genericized classes -> need to re-create the sup-scopes too.
+    -- Dont create new genericized instance if it's already been generated too
+-- Need to create new instances of the functions for generics?
 
 Binary expressions:
 -- Rearrange from parsed AST order to correct AST order [IMPL + BUGGED].
