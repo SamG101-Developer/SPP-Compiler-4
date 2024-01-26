@@ -1236,7 +1236,10 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         scope_handler.into_new_scope("<if-expression>")
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
+
+        kwargs["if-expression"] = self
         Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, **kwargs))
+        kwargs.pop("if-expression")
 
         if kwargs.get("assignment", False):
             if Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler, **kwargs)).unique_items().length > 1:
@@ -1405,9 +1408,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         op=PostfixExpressionOperatorMemberAccessAst(
                             pos=self.pos,
                             dot_token=TokenAst.dummy(TokenType.TkDot),
-                            identifier=LiteralNumberBase10Ast(-1, None, TokenAst.dummy(TokenType.LxDecDigits, info=str(i)), None),
-                        )
-                    )
+                            identifier=LiteralNumberBase10Ast(-1, None, TokenAst.dummy(TokenType.LxDecDigits, info=str(i)), None)))
+
                     new_let_statement = LetStatementInitializedAst(
                         pos=self.pos,
                         let_keyword=self.let_keyword,
@@ -1416,14 +1418,42 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         value=new_rhs,
                         _sup_let_type=self._sup_let_type)
 
-                    # print(new_let_statement)
-
                     new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
             case LocalVariableDestructureAst():
                 # Check that all the arguments given are attributes on the class type
+                self.assign_to.class_type.do_semantic_analysis(scope_handler, **kwargs)
+
+                class_type = self.assign_to.class_type
+                class_type_sym = scope_handler.current_scope.get_symbol(class_type)
+                attributes = Seq(class_type_sym.type.body.members).map(lambda m: m.identifier)
+
                 for argument in self.assign_to.items:
-                    ...
+                    if not attributes.contains(argument.identifier):
+                        exception = SemanticError(f"Invalid destructure assignment:")
+                        exception.add_traceback(class_type.pos, f"Class '{class_type}' declared here with attributes: {attributes}")
+                        exception.add_traceback(argument.pos, f"Attribute '{argument.identifier}' not found on class '{class_type}'")
+                        raise exception
+
+                    current_let_statement = argument
+
+                    new_rhs = PostfixExpressionAst(
+                        pos=self.pos,
+                        lhs=self.value,
+                        op=PostfixExpressionOperatorMemberAccessAst(
+                            pos=self.pos,
+                            dot_token=TokenAst.dummy(TokenType.TkDot),
+                            identifier=argument.identifier))
+
+                    new_let_statement = LetStatementInitializedAst(
+                        pos=self.pos,
+                        let_keyword=self.let_keyword,
+                        assign_to=current_let_statement,
+                        assign_token=self.assign_token,
+                        value=new_rhs,
+                        _sup_let_type=self._sup_let_type)
+
+                    new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -2319,7 +2349,6 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         lhs = kwargs.get("postfix-lhs")
-        print(f"{lhs}{self}")
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
