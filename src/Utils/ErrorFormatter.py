@@ -35,7 +35,7 @@ class ErrorFormatter:
         current_line = ""
         current_line_length = 0
         for word in message.split(" "):
-            if current_line_length + len(word) > 80:
+            if current_line_length + len(word) > 120:
                 formatted_message += f"{current_line}\n"
                 current_line = " " * (len(carets_line_as_string) + len(" <- "))
                 current_line_length = 0
