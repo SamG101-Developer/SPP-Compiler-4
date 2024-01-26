@@ -1234,25 +1234,38 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         return f"{self.if_keyword.print(printer)}{self.condition.print(printer)} {self.comp_operator.print(printer)} {Seq(self.branches).print(printer, "\n")}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Move into a new scope for the IfExpressionAst. Whilst no symbols will be stored in this scope specifically,
+        # this scope holds each scope created for the pattern blocks. This keeps it cleaner rather than having all the
+        # pattern blocks in the parent scope to this if expression.
         scope_handler.into_new_scope("<if-expression>")
+
+        # Analyse the condition and then each pattern branch
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
-
-        kwargs["if-expression"] = self
         Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, **kwargs))
-        kwargs.pop("if-expression")
 
+        # Check that the branches don't have comparison operators if the if-expression does. This is because the if
+        # expression's partial fragment cannot conflict with the branches partial fragment.
+        for branch in self.branches:
+            if self.comp_operator and branch.comp_operator:
+                exception = SemanticError(f"Comparison operators [{self.comp_operator}, {branch.comp_operator}] found in if-expression and pattern block:")
+                exception.add_traceback(self.comp_operator.pos, f"1st Comparison operator '{self.comp_operator}' found here.")
+                exception.add_traceback(branch.comp_operator.pos, f"2nd Comparison operator '{branch.comp_operator}' found here.")
+                raise exception
+
+        # If this "if" expression is being used for assignment, then check that all branches have the same returning
+        # type (final statement of the pattern block).
         if kwargs.get("assignment", False):
             if Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler, **kwargs)).unique_items().length > 1:
-                conflicting_types = Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(
-                    scope_handler)).non_unique_items_flat()
-                exception = SemanticError(f"Duplicate types '{conflicting_types[0]}' found in assign-if-expression:")
-                exception.add_traceback(conflicting_types[0].pos, f"Type '{conflicting_types[0]}' inferred here.")  # TODO : wrong.pos
-                exception.add_traceback(conflicting_types[1].pos, f"Type '{conflicting_types[1]}' inferred here.")  # TODO : wrong.pos
+                conflicting_types = Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler)).unique_items()
+                exception = SemanticError(f"Conflicting types found in if-expression being used for assignment:")
+                exception.add_traceback(conflicting_types[0][1].pos, f"Type '{conflicting_types[0][0].default()}{conflicting_types[0][1]}' inferred here.")  # TODO : wrong.pos
+                exception.add_traceback(conflicting_types[1][1].pos, f"Type '{conflicting_types[1][0].default()}{conflicting_types[1][1]}' inferred here.")  # TODO : wrong.pos
                 raise exception
 
             if not self.branches[-1].is_else_branch():
                 exception = SemanticError(f"Missing else branch in assign-if-expression:")
                 exception.add_traceback(self.pos, f"If-expression declared here.")
+                exception.add_traceback(self.branches[-1].pos, f"Last pattern block found here.")
                 raise exception
 
         scope_handler.exit_cur_scope()
@@ -1278,11 +1291,13 @@ class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Case where a new scope is not wanted, ie keep inline with the current scope. This is NOT the default.
         if kwargs.get("inline-block", False):
             kwargs.pop("inline-block")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
+
+        # Case where a new scope is wanted, ie create a new scope and move into it. This IS the default.
         else:
-            kwargs.pop("inline-block")
             scope_handler.into_new_scope("<inner-scope>")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
             scope_handler.exit_cur_scope()
@@ -1386,10 +1401,10 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                 scope_handler.current_scope.add_symbol(sym)
 
                 if not self._sup_let_type:
-                    ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **kwargs)
+                    ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **(kwargs | {"assignment": True}))
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
                 else:
-                    self.value.do_semantic_analysis(scope_handler, **kwargs)
+                    self.value.do_semantic_analysis(scope_handler, **(kwargs | {"assignment": True}))
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
 
             case LocalVariableTupleAst():
@@ -2016,7 +2031,7 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class PatternVariantDestructureAst(Ast):
+class PatternVariantDestructureAst(Ast, SemanticAnalysis):
     class_type: TypeAst
     bracket_l_token: TokenAst
     items: List[LocalVariableSingleAst]
@@ -2029,6 +2044,9 @@ class PatternVariantDestructureAst(Ast):
         s += f"{Seq(self.items).print(printer, ", ")}" if self.items else ""
         s += f"{self.bracket_r_token.print(printer)}"
         return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
 
 
 @dataclass
@@ -2059,12 +2077,15 @@ class PatternVariantVariableAst(Ast, SemanticAnalysis):
 
 
 @dataclass
-class PatternVariantLiteralAst(Ast):
+class PatternVariantLiteralAst(Ast, SemanticAnalysis):
     literal: LiteralAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.literal.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.literal.do_semantic_analysis(scope_handler, **kwargs)
 
 
 @dataclass
@@ -2077,12 +2098,14 @@ class PatternVariantBoolMemberAst(Ast):
 
 
 @dataclass
-class PatternVariantElseAst(Ast):
+class PatternVariantElseAst(Ast, SemanticAnalysis):
     else_token: TokenAst
-
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.else_token.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
 
 
 PatternVariantAst = (
@@ -2115,14 +2138,7 @@ class PatternBlockAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         scope_handler.into_new_scope("<pattern-block>")
-        if_expression = kwargs.get("if-expression")
 
-        # Check that if the "if" expression has a comparison operator, that the branch doesn't.
-        if if_expression.comp_operator and self.comp_operator:
-            exception = SemanticError(f"Comparison operator '{self.comp_operator}' found in if-expression and pattern block:")
-            exception.add_traceback(self.comp_operator.pos, f"1st Comparison operator '{self.comp_operator}' found here.")
-            exception.add_traceback(if_expression.comp_operator.pos, f"2nd Comparison operator '{if_expression.comp_operator}' found here.")
-            raise exception
 
         Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
         self.guard.do_semantic_analysis(scope_handler, **kwargs) if self.guard else None
