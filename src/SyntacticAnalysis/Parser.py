@@ -572,15 +572,10 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
-        p3 = self.parse_if_expression_partial_condition().parse_optional()
+        p3 = self.parse_pattern_comp_op().parse_optional()
+        p4 = self.parse_token(TokenType.KwThen).parse_optional()
         p4 = self.parse_pattern_statement().parse_zero_or_more(TokenType.TkNewLine)
         return IfExpressionAst(c1, p1, p2, p3, p4)
-
-    @parser_rule
-    def parse_if_expression_partial_condition(self) -> TokenAst:
-        p1 = self.parse_pattern_comp_op().parse_once()
-        p2 = self.parse_token(TokenType.TkNewLine).parse_once()
-        return p1
 
     @parser_rule
     @tested_parser_rule
