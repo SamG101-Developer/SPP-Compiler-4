@@ -572,10 +572,15 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
-        p3 = self.parse_pattern_comp_op().parse_optional()
-        # p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
-        p4 = self.parse_inner_scope(self.parse_pattern_statement).parse_once()
+        p3 = self.parse_if_expression_partial_condition().parse_optional()
+        p4 = self.parse_pattern_statement().parse_zero_or_more(TokenType.TkNewLine)
         return IfExpressionAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_if_expression_partial_condition(self) -> TokenAst:
+        p1 = self.parse_pattern_comp_op().parse_once()
+        p2 = self.parse_token(TokenType.TkNewLine).parse_once()
+        return p1
 
     @parser_rule
     @tested_parser_rule
@@ -847,37 +852,43 @@ class Parser:
         p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
         return p7
 
-    # TODO : change these pattern variants:
-    #   1. Copy parser code out of function call in these parsers
-    #   2. Change the "local-variable" part to a "pattern" part
-
     @parser_rule
     @tested_parser_rule
     def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
         c1 = self.current_pos()
-        p1 = self.parse_local_variable_tuple().parse_once()
-        return PatternVariantTupleAst(c1, p1)
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return PatternVariantTupleAst(c1, p1, p2, p3)
 
     @parser_rule
     @failed_parser_rule
     def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
         c1 = self.current_pos()
-        p1 = self.parse_local_variable_destructure().parse_once()
-        return PatternVariantDestructureAst(c1, p1)
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_token(TokenType.TkParenL).parse_once()
+        p3 = self.parse_local_variable().parse_one_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkParenR).parse_once()
+        return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     @tested_parser_rule
     def parse_pattern_variant_variable(self) -> PatternVariantVariableAst:
         c1 = self.current_pos()
-        p1 = self.parse_local_variable_single().parse_once()
-        return PatternVariantVariableAst(c1, p1)
+        p1 = self.parse_token(TokenType.KwMut).parse_optional()
+        p2 = self.parse_token(TokenType.TkVariadic).parse_optional()
+        p3 = self.parse_identifier().parse_once()
+        return PatternVariantVariableAst(c1, p1, p2, p3)
 
     @parser_rule
     @tested_parser_rule
     def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
         c1 = self.current_pos()
-        p1 = self.parse_literal().parse_once()
-        return PatternVariantLiteralAst(c1, p1)
+        p1 = self.parse_literal_number().for_alt()
+        p2 = self.parse_literal_string().for_alt()
+        p3 = self.parse_literal_boolean().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return PatternVariantLiteralAst(c1, p4)
 
     @parser_rule
     @failed_parser_rule
@@ -1496,15 +1507,17 @@ class Parser:
             self._index += 1
 
         if self.current_tok().token_type != token_type:
+            token_print = lambda t: f"<{t.name[2:]}>" if t.name.startswith("Lx") else t.value
+
             if any([error.pos == self.current_pos() for error in self._errors]):
                 existing_error = next(error for error in self._errors if error.pos == self.current_pos())
-                existing_error.expected_tokens.add(token_type.value)
+                existing_error.expected_tokens.add(token_print(token_type))
                 raise existing_error
 
             else:
-                new_error = ParserError(f"Expected $, got '{self.current_tok().token_metadata}'")
+                new_error = ParserError(f"Expected $, got '{token_print(self.current_tok().token_type)}'")
                 new_error.pos = self.current_pos()
-                new_error.expected_tokens.add(token_type.value)
+                new_error.expected_tokens.add(token_print(token_type))
                 self._errors.append(new_error)
                 raise new_error
 

@@ -1420,7 +1420,10 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
                     new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
-            case LocalVariableDestructureAst(): ...
+            case LocalVariableDestructureAst():
+                # Check that all the arguments given are attributes on the class type
+                for argument in self.assign_to.items:
+                    ...
 
 
 @dataclass
@@ -1942,11 +1945,17 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
 @dataclass
 class PatternVariantTupleAst(Ast, SemanticAnalysis):
-    variable: LocalVariableTupleAst
+    paren_l_token: TokenAst
+    items: List[PatternVariantAst]
+    paren_r_token: TokenAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.variable.print(printer)}"
+        s = ""
+        s += f"{self.paren_l_token.print(printer)}"
+        s += f"{Seq(self.items).print(printer, ", ")}" if self.items else ""
+        s += f"{self.paren_r_token.print(printer)}"
+        return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
@@ -1978,20 +1987,33 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis):
 
 @dataclass
 class PatternVariantDestructureAst(Ast):
-    variable: LocalVariableDestructureAst
+    class_type: TypeAst
+    bracket_l_token: TokenAst
+    items: List[LocalVariableSingleAst]
+    bracket_r_token: TokenAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.variable.print(printer)}"
+        s = ""
+        s += f"{self.class_type.print(printer)}{self.bracket_l_token.print(printer)}"
+        s += f"{Seq(self.items).print(printer, ", ")}" if self.items else ""
+        s += f"{self.bracket_r_token.print(printer)}"
+        return s
 
 
 @dataclass
 class PatternVariantVariableAst(Ast, SemanticAnalysis):
-    variable: LocalVariableSingleAst
+    is_mutable: Optional[TokenAst]
+    unpack_token: Optional[TokenAst]
+    identifier: IdentifierAst
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.variable.print(printer)}"
+        s = ""
+        s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
+        s += f"{self.unpack_token.print(printer)}" if self.unpack_token else ""
+        s += f"{self.identifier.print(printer)}"
+        return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
@@ -2297,7 +2319,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
+        print(f"{lhs}{self}")
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, LiteralNumberBase10Ast):
@@ -2314,25 +2336,29 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
                 raise exception
 
         # Check that, for attribute access, the attribute exists on the type being accessed.
-        elif isinstance(self.identifier, IdentifierAst) and not lhs_type_scope.has_symbol(self.identifier):
-            lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
-            exception.add_traceback(lhs.pos, f"Type '{lhs_type[0].default()}{lhs_type[1]}' inferred here.")
-            exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
-            raise exception
+        elif isinstance(self.identifier, IdentifierAst):
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
+            if not lhs_type_scope.has_symbol(self.identifier):
+                lhs_type = lhs.infer_type(scope_handler, **kwargs)
+                exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
+                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0].default()}{lhs_type[1]}' inferred here.")
+                exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                raise exception
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         lhs = kwargs.get("postfix-lhs")
-        lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
 
-        #
-        if isinstance(self.identifier, TokenAst) and self.identifier.token.token_type == TokenType.LxDecDigits:
-            index = int(self.identifier.token.token_metadata)
-            return ConventionMovAst, lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments[index].type
-
-        #
-        elif isinstance(self.identifier, IdentifierAst):
+        # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
+        # correct type
+        if isinstance(self.identifier, IdentifierAst):
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
             return ConventionMovAst, lhs_type_scope.get_symbol(self.identifier).type
+
+        # The numeric access needs to get the generic arguments of the left side (tuple), then get the type of the
+        # correct element.
+        elif isinstance(self.identifier, LiteralNumberBase10Ast):
+            lhs_type = lhs.infer_type(scope_handler, **kwargs)
+            return ConventionMovAst, lhs_type[1].parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)].type
 
     def __eq__(self, other):
         return isinstance(other, PostfixExpressionOperatorMemberAccessAst) and self.identifier == other.identifier
