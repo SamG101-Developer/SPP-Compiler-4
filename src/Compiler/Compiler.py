@@ -16,8 +16,4 @@ class Compiler:
         tokens = Lexer(self._code).lex()
         ast = Parser(tokens, self._file_path).parse()
         Analyser(tokens, ast).analyse()
-
-        ast_printer = Ast.AstPrinter()
-        # print(ast.print(ast_printer))
-
         return ast
