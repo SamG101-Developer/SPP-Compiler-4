@@ -1,0 +1,48 @@
+mod main
+
+# Class declarations (will be in STL when designed)
+cls Void { }
+cls Str { }
+cls BigNum {
+    x: BigNum
+}
+cls Tup[..Ts] { }
+cls Opt[T] { }
+cls Vec[T] { }
+cls Bool { }
+
+cls FunRef[Ret, In] { }
+cls FunMut[Ret, In] { }
+cls FunMov[Ret, In] { }
+
+cls Fut[T] { }
+
+sup [T] Fut[T] {
+    fun await(self) -> T { }
+}
+
+cls Eq {}
+
+sup Eq on Str {
+    fun eq(&self, that: Str) -> Bool { }
+}
+
+cls A {
+    a: Str
+    b: B
+}
+
+cls B {
+    x: Str
+    y: Str
+}
+
+
+fun main(variable: A) -> Void {
+    let mut x = case "hello world" then
+        == "hello" { 1 }
+        == "hello world" { 2 }
+    else { 3 }
+
+    x = "1"
+}

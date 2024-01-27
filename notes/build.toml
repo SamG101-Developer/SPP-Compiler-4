@@ -1,0 +1,4 @@
+[project]
+name="spp-compiler"
+version="0.1.0"
+authors = ["Sam Gardner"]

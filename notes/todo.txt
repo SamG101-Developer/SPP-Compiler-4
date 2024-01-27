@@ -1,8 +1,9 @@
 Generics:
 -- Ban generic arguments from being `Void` for attributes
 -- All things generic constraints (for `sup` just remove sup-scopes?).
--- Ban member access on generic types (for now, until constraints are implemented).
--- New instances currently generated for genericized classes -> need to re-create the sup-scopes too.
+-- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
+-- New instances currently generated for genericized classes -> need to re-create the sup-scopes too for generic
+   substitution, or work out a way to forward generics into them somehow, like making them inferrable via the scopes?.
     -- Dont create new genericized instance if it's already been generated too
 -- Need to create new instances of the functions for generics?
 
@@ -14,22 +15,25 @@ Coroutines:
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
 
 Conditional branching:
--- Remove the initial `{ }` around all the patterns.
 -- Begin testing and identify all issues (there will be a lot)
+-- Add binary member access too.
 
 Namespaced types:
+-- Compile all spp files in the `src` folder.
 -- Searching scopes/symbol-tables for namespaced types.
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
 Keyword `is`:
--- Everything
+-- Check that the LHS is a variant type: `Var[...]`
+-- Check that the RHS is a type in the LHS's generic arguments.
 
-Memory status
--- Of yielded objects.
+Memory checks
+-- The `borrow_ref` and `borrow_mut` need to be checked if moving an argument into a function.
 
 Sup classes
 -- Ensure overriden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
+-- In the end, only one `Fun...` with multiple specializations per overload should be generated for each unique method name.
 
 Object initialization
 -- Default struct values
@@ -37,7 +41,8 @@ Object initialization
 -- What happens with giving > 1 value per attribute?
 
 Other
--- Numeric postfix classes aren't define but dont throw errors
+-- Numeric postfix classes aren't defined but dont throw errors
+-- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now.
 
 Random failures:
 let mut x = a.function1("hello")

@@ -5,7 +5,7 @@ from src.Compiler.Compiler import Compiler
 
 def main():
     colorama.init()
-    file_path = "../test/main.spp"
+    file_path = "../notes/src/main.spp"
     with open(file_path, "r") as file:
         code = file.read()
     compiler = Compiler(code, file_path)
