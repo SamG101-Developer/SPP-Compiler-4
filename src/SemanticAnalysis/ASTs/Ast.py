@@ -140,7 +140,7 @@ class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
                         lhs_symbol.memory_info.ast_consumed = None
 
                     case PostfixExpressionAst():
-                        lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda arg: arg.value != self.lhs[i]).value
+                        lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda arg: arg != self.lhs[i]).value
 
             # Perform a type check between the LHS and RHS, to ensure that the types are the same. There is no implicit
             # casting due to the strong type system, all that's needed is a symbol eq check between the 2 types.
