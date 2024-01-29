@@ -2564,9 +2564,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
 
         # The numeric access needs to get the generic arguments of the left side (tuple), then get the type of the
         # correct element.
-        elif isinstance(self.identifier, LiteralNumberBase10Ast):
+        elif isinstance(self.identifier, TokenAst):
             lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            return ConventionMovAst, lhs_type[1].parts[-1].generic_arguments.arguments[int(self.identifier.number.token.token_metadata)].type
+            return ConventionMovAst, lhs_type[1].parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)]
 
     def __eq__(self, other):
         return isinstance(other, PostfixExpressionOperatorMemberAccessAst) and self.identifier == other.identifier
