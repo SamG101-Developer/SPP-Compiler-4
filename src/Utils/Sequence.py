@@ -21,6 +21,9 @@ class Seq[T]:
     def filter(self, func: Callable[[T], bool]) -> Seq[T]:
         return Seq([v for v in self._value if func(v)])
 
+    def filter_to_type(self, *types: type) -> Seq[T]:
+        return Seq([v for v in self._value if type(v) in types])
+
     def join(self, separator: str = "") -> str:
         return separator.join(self._value)
 
