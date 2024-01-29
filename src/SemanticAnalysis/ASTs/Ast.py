@@ -630,10 +630,10 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
                 case ConventionRefAst():
                     # Can only take a borrow from a (postfix) identifier. TODO : remove this soon
-                    if not sym:
-                        exception = SemanticError(f"Cannot take a borrow from a non-identifier:")
-                        exception.add_traceback(argument.convention.pos, f"Borrow '{argument.convention}' taken here.")
-                        raise exception
+                    # if not sym:
+                    #     exception = SemanticError(f"Cannot take a borrow from a non-identifier:")
+                    #     exception.add_traceback(argument.convention.pos, f"Borrow '{argument.convention}' taken here.")
+                    #     raise exception
 
                     # For an immutable borrow to take place, ensure that no other overlapping part of the variable is
                     # already borrowed mutably.
