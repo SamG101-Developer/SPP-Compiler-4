@@ -1473,11 +1473,11 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
-                rhs_tuple_type_element_count = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
-                if len(self.assign_to.items) != len(rhs_tuple_type_element_count):
+                rhs_tuple_type_elements = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+                if len(self.assign_to.items) != len(rhs_tuple_type_elements):
                     exception = SemanticError(f"Invalid tuple assignment:")
-                    exception.add_traceback(self.assign_token.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
-                    exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_element_count)} elements.")
+                    exception.add_traceback(self.assign_to.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
+                    exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_elements)} elements.")
                     raise exception
 
                 for i, current_let_statement in enumerate(self.assign_to.items):
@@ -1487,7 +1487,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         op=PostfixExpressionOperatorMemberAccessAst(
                             pos=self.pos,
                             dot_token=TokenAst.dummy(TokenType.TkDot),
-                            identifier=LiteralNumberBase10Ast(-1, None, TokenAst.dummy(TokenType.LxDecDigits, info=str(i)), None)))
+                            identifier=TokenAst.dummy(TokenType.LxDecDigits, info=str(i))))
 
                     new_let_statement = LetStatementInitializedAst(
                         pos=self.pos,
@@ -1515,7 +1515,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         raise exception
 
                     current_let_statement = argument
-
                     new_rhs = PostfixExpressionAst(
                         pos=self.pos,
                         lhs=self.value,
