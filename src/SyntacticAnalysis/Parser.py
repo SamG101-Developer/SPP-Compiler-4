@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Callable, Tuple
-from warnings import warn
+from typing import Callable, ParamSpec
 
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.SyntacticAnalysis.ParserRuleHandler import ParserRuleHandler
@@ -13,9 +12,9 @@ from src.Utils.ErrorFormatter import ErrorFormatter
 
 
 # Decorator that wraps the function in a ParserRuleHandler
-def parser_rule(func):
+def parser_rule(func) -> Callable[..., ParserRuleHandler]:
     @functools.wraps(func)
-    def wrapper(self=None, *args):
+    def wrapper(self, *args) -> ParserRuleHandler:
         return ParserRuleHandler(self, functools.partial(func, self, *args))
     return wrapper
 
@@ -102,13 +101,14 @@ class Parser:
         """
         [ModulePrototype] => [Annotation]* [Tok("mod")] [ModuleIdentifier] [ModuleMember]*
 
-        - [Annotation]*      => The list of token stream mutations to make to the module before it is parsed.
-        - [Tok("mod")]       => The 'mod' keyword.
-        - [ModuleIdentifier] => The identifier of the module.
-        - [ModuleMember]*    => The list of members that form the implementation of the module.
+        > [Annotation]*      => The list of token stream mutations to make to the module before it is parsed.
+        > [Tok("mod")]       => The 'mod' keyword.
+        > [ModuleIdentifier] => The identifier of the module.
+        > [ModuleMember]*    => The list of members that form the implementation of the module.
 
         The ModulePrototype contains the members that form a single module. It is a "top-level" AST, because the
         ProgramAst stores a ModulePrototypeAst instance directly.
+        @return: A ModulePrototypeAst node.
         """
 
         c1 = self.current_pos()
@@ -574,8 +574,8 @@ class Parser:
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_pattern_comp_op().parse_optional()
         p4 = self.parse_token(TokenType.KwThen).parse_optional()
-        p4 = self.parse_pattern_statement().parse_zero_or_more(TokenType.TkNewLine)
-        return IfExpressionAst(c1, p1, p2, p3, p4)
+        p5 = self.parse_pattern_statement().parse_zero_or_more(TokenType.TkNewLine)
+        return IfExpressionAst(c1, p1, p2, p3, p4, p5)
 
     @parser_rule
     @tested_parser_rule
@@ -848,11 +848,45 @@ class Parser:
         return p7
 
     @parser_rule
+    def parse_pattern_variant_nested_for_destructure(self) -> PatternVariantNestedAst:
+        p1 = self.parse_pattern_variant_variable_assignment().for_alt()
+        p2 = self.parse_pattern_variant_variable().for_alt()
+        p3 = self.parse_pattern_variant_skip_arguments().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
+        return PatternVariantSkipArgumentAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_nested_for_tuple(self) -> PatternVariantNestedAst:
+        p1 = self.parse_pattern_variant_variable_assignment().for_alt()
+        p2 = self.parse_pattern_variant_tuple().for_alt()
+        p3 = self.parse_pattern_variant_destructure().for_alt()
+        p4 = self.parse_pattern_variant_variable().for_alt()
+        p5 = self.parse_pattern_variant_literal().for_alt()
+        p6 = self.parse_pattern_variant_skip_arguments().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
+
+    @parser_rule
+    def parse_pattern_variant_nested_non_assignment(self) -> PatternVariantNestedAst:
+        p1 = self.parse_pattern_variant_tuple().for_alt()
+        p2 = self.parse_pattern_variant_destructure().for_alt()
+        p3 = self.parse_pattern_variant_variable().for_alt()
+        p4 = self.parse_pattern_variant_literal().for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
+        return p5
+
+    @parser_rule
     @tested_parser_rule
     def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkComma)
+        p2 = self.parse_pattern_variant_nested_for_tuple().parse_one_or_more(TokenType.TkComma)
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return PatternVariantTupleAst(c1, p1, p2, p3)
 
@@ -862,7 +896,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
         p2 = self.parse_token(TokenType.TkParenL).parse_once()
-        p3 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_pattern_variant_nested_for_destructure().parse_one_or_more(TokenType.TkComma)
         p4 = self.parse_token(TokenType.TkParenR).parse_once()
         return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
 
@@ -884,6 +918,15 @@ class Parser:
         p3 = self.parse_literal_boolean().for_alt()
         p4 = (p1 | p2 | p3).parse_once()
         return PatternVariantLiteralAst(c1, p4)
+
+    @parser_rule
+    def parse_pattern_variant_variable_assignment(self) -> PatternVariantVariableAssignmentAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwMut).parse_optional()
+        p2 = self.parse_identifier().parse_once()
+        p3 = self.parse_token(TokenType.TkAssign).parse_once()
+        p4 = self.parse_pattern_variant_nested_non_assignment().parse_once()
+        return PatternVariantVariableAssignmentAst(c1, p1, p2, p3, p4)
 
     # @parser_rule
     # @failed_parser_rule
@@ -1186,12 +1229,12 @@ class Parser:
 
     @parser_rule
     @tested_parser_rule
-    def parse_type_tuple(self) -> TypeTupleAst:
+    def parse_type_tuple(self) -> TypeSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
         p2 = self.parse_type().parse_zero_or_more(TokenType.TkComma)
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
-        return TypeTupleAst(c1, p1, p2, p3)
+        return TypeTupleAst(c1, p1, p2, p3).as_single_type()
 
     @parser_rule
     @tested_parser_rule
@@ -1203,10 +1246,10 @@ class Parser:
 
     @parser_rule
     @tested_parser_rule
-    def parse_type_union(self) -> TypeUnionAst:
+    def parse_type_union(self) -> TypeSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkBitOr)
-        return TypeUnionAst(c1, p1) if len(p1) > 1 else p1[0]
+        return TypeUnionAst(c1, p1).as_single_type() if len(p1) > 1 else p1[0]
 
     @parser_rule
     @tested_parser_rule
