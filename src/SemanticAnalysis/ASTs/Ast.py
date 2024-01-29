@@ -556,11 +556,20 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
             # Non-overlapping partial moves are ok, for example, if "a.b" is moved, "a.c" is fine to use, but "a" isn't.
             if sym and sym.memory_info.ast_partial_moves:
                 for existing_partial_move in sym.memory_info.ast_partial_moves:
+                    if existing_partial_move == argument.value:
+                        exception = SemanticError(f"Variable '{argument.value}' used after being moved:")
+                        exception.add_traceback(existing_partial_move.pos, f"Variable '{argument.value}' moved here.")
+                        exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
+                        raise exception
+
+                for existing_partial_move in sym.memory_info.ast_partial_moves:
                     existing_partial_move = str(existing_partial_move)
                     if existing_partial_move.startswith(str(argument.value)):
                         exception = SemanticError(f"Variable '{argument.value}' used after being partially moved:")
+
+                        # TODO : if any partial moves are in the same place then consolidate them into one trace
                         for partial_move in sym.memory_info.ast_partial_moves:
-                            exception.add_traceback(partial_move.pos, f"Variable '{argument.value}' partially moved here.")
+                            exception.add_traceback(partial_move.pos, f"Variable '{partial_move}' partially moved here.")
                         exception.add_traceback(argument.value.pos, f"Variable '{argument.value}' used here.")
                         raise exception
 
