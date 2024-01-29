@@ -2953,7 +2953,7 @@ TypeAst = (
 TypePartAst = (
         IdentifierAst |
         GenericIdentifierAst |
-        LiteralNumberBase10Ast)
+        TokenAst)
 
 
 @dataclass
