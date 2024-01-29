@@ -1277,16 +1277,43 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Analyse the condition and then each pattern branch
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
+        kwargs |= {"if-condition": self.condition}
         Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, **kwargs))
 
         # Check that the branches don't have comparison operators if the if-expression does. This is because the if
         # expression's partial fragment cannot conflict with the branches partial fragment.
         for branch in self.branches:
             if self.comp_operator and branch.comp_operator:
-                exception = SemanticError(f"Comparison operators [{self.comp_operator}, {branch.comp_operator}] found in if-expression and pattern block:")
+                exception = SemanticError(f"Comparison operators [{self.comp_operator}, {branch.comp_operator}] found in case-expression and pattern block:")
                 exception.add_traceback(self.comp_operator.pos, f"1st Comparison operator '{self.comp_operator}' found here.")
                 exception.add_traceback(branch.comp_operator.pos, f"2nd Comparison operator '{branch.comp_operator}' found here.")
                 raise exception
+
+            if not self.comp_operator and not branch.comp_operator and not isinstance(branch.patterns[0], PatternVariantElseAst):
+                exception = SemanticError(f"No comparison operator found in case-expression or pattern block:")
+                exception.add_traceback(self.condition.pos, f"Case-expression declared here with no operator")
+                exception.add_traceback(branch.body.brace_l_token.pos, f"Branch's pattern block declared here with no operator")
+                raise exception
+
+        # Check that the combination of the case expression and the branch expressions can be combined successfully ie
+        # does the complete function exist?
+        for branch in self.branches:
+            for pattern in branch.patterns:
+                if isinstance(pattern, PatternVariantElseAst): continue
+
+                complete_pattern = BinaryExpressionAst(
+                    pos=(self.comp_operator or branch.comp_operator).pos,
+                    lhs=self.condition,
+                    op=(self.comp_operator or branch.comp_operator),
+                    rhs=pattern)
+                complete_pattern.do_semantic_analysis(scope_handler, **kwargs)
+
+                # Overriding the comparison classes forces a Bool return type. This check is for the future when member
+                # access is implemented too.
+                if (pattern_type := complete_pattern.infer_type(scope_handler, **kwargs))[1] != CommonTypes.bool():
+                    exception = SemanticError(f"Comparisons must evaluate to a boolean expression")
+                    exception.add_traceback(complete_pattern.pos, f"Comparison evaluated here with type '{pattern_type[0].default()}{pattern_type[1]}'")
+                    raise exception
 
         # If this "if" expression is being used for assignment, then check that all branches have the same returning
         # type (final statement of the pattern block).
@@ -1298,6 +1325,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
                 exception.add_traceback(conflicting_types[1][1].pos, f"Type '{conflicting_types[1][0].default()}{conflicting_types[1][1]}' inferred here.")  # TODO : wrong.pos
                 raise exception
 
+            # Assignment from an "if" expression require an else branch to be present.
             if not self.branches[-1].is_else_branch():
                 exception = SemanticError(f"Missing else branch in assign-if-expression:")
                 exception.add_traceback(self.pos, f"If-expression declared here.")
