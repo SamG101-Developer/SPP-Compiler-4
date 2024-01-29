@@ -1903,22 +1903,24 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
             type_scope.get_symbol(generic_argument.identifier).type = generic_argument_type_class_prototype
 
         # Create a new type symbol & scope for the type with its generic arguments filled in
-        # TODO : don't create if it already exists
-        if all_generic_arguments:
-            parent_scope = type_scope._parent_scope
-            modified_type_scope = copy.deepcopy(type_scope)
-            modified_type_scope._scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+        # modified_class_type = copy.deepcopy(self.class_type)
+        # modified_class_type.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+        # if all_generic_arguments and not scope_handler.current_scope.has_symbol(modified_class_type):
+        #     parent_scope = type_scope._parent_scope
+        #     modified_type_scope = copy.deepcopy(type_scope)
+        #     modified_type_scope._scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+        #
+        #     modified_type_with_generics = copy.deepcopy(self.class_type)
+        #     modified_type_with_generics.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+        #
+        #     for attribute in modified_type_scope.all_symbols(exclusive=True):
+        #         if attribute.type in all_generic_arguments.map(lambda a: a.identifier):
+        #             attribute.type = all_generic_arguments.find(lambda a: a.identifier == attribute.type).type
+        #
+        #     parent_scope._children_scopes.append(modified_type_scope)
+        #     parent_scope.add_symbol(TypeSymbol(modified_type_with_generics, type_sym.type, modified_type_scope))
+        #     self.class_type = modified_type_with_generics
 
-            modified_type_with_generics = copy.deepcopy(self.class_type)
-            modified_type_with_generics.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-
-            for attribute in modified_type_scope.all_symbols(exclusive=True):
-                if attribute.type in all_generic_arguments.map(lambda a: a.identifier):
-                    attribute.type = all_generic_arguments.find(lambda a: a.identifier == attribute.type).type
-
-            parent_scope._children_scopes.append(modified_type_scope)
-            parent_scope.add_symbol(TypeSymbol(modified_type_with_generics, type_sym.type, modified_type_scope))
-            self.class_type = modified_type_with_generics
 
         # Update the symbol table to map each generic parameter to its generic argument's type. Then analyse the body,
         # and then reset the generic parameter's mapped type to None.
