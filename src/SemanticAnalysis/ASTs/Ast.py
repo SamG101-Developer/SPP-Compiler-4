@@ -48,6 +48,24 @@ class Ast(ABC):
 
 
 @dataclass
+class TokenAst(Ast):
+    token: Token
+
+    @staticmethod
+    def dummy(token_type: TokenType, info=None) -> Self:
+        return TokenAst(-1, Token(info or token_type.value, token_type))
+
+    @ast_printer_method
+    def print(self, printer: AstPrinter) -> str:
+        return self.token.token_metadata + (" " if self.token.token_type.name.startswith("Kw") else "")
+
+    def __eq__(self, other):
+        c1 = isinstance(other, TokenAst) and self.token.token_type == other.token.token_type
+        c2 = self.token.token_metadata == other.token.token_metadata if self.token.token_type.name.startswith("Lx") else True
+        return c1 and c2
+
+
+@dataclass
 class AnnotationAst(Ast):
     at_token: TokenAst
     identifier: ModuleIdentifierAst
@@ -2666,22 +2684,6 @@ class SupTypedefAst(TypedefStatementAst):
 
     def pre_process(self, context: SupPrototypeAst) -> None:
         ...
-
-
-@dataclass
-class TokenAst(Ast):
-    token: Token
-
-    @staticmethod
-    def dummy(token_type: TokenType, info=None) -> Self:
-        return TokenAst(-1, Token(info or token_type.value, token_type))
-
-    @ast_printer_method
-    def print(self, printer: AstPrinter) -> str:
-        return self.token.token_metadata + (" " if self.token.token_type.name.startswith("Kw") else "")
-
-    def __eq__(self, other):
-        return isinstance(other, TokenAst) and self.token.token_type == other.token.token_type
 
 
 @dataclass
