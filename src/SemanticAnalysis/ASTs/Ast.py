@@ -2054,9 +2054,9 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
 
 @dataclass
-class PatternVariantTupleAst(Ast, SemanticAnalysis):
+class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
     paren_l_token: TokenAst
-    items: List[PatternVariantAst]
+    items: List[PatternVariantNestedAst]
     paren_r_token: TokenAst
 
     @ast_printer_method
@@ -2068,31 +2068,29 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
 
-    # def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-    #     tuple_element_types = kwargs.get("if-expression").condition.infer_type()
-    #     if not isinstance(tuple_element_types, TypeTupleAst):
-    #         exception = SemanticError(f"A tuple")
-    #
-    #     for i, element in enumerate(self.variable.items):
-    #         match element:
-    #             case LocalVariableTupleAst(): ...
-    #             case LocalVariableDestructureAst(): ...
-    #             case LocalVariableSingleAst():
-    #                 let_statement = LetStatementUninitializedAst(
-    #                     pos=element.pos,
-    #                     let_keyword=TokenAst.dummy(TokenType.KwLet),
-    #                     assign_to=element,
-    #                     colon_token=TokenAst.dummy(TokenType.TkColon),
-    #
-    #                 )
-    #
-    #             case PatternVariantLiteralAst(): ...
-    #             case _:
-    #                 exception = SemanticError(f"Invalid pattern variant inside a tuple pattern:")
-    #                 exception.add_traceback(element.pos, f"Pattern variant '{element}' found here.")
-    #                 raise exception
+        has_skipped_args = None
+        for argument in self.items:
+            if isinstance(argument, PatternVariantSkipArgumentAst):
+                if has_skipped_args:
+                    exception = SemanticError(f"Multiple '..' given to pattern:")
+                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
+                    exception.add_traceback_minimal(argument.variadic_token.pos, f"2nd variadic argument given here.")
+                    raise exception
+                has_skipped_args = argument
+                continue
+
+        lhs_tuple_type_elements = kwargs.get("if-condition").infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+        rhs_tuple_type_elements = self.items
+        if len(lhs_tuple_type_elements) != len(rhs_tuple_type_elements) and not has_skipped_args:
+            exception = SemanticError(f"Invalid tuple assignment:")
+            exception.add_traceback(self.pos, f"Assignment target tuple contains {len(rhs_tuple_type_elements)} elements.")
+            exception.add_traceback(kwargs.get("if-condition").pos, f"Assignment value tuple contains {len(lhs_tuple_type_elements)} elements.")
+            raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, kwargs["if-condition"].infer_type(scope_handler, **kwargs)[1]
 
 
 @dataclass
