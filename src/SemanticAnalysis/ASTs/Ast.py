@@ -2721,16 +2721,18 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
             return
         super().pre_process(context)
 
-    def generate(self, s: ScopeHandler) -> None:
-        s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
-        cls_scope = s.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((s.current_scope, self))
-        Seq(self.body.members).for_each(lambda m: m.generate(s))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.exit_cur_scope()
+    def generate(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
+        Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
+        # TODO: is this check here rather the pre-process ok?
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
