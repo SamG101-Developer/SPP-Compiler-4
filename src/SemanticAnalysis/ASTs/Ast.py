@@ -1258,11 +1258,16 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     if_keyword: TokenAst
     condition: ExpressionAst
     comp_operator: TokenAst
+    then_keyword: TokenAst
     branches: List[PatternBlockAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.if_keyword.print(printer)}{self.condition.print(printer)} {self.comp_operator.print(printer)} {Seq(self.branches).print(printer, "\n")}"
+        s = ""
+        s += f"{self.if_keyword.print(printer)}{self.condition.print(printer)}"
+        s += f" {self.comp_operator.print(printer)}" if self.comp_operator else ""
+        s += f" {self.then_keyword.print(printer)}\n{Seq(self.branches).print(printer, "\n")}"
+        return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Move into a new scope for the IfExpressionAst. Whilst no symbols will be stored in this scope specifically,
