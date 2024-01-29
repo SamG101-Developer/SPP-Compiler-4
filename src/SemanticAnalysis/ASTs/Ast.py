@@ -534,7 +534,11 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
             match argument.value:
                 case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
-                case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst) and type(argument.value.lhs) in [IdentifierAst, PostfixExpressionAst]: sym = scope_handler.current_scope.get_symbol(argument.value.lhs)
+                case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst):
+                    temp = argument.value
+                    while not isinstance(temp.lhs, IdentifierAst):
+                        temp = temp.lhs
+                    sym = scope_handler.current_scope.get_symbol(temp.lhs)
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
