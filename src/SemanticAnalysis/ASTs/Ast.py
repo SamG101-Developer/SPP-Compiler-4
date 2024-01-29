@@ -2859,11 +2859,11 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        sym = scope_handler.current_scope.get_symbol(self.without_generics())
+        base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
+        this_type_exists = scope_handler.current_scope.has_symbol(self)
+        generic_arguments = Seq(self.parts[-1].generic_arguments.arguments)
 
-        # Check that the type exists in the symbol table.
-        if not sym:
-            # TODO: remove MOCK-func classes from the list of available symbols
+        if not base_type_exists:
             all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
             closest_match = difflib.get_close_matches(str(self), all_symbols.map(lambda s: str(s.name)).value, n=1)
             closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
@@ -2872,13 +2872,20 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             exception.add_traceback(self.pos, f"Type '{self}' used here.{closest_match}")
             raise exception
 
-        # elif sym.type:
-        #     verify_generic_arguments(
-        #         generic_parameters=Seq(sym.type.generic_parameters.parameters),
-        #         inferred_generic_arguments=Seq([]),
-        #         generic_arguments=Seq(self.parts[-1].generic_arguments.arguments),
-        #         obj_definition=sym.type,
-        #         usage=self)
+        elif not this_type_exists and self.parts[-1].generic_arguments.arguments:
+            # TODO: is this ok?
+            type_sym = scope_handler.current_scope.get_symbol(self.without_generics())
+            type_scope = type_sym.associated_scope
+            parent_scope = type_scope._parent_scope
+
+            modified_type_scope_name = copy.deepcopy(type_scope._scope_name)
+            modified_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
+            modified_type_scope = Scope(modified_type_scope_name, parent_scope)
+            modified_type_scope._sup_scopes = type_scope._sup_scopes
+            modified_type_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
+
+            parent_scope._children_scopes.append(modified_type_scope)
+            parent_scope.add_symbol(TypeSymbol(self, type_sym.type, modified_type_scope))
 
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
