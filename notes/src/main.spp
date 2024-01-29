@@ -21,10 +21,18 @@ sup [T] Fut[T] {
     fun await(self) -> T { }
 }
 
+sup [..Ts] Eq on Tup[Ts] {
+    fun eq(&self, that: Tup[Ts]) -> Bool { }
+}
+
 cls Eq {}
 
 sup Eq on Str {
     fun eq(&self, that: Str) -> Bool { }
+}
+
+sup Eq on A {
+    fun eq(&self, that: A) -> Bool { }
 }
 
 cls A {
@@ -38,11 +46,19 @@ cls B {
 }
 
 
-fun main(variable: A) -> Void {
+fun main(variable: A, a: (Str, Str, Str)) -> Void {
     let mut x = case "hello world" then
         == "hello" { 1 }
         == "hello world" { 2 }
     else { 3 }
 
-    x = "1"
+    let mut y = case variable then
+        == A(a="hello world", b=B(x="hello", y="world")) { 1 }
+        == A(a="hello", ..) { 2 }
+    else { 3 }
+
+    let mut z = case a then
+        == ("hello world", ..) { 1 }
+        == ("hello", ..) { 2 }
+    else { 3 }
 }
