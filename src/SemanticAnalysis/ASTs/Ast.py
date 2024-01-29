@@ -2238,9 +2238,22 @@ class PatternVariantBoolMemberAst(Ast):
 @dataclass
 class PatternVariantElseAst(Ast, SemanticAnalysis):
     else_token: TokenAst
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.else_token.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
+
+
+@dataclass
+class PatternVariantSkipArgumentAst(Ast, SemanticAnalysis):
+    variadic_token: TokenAst
+
+    @ast_printer_method
+    def print(self, printer: AstPrinter) -> str:
+        return f"{self.variadic_token.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
