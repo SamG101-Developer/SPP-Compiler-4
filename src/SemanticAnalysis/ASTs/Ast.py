@@ -2194,7 +2194,7 @@ class PatternVariantVariableAst(Ast, SemanticAnalysis, TypeInfer):
 
 
 @dataclass
-class PatternVariantLiteralAst(Ast, SemanticAnalysis):
+class PatternVariantLiteralAst(Ast, SemanticAnalysis, TypeInfer):
     literal: LiteralAst
 
     @ast_printer_method
@@ -2203,6 +2203,27 @@ class PatternVariantLiteralAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.literal.do_semantic_analysis(scope_handler, **kwargs)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return self.literal.infer_type(scope_handler, **kwargs)
+
+
+@dataclass
+class PatternVariantVariableAssignmentAst(Ast, SemanticAnalysis, TypeInfer):
+    is_mutable: Optional[TokenAst]
+    identifier: IdentifierAst
+    assign_token: TokenAst
+    value: PatternVariantAst
+
+    @ast_printer_method
+    def print(self, printer: AstPrinter) -> str:
+        return f"{self.identifier.print(printer)}{self.assign_token.print(printer)}{self.value.print(printer)}"
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, CommonTypes.void(self.pos)
 
 
 @dataclass
