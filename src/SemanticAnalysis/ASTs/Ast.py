@@ -2267,6 +2267,15 @@ PatternVariantAst = (
         PatternVariantBoolMemberAst |
         PatternVariantElseAst)
 
+PatternVariantNestedAst = (
+        PatternVariantVariableAssignmentAst |
+        PatternVariantTupleAst |
+        PatternVariantDestructureAst |
+        PatternVariantVariableAst |
+        PatternVariantLiteralAst |
+        PatternVariantSkipArgumentAst
+)
+
 
 @dataclass
 class PatternBlockAst(Ast, SemanticAnalysis):
@@ -2278,10 +2287,10 @@ class PatternBlockAst(Ast, SemanticAnalysis):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
-        s += f"{self.comp_operator.print(printer)}" if self.comp_operator else ""
+        s += f"{self.comp_operator.print(printer)} " if self.comp_operator else ""
         s += f"{Seq(self.patterns).print(printer, ", ")}"
         s += f"{self.guard.print(printer)}" if self.guard else ""
-        s += f"{self.body.print(printer)}"
+        s += f" {self.body.print(printer)}"
         return s
 
     def is_else_branch(self) -> bool:
