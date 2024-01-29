@@ -594,7 +594,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
 
                     # Otherwise, mark the left most identifier as partially moved.
                     else:
-                        sym.memory_info.ast_partial_moves.append(argument)
+                        sym.memory_info.ast_partial_moves.append(argument.value)
 
                 case ConventionMutAst():
                     # Can only take a borrow from a (postfix) identifier. TODO : remove this soon
