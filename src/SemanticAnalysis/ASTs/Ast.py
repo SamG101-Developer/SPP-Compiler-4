@@ -2172,7 +2172,8 @@ class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
 
 
 @dataclass
-class PatternVariantVariableAst(Ast, SemanticAnalysis):
+class PatternVariantVariableAst(Ast, SemanticAnalysis, TypeInfer):
+    # TODO : introduce identifier as a symbol
     is_mutable: Optional[TokenAst]
     unpack_token: Optional[TokenAst]
     identifier: IdentifierAst
@@ -2188,14 +2189,8 @@ class PatternVariantVariableAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
 
-    # def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-    #     let_statement = LetStatementUninitializedAst(
-    #         pos=self.variable.pos,
-    #         let_keyword=TokenAst.dummy(TokenType.KwLet),
-    #         assign_to=self.variable,
-    #         colon_token=TokenAst.dummy(TokenType.TkColon),
-    #         type_declaration=CommonTypes.void())
-    #     let_statement.do_semantic_analysis(scope_handler, **kwargs)
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        ...
 
 
 @dataclass
