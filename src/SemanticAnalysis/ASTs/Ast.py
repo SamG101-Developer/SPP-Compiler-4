@@ -2588,7 +2588,7 @@ PostfixExpressionOperatorAst = (
 
 PostfixMemberPartAst = (
         IdentifierAst |
-        LiteralNumberBase10Ast)
+        TokenAst)
 
 
 @dataclass
