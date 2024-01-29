@@ -2925,20 +2925,12 @@ class TypeTupleAst(Ast):
     items: List[TypeAst]
     paren_r_token: TokenAst
 
+    def as_single_type(self):
+        return CommonTypes.tuple(self.items)
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{self.paren_l_token.print(printer)}{Seq(self.items).print(printer, ", ")}{self.paren_r_token.print(printer)}"
-
-    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> Self:
-        Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
-        return self
-
-    def __eq__(self, other):
-        return isinstance(other, TypeTupleAst) and self.items == other.items
-
-    def symbolic_eq(self, that: TypeTupleAst, scope: Scope) -> bool:
-        if len(self.items) != len(that.items): return False
-        return isinstance(that, TypeTupleAst) and Seq(self.items).zip(Seq(that.items)).all(lambda t: t[0].symbolic_eq(t[1], scope))
 
 
 @dataclass
@@ -2947,18 +2939,10 @@ class TypeUnionAst(Ast):
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{Seq(self.items).print(printer, " | ")}"
+        return f"{Seq(self.items).print(printer, "|")}"
 
-    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> Self:
-        Seq(self.items).for_each(lambda i: i.substitute_generics(from_ty, to_ty))
-        return self
-
-    def __eq__(self, other):
-        return isinstance(other, TypeUnionAst) and self.items == other.items
-
-    def symbolic_eq(self, that: TypeUnionAst, scope: Scope) -> bool:
-        if len(self.items) != len(that.items): return False
-        return isinstance(that, TypeUnionAst) and Seq(self.items).zip(Seq(that.items)).all(lambda t: t[0].symbolic_eq(t[1], scope))
+    def as_single_type(self) -> TypeSingleAst:
+        return CommonTypes.union(self.items)
 
 
 TypeAst = (
