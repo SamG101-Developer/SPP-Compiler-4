@@ -2299,7 +2299,6 @@ class PatternBlockAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         scope_handler.into_new_scope("<pattern-block>")
 
-
         Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
         self.guard.do_semantic_analysis(scope_handler, **kwargs) if self.guard else None
         self.body.do_semantic_analysis(scope_handler, **kwargs)
@@ -2527,17 +2526,18 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
         lhs = kwargs.get("postfix-lhs")
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
-        if isinstance(self.identifier, LiteralNumberBase10Ast):
-            if not lhs.infer_type(scope_handler, **kwargs)[1].without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+        if isinstance(self.identifier, TokenAst):
+            if lhs.infer_type(scope_handler, **kwargs)[1].without_generics() != CommonTypes.tuple([]):
                 exception = SemanticError(f"Numeric member access requires a tuple type:")
-                exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here.")
+                exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type(scope_handler, **kwargs)}' found here.")
                 exception.add_traceback(self.identifier.pos, f"Numeric member access found here.")
                 raise exception
 
-            if int(self.identifier.number.token.token_metadata) >= len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments):
+            if int(self.identifier.token.token_metadata) >= len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments):
+                lhs_type = lhs.infer_type(scope_handler, **kwargs)
                 exception = SemanticError(f"Numeric member access out of bounds:")
-                exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type()}' found here, with {len(lhs.infer_type().parts[-1].gemeric_arguments.arguments)} elements.")
-                exception.add_traceback(self.identifier.pos, f"Numeric member access found here to element {self.identifier.number.token.token_metadata}.")
+                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0].default()}{lhs_type[1]}' found here, with {len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments)} elements.")
+                exception.add_traceback(self.identifier.pos, f"Numeric member access found here to element {self.identifier.token.token_metadata}.")
                 raise exception
 
         # Check that, for attribute access, the attribute exists on the type being accessed.
@@ -2549,6 +2549,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
                 exception.add_traceback(lhs.pos, f"Type '{lhs_type[0].default()}{lhs_type[1]}' inferred here.")
                 exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
                 raise exception
+
+        else:
+            raise NotImplementedError
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         lhs = kwargs.get("postfix-lhs")
