@@ -468,6 +468,7 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Pass analysis onto the value of the argument.
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
@@ -483,6 +484,7 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalysis):
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.convention.print(printer)}{self.value.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Pass analysis onto the value of the argument.
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
@@ -665,16 +667,20 @@ class FunctionParameterSelfAst(Ast, SemanticAnalysis):
         s += f"{self.convention.print(printer)} {self.identifier.print(printer)}"
         return s
 
-    def __eq__(self, other):
-        return isinstance(other, FunctionParameterSelfAst)
-
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Add the "self" symbol to the current scope. The memory status depends on the calling-convention used on the
+        # "self" parameter, ie {"&" => immutable borrow, "&mut" => mutable borrow}.
         symbol = VariableSymbol(self.identifier, CommonTypes.self(), is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
             is_borrow_mut=isinstance(self.convention, ConventionMutAst),
             ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
+
+    def __eq__(self, other):
+        # Because all "self" parameters have the same name ("self"), the only check is that the 2 nodes are the same
+        # type (FunctionParameterSelfAst).
+        return isinstance(other, FunctionParameterSelfAst)
 
 
 @dataclass
@@ -693,7 +699,10 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Analyse the parameter type.
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Add the symbol for the parameter. The memory status depends on the calling-convention used.
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
@@ -702,6 +711,7 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalysis):
         scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
+        # Equality is determined by the parameter's identifier.
         return isinstance(other, FunctionParameterRequiredAst) and self.identifier == other.identifier
 
 
@@ -723,7 +733,10 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Analyse the parameter type.
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Add the symbol for the parameter. The memory status depends on the calling-convention used.
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self.identifier,
             is_borrow_ref=isinstance(self.convention, ConventionRefAst),
@@ -731,13 +744,18 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
             ast_borrow=self.convention))
         scope_handler.current_scope.add_symbol(symbol)
 
-        # self.default_value.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
-
+        # Check the convention of the parameter is by-mov, because default values will always be "owned", so the type
+        # must use the "move" convention.
         if not isinstance(self.convention, ConventionMovAst):
             exception = SemanticError(f"Optional parameters must use the by-val convention:")
             exception.add_traceback(self.convention.pos, f"Convention '{self.convention}' used here.")
             raise exception
 
+        # Analyse the default value to ensure it is valid. This happens before the type-check against the parameter#
+        # type, as otherwise there would be an error in detecting the type of an invalid expression.
+        self.default_value.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Check the default value's type matches the parameter's type.
         if not self.type_declaration.symbolic_eq((default_value_type := self.default_value.infer_type(scope_handler, **kwargs))[1], scope_handler.current_scope):
             exception = SemanticError(f"Optional parameter type does not match default value type:")
             exception.add_traceback(self.type_declaration.pos, f"Parameter type '{self.type_declaration}' declared here.")
@@ -745,6 +763,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
             raise exception
 
     def __eq__(self, other):
+        # Equality is determined by the parameter's identifier.
         return isinstance(other, FunctionParameterOptionalAst) and self.identifier == other.identifier
 
 
@@ -766,6 +785,8 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # TODO : type declaration for variadics will need to be checked later: tuple?
+        # TODO
+
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         symbol = VariableSymbol(self.identifier, self.type_declaration, is_mutable=self.is_mutable is not None, memory_info=MemoryStatus(
             ast_initialized=self.identifier,
@@ -775,6 +796,7 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
         scope_handler.current_scope.add_symbol(symbol)
 
     def __eq__(self, other):
+        # Equality is determined by the parameter's identifier.
         return isinstance(other, FunctionParameterVariadicAst) and self.identifier == other.identifier
 
 
@@ -831,15 +853,19 @@ class FunctionParameterGroupAst(Ast, SemanticAnalysis):
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
 
     def get_self(self) -> Optional[FunctionParameterSelfAst]:
+        # Convenience method to get the "self" function parameter (if it exists).
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterSelfAst)).first(None)
 
     def get_req(self) -> List[FunctionParameterRequiredAst]:
+        # Convenience method to get all the required function parameters.
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterRequiredAst)).value
 
     def get_opt(self) -> List[FunctionParameterOptionalAst]:
+        # Convenience method to get all the optional function parameters.
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterOptionalAst)).value
 
     def get_var(self) -> Optional[FunctionParameterVariadicAst]:
+        # Convenience method to get the variadic function parameter (if it exists).
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst)).first(None)
 
 
@@ -872,18 +898,28 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         return s
 
     def pre_process(self, context: ModulePrototypeAst | SupPrototypeAst) -> None:
+        # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
+        # function parameters, and the return type.
         if not isinstance(context, ModulePrototypeAst):
             Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
             Seq(self.parameters.parameters).for_each(lambda p: p.type_declaration.substitute_generics(CommonTypes.self(), context.identifier))
             self.return_type.substitute_generics(CommonTypes.self(), context.identifier)
 
+        # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
+        # for the first class nature of functions. The mock object for "fun function" will be "MOCK_function".
         mock_class_name = IdentifierAst(-1, f"MOCK_{self.identifier.value}")
         mock_class_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, mock_class_name.value, None)])
 
+        # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or "FunMov/call_mov"
         function_class_type = self._deduce_function_class_type(context)
         function_call_name  = self._deduce_function_call_name(function_class_type)
 
+        # If the mock class name ("MOCK_function") doesn't exist as a class, then this if the first instance of a
+        # function with this name seen. Therefore, the class needs to be added into the module prototype.
         if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
+
+            # Create the mock class prototype.
+            # cls MOCK_function {}
             mock_class_ast = ClassPrototypeAst(
                 pos=-1,
                 annotations=[],
@@ -897,6 +933,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
                     members=[],
                     brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
+            # Create the let statement, which brings an instance of this class into scope.
+            # let function = MOCK_function()
             mock_let_statement = LetStatementInitializedAst(
                 pos=-1,
                 let_keyword=TokenAst.dummy(TokenType.KwLet),
@@ -911,14 +949,18 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
                     class_type=copy.deepcopy(mock_class_name),
                     arguments=ObjectInitializerArgumentGroupAst(
                         pos=-1,
-                        paren_l_token=TokenAst.dummy(TokenType.TkBraceL),
+                        paren_l_token=TokenAst.dummy(TokenType.TkParenL),
                         arguments=[],
-                        paren_r_token=TokenAst.dummy(TokenType.TkBraceR))),
+                        paren_r_token=TokenAst.dummy(TokenType.TkParenR))),
                 _sup_let_type=function_class_type)
 
+            # Append both of these ASTs to the module or sup prototype ("context" will be either one).
             context.body.members.append(mock_class_ast)
             context.body.members.append(mock_let_statement)
 
+        # At this point, either the class existed, or it exists now, so super-impose the "Fun___" type onto it. Create
+        # the call function, like "call_ref", and carry through the generic parameters, function parameters,
+        # return type, etc.
         call_method_ast = SupMethodPrototypeAst(
             pos=self.pos,
             annotations=[],
@@ -932,6 +974,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             body=self.body,
             _orig=self.identifier)
 
+        # Create the superimposition block over the class type, which includes the "call_ref" function as a member. This
+        # will allow for the type to now be callable with the parameter types and return type specified.
         sup_block_ast = SupPrototypeInheritanceAst(
             pos=-1,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
@@ -946,27 +990,36 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
                 members=[call_method_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
+        # Append the "sup" block to the module or sup prototype ("context" will be either one).
         context.body.members.append(sup_block_ast)
         self._fn_type = function_class_type
-        # print(id(self), self._fn_type)
 
     def _deduce_function_class_type(self, context: ModulePrototypeAst | SupPrototypeAst) -> TypeAst:
+        # Deducing the function call type requires knowledge of the "self" parameter. If there is a "self" parameter,
+        # then use the convention to determine the function class type. If there isn't, then the function is either a
+        # free function (module scope), or a static class method. In either case, it will be "FunRef".
         is_method = not isinstance(context, ModulePrototypeAst)
         has_self_parameter = self.parameters.parameters and isinstance(self.parameters.parameters[0], FunctionParameterSelfAst)
+
+        # Get the parameter types and return type, to move into the function class type being created.
         parameter_types = Seq(self.parameters.parameters).map(lambda p: p.type_declaration).value
         return_type = self.return_type
 
+        # If the method is a non-static class method, then base the function type off the "self" parameter's convention.
         if is_method and has_self_parameter:
-            convention = self.parameters.parameters[0].convention
+            convention = self.parameters.get_self().convention
             match convention:
                 case ConventionRefAst(): return CommonTypes.fun_ref(return_type, parameter_types, pos=self.pos)
                 case ConventionMutAst(): return CommonTypes.fun_mut(return_type, parameter_types, pos=self.pos)
                 case ConventionMovAst(): return CommonTypes.fun_mov(return_type, parameter_types, pos=self.pos)
                 case _: raise SystemExit(f"Unknown convention '{convention}' being deduced. Report as bug.")
+
+        # Otherwise, the function is either free or a static method, so the function class type will be "FunRef".
         else:
             return CommonTypes.fun_ref(return_type, parameter_types, pos=self.pos)
 
     def _deduce_function_call_name(self, function_class_type: TypeAst) -> IdentifierAst:
+        # Map the function class type to a function call name with a simple match-case statement.
         match function_class_type.parts[-1].value:
             case "FunRef": return IdentifierAst(self.identifier.pos, "call_ref")
             case "FunMut": return IdentifierAst(self.identifier.pos, "call_mut")
@@ -974,28 +1027,37 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
     def generate(self, s: ScopeHandler) -> None:
+        # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
+        # for each generic parameter. Exit the newly created function scope.
         s.into_new_scope(self.identifier)
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.current_scope.add_symbol(VariableSymbol(copy.deepcopy(self.identifier), self._fn_type))
         s.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # Move into the function scope.
         scope_handler.move_to_next_scope()
 
+        # Analyse each part of the function: the annotations, generic parameters, parameters, return type, where block,
+        # and body.
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
+
+        # Add the "target-return-type" to the function block, so that nested return statements can be type-checked. Set
+        # "inline-block" to True, because a new scope has already been created for the function scope, so the InnerScope
+        # analyser doesn't need to create a new scope automatically.
         self.body.do_semantic_analysis(scope_handler, **(kwargs | {"target-return-type": self.return_type, "inline-block": True}))
 
-        # Check that there a return statement at the end fo a non-Void function
+        # Check that there a return statement at the end for non-Void functions.
         if not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope) and self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst):
             exception = SemanticError(f"Missing return statement in non-Void function:")
             exception.add_traceback(self.pos, f"Function '{self.identifier}' declared here.")
             exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
             raise exception
 
+        # Exit the function scope.
         scope_handler.exit_cur_scope()
 
 
@@ -1008,6 +1070,7 @@ class GenericArgumentNormalAst(Ast, SemanticAnalysis):
         return f"{self.type.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Analyse the type of the generic argument.
         self.type.do_semantic_analysis(scope_handler, **kwargs)
 
     def __eq__(self, other):
@@ -1024,6 +1087,7 @@ class GenericArgumentNamedAst(GenericArgumentNormalAst, SemanticAnalysis):
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.type.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Analyse the type of the generic argument.
         super().do_semantic_analysis(scope_handler, **kwargs)
         self.type.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -1072,6 +1136,7 @@ class GenericArgumentGroupAst(Ast, SemanticAnalysis):
             exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} argument '{difference[-1][1]}' declared here.")
             raise exception
 
+        # Analyse each argument.
         Seq(self.arguments).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
 
 
