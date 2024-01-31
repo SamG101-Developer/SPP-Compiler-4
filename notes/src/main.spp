@@ -5,7 +5,9 @@ cls Void { }
 cls Str { }
 cls BigNum { }
 cls Tup[..Ts] { }
-cls Opt[T] { }
+cls Opt[T] {
+    value: T
+}
 cls Vec[T] { }
 cls Bool { }
 
@@ -14,11 +16,6 @@ cls FunMut[Ret, In] { }
 cls FunMov[Ret, In] { }
 
 
-fun function(a: Bool, b: Bool) -> Void { }
-fun function[T, U](a: T, b: U, c: Str) -> BigNum { }
-fun function[T](a: T, b: T, c: Bool) -> T { }
-
-
 fun main() -> Void {
-    let mut y = function(1, "hello", "world")
+    let value = Opt()
 }

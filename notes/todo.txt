@@ -4,7 +4,7 @@ Generics:
 -- Redo generics for class instantiation (create new instances with attributes adjusted) - also see how normal typgen does this etc.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- New instances currently generated for genericized classes -> need to re-create the sup-scopes too for generic
-   substitution, or work out a way to forward generics into them somehow, like making them inferrable via the scopes?.
+   substitution, or work out a way to forward generics into them somehow, like making them inferrable via the scopes?
     -- Dont create new genericized instance if it's already been generated too
 -- Need to create new instances of the functions for generics?
 
@@ -49,6 +49,7 @@ Other
 -- Numeric postfix classes aren't defined but dont throw errors
 -- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now.
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
+-- Tuple operations
 
 Random failures:
 let mut x = a.function1("hello")
