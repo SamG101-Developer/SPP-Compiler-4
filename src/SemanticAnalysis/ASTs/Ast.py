@@ -4,9 +4,7 @@ import copy
 import dataclasses
 import hashlib
 import difflib
-import json
 
-import json_fix
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from ordered_set import OrderedSet
