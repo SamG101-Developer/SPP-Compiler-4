@@ -1,5 +1,5 @@
-import dataclasses
-import json
+import os.path
+from typing import NoReturn
 
 from src.LexicalAnalysis.Tokens import Token
 from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
@@ -7,41 +7,69 @@ from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTs.Ast import ProgramAst
 from src.Utils.ErrorFormatter import ErrorFormatter
 
+from src.Utils.Sequence import Seq
+
 
 class Analyser:
+    _file_name: str
     _tokens: list[Token]
     _ast: ProgramAst
 
-    def __init__(self, tokens: list[Token], ast: ProgramAst):
+    def __init__(self, file_name: str, tokens: list[Token], ast: ProgramAst):
+        self._file_name: str = file_name
         self._tokens = tokens
         self._ast = ast
 
-    def analyse(self):
-        root_context = self._ast.module
-        scope_handler = ScopeHandler()
-        err_fmt = ErrorFormatter(self._tokens, "<filename>")
+    def stage_1_analysis(self, scope_handler: ScopeHandler) -> None:
+        # Create the error formatter to pickup any errors raised during analysis. These will need to be formatted
+        # specifically.
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
+        err_fmt = ErrorFormatter(self._tokens, self._file_name)
 
-        with open("../bin/ast.json", "w") as f:
-            f.write(json.dumps(dataclasses.asdict(self._ast), indent=4))
+        # Create the module namespace by splitting the module name based on the path separator. The module namespace is
+        # the path to the module, relative to the src path, without the file name and without the src folder itself.
+        module_namespace = self._file_name.split(os.path.sep)
+        module_namespace = module_namespace[module_namespace.index("src") + 1 : -1]
 
-        self._ast.pre_process(root_context)
-        self._ast.generate(scope_handler)
+        # For each part in the module namespace, if the current scope has a child scope with the same name, set the
+        # current scope to that child scope. Otherwise, create a new scope with the name of the part and set the current
+        # scope to that new scope.
+        for part in module_namespace:
+            part = IdentifierAst(-1, part)
+            if Seq(scope_handler.current_scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+                scope_handler.current_scope = Seq(scope_handler.current_scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+            else:
+                scope_handler.into_new_scope(part)
+
+        # Preprocess and generate the symbols & scopes for the module. If there is an error, then handle it.
+        try:
+            self._ast.pre_process(self._ast.module)
+            self._ast.generate(scope_handler)
+        except SemanticError as e:
+            handle_semantic_error(err_fmt, e)
+
+        # Reset the scope to the global scope for the next module to be analysed.
         scope_handler.reset()
 
-        with open("../bin/symbol_table_pre.json", "w") as f:
-            f.write(json.dumps(scope_handler.current_scope, indent=4))
+    def stage_2_analysis(self, scope_handler: ScopeHandler) -> None:
+        # Create the error formatter to pickup any errors raised during analysis. These will need to be formatted
+        # specifically.
+        err_fmt = ErrorFormatter(self._tokens, self._file_name)
 
+        # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
             self._ast.do_semantic_analysis(scope_handler)
-            with open("../bin/symbol_table.json", "w") as f:
-                f.write(json.dumps(scope_handler.current_scope, indent=4))
 
         except SemanticError as e:
-            final_error = str(e)
-            for error in e.additional_info:
-                final_error += err_fmt.error(error[0], message=error[1], minimal=error[2])
-            for error in e.next_exceptions:
-                final_error += f"\n\n{error}"
-                for inner_error in error.additional_info:
-                    final_error += err_fmt.error(inner_error[0], message=inner_error[1], minimal=inner_error[2])
-            raise SystemExit(final_error) from None
+            handle_semantic_error(err_fmt, e)
+
+
+def handle_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> NoReturn:
+    final_error = str(exception)
+    for error in exception.additional_info:
+        final_error += err_fmt.error(error[0], message=error[1], minimal=error[2])
+    for error in exception.next_exceptions:
+        final_error += f"\n\n{error}"
+        for inner_error in error.additional_info:
+            final_error += err_fmt.error(inner_error[0], message=inner_error[1], minimal=inner_error[2])
+    raise SystemExit(final_error) from None
