@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 from typing import Optional, List
-import json_fix
 
 
 @dataclass
@@ -46,7 +45,7 @@ class VariableSymbol(Symbol):
     def __post_init__(self):
         from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
         assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name} ({type(self.name)})"
-        assert type(self.type) in TypeAst.__args__ or self.type is None, f"Got variable symbol with type: {type(self.type)}"  # TODO ; shouldn't be None
+        assert type(self.type) in TypeAst.__args__ or self.type is None, f"Got variable symbol with type: {type(self.type)}"
 
     def __json__(self) -> dict:
         return {
