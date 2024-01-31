@@ -18,7 +18,8 @@ cls FunMov[Ret, In] { }
 
 fun main() -> Void {
     let value = Opt(value=5)
-
-    let mut x = "1"
+    let mut x = 123
     x = value.value
+
+    let m = inner.MyType()
 }

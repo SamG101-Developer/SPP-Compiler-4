@@ -39,8 +39,9 @@ Placeholders
 
 Other
 -- Numeric postfix classes aren't defined but dont throw errors
--- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now.
+-- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now (copy from `case` which does work).
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
 -- Tuple operations
 -- Binary member access for conditional branches
 -- Union types & their semantics (assignment especially)
+-- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable.
