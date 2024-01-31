@@ -1,3 +1,4 @@
+import os.path
 import colorama
 
 from src.Compiler.Compiler import Compiler
@@ -5,14 +6,8 @@ from src.Compiler.Compiler import Compiler
 
 def main():
     colorama.init()
-    file_path = "../notes/src/main.spp"
-    with open(file_path, "r") as file:
-        code = file.read()
-    compiler = Compiler(code, file_path)
-    ast = compiler.compile()
-
-    # print("\n\nAST:")
-    # pprint(asdict(ast))
+    file_path = os.path.abspath("../notes/src")
+    compiler = Compiler(file_path)
 
 
 if __name__ == "__main__":
