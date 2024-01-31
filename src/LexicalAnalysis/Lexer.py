@@ -34,7 +34,7 @@ class Lexer:
 
                 # Lexemes: Match a lexeme by attempting to get a regex match against the current code. Discard comments.
                 elif token.startswith("Lx") and (matched := re.match(value, self._code[current:])):
-                    if TokenType[token] != TokenType.LxSingleLineComment:
+                    if TokenType[token] not in [TokenType.LxSingleLineComment, TokenType.LxMultiLineComment]:
                         output.append(Token(matched.group(0), TokenType[token]))
                     current += len(matched.group(0))
                     break

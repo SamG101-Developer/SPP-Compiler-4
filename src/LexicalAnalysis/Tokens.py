@@ -130,8 +130,8 @@ class TokenType(Enum):
     LxDecFloat = r"[0-9]([0-9_]*[0-9])?\.[0-9]([0-9_]*[0-9])?"
 
     LxDoubleQuoteStr = r"\"[^\"]*\""
+    LxMultiLineComment = r"##[^#]*##"
     LxSingleLineComment = r"#.*"
-    LxMultiLineComment = r"/\*.*\*/"
 
     # Unknown token to shift error to ErrFmt
     ERR = "Unknown"
