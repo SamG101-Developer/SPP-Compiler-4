@@ -19,7 +19,7 @@ class ErrorFormatter:
 
         # Get the tokens at the start and end of the line containing the error. Skip the leading newline.
         error_line_start_pos = [i for i, x in enumerate(self._tokens[:start_pos]) if x.token_type == TokenType.TkNewLine][-1] + 1
-        error_line_end_pos = [i for i, x in enumerate(self._tokens[start_pos:]) if x.token_type == TokenType.TkNewLine][0] + start_pos
+        error_line_end_pos = ([i for i, x in enumerate(self._tokens[start_pos:]) if x.token_type == TokenType.TkNewLine] or [len(self._tokens) - 1])[0] + start_pos
         error_line_tokens = self._tokens[error_line_start_pos:error_line_end_pos]
         error_line_as_string = "".join([str(token) for token in error_line_tokens])
 
