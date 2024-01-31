@@ -882,10 +882,15 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
     body: InnerScopeAst[StatementAst]
     _fn_type: TypeAst = dataclasses.field(default=None)
     _orig: IdentifierAst = dataclasses.field(default=None)
+    _ctx: ModulePrototypeAst | SupPrototypeAst = dataclasses.field(default=None)
+    _specializations: List[FunctionPrototypeAst] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
         self.where_block = self.where_block or WhereBlockAst(-1, TokenAst.dummy(TokenType.KwWhere), WhereConstraintsGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR)))
+
+    def __eq__(self, other):
+        return self.identifier == other.identifier and self.generic_parameters == other.generic_parameters and self.parameters == other.parameters and self.return_type == other.return_type and self.where_block == other.where_block
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -898,6 +903,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         return s
 
     def pre_process(self, context: ModulePrototypeAst | SupPrototypeAst) -> None:
+        self._ctx = context
+
         # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
         # function parameters, and the return type.
         if not isinstance(context, ModulePrototypeAst):
@@ -972,7 +979,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             return_type=self.return_type,
             where_block=None,
             body=self.body,
-            _orig=self.identifier)
+            _orig=self.identifier,
+            _ctx=self._ctx)
 
         # Create the superimposition block over the class type, which includes the "call_ref" function as a member. This
         # will allow for the type to now be callable with the parameter types and return type specified.
@@ -1033,9 +1041,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.exit_cur_scope()
 
-    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler, override_scope: bool = False, **kwargs) -> None:
         # Move into the function scope.
-        scope_handler.move_to_next_scope()
+        if not override_scope:
+            scope_handler.move_to_next_scope()
 
         # Analyse each part of the function: the annotations, generic parameters, parameters, return type, where block,
         # and body.
@@ -1058,7 +1067,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             raise exception
 
         # Exit the function scope.
-        scope_handler.exit_cur_scope()
+        if not override_scope:
+            scope_handler.exit_cur_scope()
 
 
 @dataclass
@@ -1777,7 +1787,7 @@ class LiteralBooleanAst(Ast, SemanticAnalysis, TypeInfer):
         pass
 
     def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, CommonTypes.bool()
+        return ConventionMovAst, CommonTypes.bool(self.pos)
 
 
 @dataclass
@@ -2440,7 +2450,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
 
         # The only classes possibly superimposed over a MOCK_ class are the Fun classes.
         mock_function_object_sup_scopes = function_name_rhs_part_scope.sup_scopes
-        function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members[0])
+        function_overloads = Seq(mock_function_object_sup_scopes).map(lambda s: s[1].body.members).flat()  # TODO: limit to functions only, not typedefs etc too.
         function_overload_errors = []
         valid_overloads = []
 
@@ -2468,13 +2478,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 function_overload_errors.append(e)
                 continue
 
-            # Update the symbol table to map each generic parameter to its generic argument's type. Then analyse the body,
-            # and then reset the generic parameter's mapped type to None.
             function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[0]
-            for generic_argument in all_generic_arguments:
-                generic_argument_type_class_prototype = function_overload_scope.get_symbol(generic_argument.type).type
-                function_overload_scope.get_symbol(generic_argument.identifier).type = generic_argument_type_class_prototype
-
             available_parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
             arguments = Seq(copy.deepcopy(self.arguments.arguments))
 
@@ -2522,6 +2526,53 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 function_overload_errors.append(exception)
                 continue
 
+            # If there are generic arguments, then create a new function overload with the generic arguments filled in.
+            # Add this to the scopes with the FunctionPrototypeAST's methods.
+            new_scope = False
+            if all_generic_arguments:
+                non_generic_function_overload = copy.deepcopy(function_overload)
+                non_generic_function_overload.generic_parameters.parameters = []
+                for generic_argument in all_generic_arguments:
+                    Seq(non_generic_function_overload.parameters.parameters).map(lambda p: p.type_declaration).for_each(lambda t: t.substitute_generics(generic_argument.identifier, generic_argument.type))
+                    non_generic_function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+
+                print(Seq(function_overload._specializations))
+                print(non_generic_function_overload)
+                print(non_generic_function_overload in function_overload._specializations)
+
+                # TODO: Only continue if this overload of generics is unique. (creates dupe scopes otherwise)
+                # if non_generic_function_overload not in function_overload._specializations:
+                function_overload._specializations.append(non_generic_function_overload)
+                function_overload._ctx.body.members.append(non_generic_function_overload)
+                non_generic_function_overload.pre_process(function_overload._ctx)
+
+                restore_scope = scope_handler.current_scope
+                scope_handler.current_scope = function_overload_scope._parent_scope
+                non_generic_function_overload.generate(scope_handler)
+                non_generic_function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[-1]
+
+                scope_handler.current_scope = non_generic_function_overload_scope
+                non_generic_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
+
+                scope_handler.current_scope = restore_scope
+
+                for generic_argument in all_generic_arguments:
+                    type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
+                    non_generic_function_overload_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
+                    non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
+
+                new_scope = True
+
+                def remove_scope():
+                    function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
+
+                function_overload_scope = non_generic_function_overload_scope
+                # else:
+                #     non_generic_function_overload = Seq(function_overload._specializations).find(lambda s: s == non_generic_function_overload)
+                #     non_generic_function_overload_scope
+                #     function_overload_scope = non_generic_function_overload_scope
+            #
+
             # Type check between each argument and its corresponding parameter.
             type_error = False
             for argument in arguments:
@@ -2543,6 +2594,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             # No argument type errors => this is a valid overload.
             if not type_error:
                 valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))
+            elif new_scope:
+                # Remove the newly created overload for generics.
+                remove_scope()
 
         # If there were no valid overloads, display each overload and why it couldn't be selected. Raise the error here
         # so no valid overload is attempted to be pulled from an empty list.
@@ -2550,6 +2604,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             error = SemanticError("Invalid function call")
             error.add_traceback(self.pos, f"Function call {self} found here.")
             error.next_exceptions = function_overload_errors
+            print(error.next_exceptions)
             raise error
 
         # TODO: Select the most precise match: this is the overload with the least amount of parameters that have generic types.
@@ -2721,7 +2776,8 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
 
 @dataclass
 class SupMethodPrototypeAst(FunctionPrototypeAst):
-    ...
+    def __eq__(self, other):
+        return super().__eq__(other)
 
 
 @dataclass
@@ -2749,13 +2805,13 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
         self.body.members = Seq(self.body.members).filter(lambda m: not isinstance(m, FunctionPrototypeAst)).value
 
-    def generate(self, s: ScopeHandler) -> None:
-        s.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + "#SUP-functions"))
-        cls_scope = s.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((s.current_scope, self))
-        Seq(self.body.members).for_each(lambda m: m.generate(s))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.exit_cur_scope()
+    def generate(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.into_new_scope(IdentifierAst(self.identifier.parts[0].pos, self.identifier.parts[-1].value + "#SUP-functions"))
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
@@ -2787,13 +2843,14 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         super().pre_process(context)
 
     def generate(self, scope_handler: ScopeHandler) -> None:
-        scope_handler.into_new_scope(IdentifierAst(-1, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
+        scope_handler.into_new_scope(IdentifierAst(self.identifier.parts[0].pos, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         # TODO: is this check here rather the pre-process ok?
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
@@ -2964,7 +3021,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
     def without_generics(self) -> TypeSingleAst:
         parts = []
         for part in self.parts:
-            parts.append(GenericIdentifierAst(-1, part.value, GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))) if isinstance(part, GenericIdentifierAst) else part)
+            parts.append(GenericIdentifierAst(part.pos, part.value, GenericArgumentGroupAst(part.pos, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))) if isinstance(part, GenericIdentifierAst) else part)
         return TypeSingleAst(self.pos, parts)
 
     def __eq__(self, that):
@@ -3094,9 +3151,6 @@ class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     body: InnerScopeAst[StatementAst]
     else_block: Optional[ResidualInnerScopeAst]
 
-    def __post_init__(self):
-        self.else_block = self.else_block or ResidualInnerScopeAst(-1, TokenAst.dummy(TokenType.KwElse), InnerScopeAst(-1, TokenAst.dummy(TokenType.TkBraceL), [], TokenAst.dummy(TokenType.TkBraceR)))
-
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
@@ -3107,7 +3161,8 @@ class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, **kwargs)
-        self.else_block.do_semantic_analysis(scope_handler, **kwargs)
+        if self.else_block:
+            self.else_block.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, CommonTypes.void(pos=self.pos)
@@ -3323,8 +3378,11 @@ def infer_generic_argument_values(
     inferred_generic_parameters = Seq([])
     for generic_parameter in generic_parameters:
         for parameter_t, argument_t in infer_from.zip(replace_with):
+            if parameter_t != generic_parameter.identifier:
+                continue
 
             # Check if the generic argument has already been inferred.
+            # print("I", inferred_generic_parameters, generic_parameter, parameter_t, argument_t)
             duplicate_inferred_parameter = inferred_generic_parameters.find(lambda p: p.identifier == generic_parameter.identifier)
             if duplicate_inferred_parameter and not duplicate_inferred_parameter.type.symbolic_eq(argument_t, scope_handler.current_scope):
                 exception = SemanticError(f"Generic argument has already been inferred:")

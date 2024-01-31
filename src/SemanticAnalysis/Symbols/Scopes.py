@@ -149,6 +149,10 @@ class ScopeHandler:
     def current_scope(self) -> Scope:
         return self._current_scope
 
+    @current_scope.setter
+    def current_scope(self, scope: Scope) -> None:
+        self._current_scope = scope
+
     @property
     def global_scope(self) -> Scope:
         return self._global_scope

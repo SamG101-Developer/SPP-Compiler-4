@@ -143,6 +143,9 @@ class Seq[T]:
     def set_union(self, other: Seq[T]) -> Seq[T]:
         return Seq(self._value + [x for x in other if x not in self._value])
 
+    def flat[U](self) -> Seq[U]:
+        return Seq([y for x in self._value for y in x])
+
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
 

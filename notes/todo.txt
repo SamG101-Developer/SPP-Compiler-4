@@ -1,6 +1,7 @@
 Generics:
 -- Ban generic arguments from being `Void` for attributes
 -- All things generic constraints (for `sup` just remove sup-scopes?).
+-- Redo generics for class instantiation (create new instances with attributes adjusted) - also see how normal typgen does this etc.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- New instances currently generated for genericized classes -> need to re-create the sup-scopes too for generic
    substitution, or work out a way to forward generics into them somehow, like making them inferrable via the scopes?.

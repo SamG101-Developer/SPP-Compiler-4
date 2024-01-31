@@ -3,9 +3,7 @@ mod main
 # Class declarations (will be in STL when designed)
 cls Void { }
 cls Str { }
-cls BigNum {
-    x: BigNum
-}
+cls BigNum { }
 cls Tup[..Ts] { }
 cls Opt[T] { }
 cls Vec[T] { }
@@ -15,50 +13,12 @@ cls FunRef[Ret, In] { }
 cls FunMut[Ret, In] { }
 cls FunMov[Ret, In] { }
 
-cls Fut[T] { }
 
-sup [T] Fut[T] {
-    fun await(self) -> T { }
-}
-
-sup [..Ts] Eq on Tup[Ts] {
-    fun eq(&self, that: Tup[Ts]) -> Bool { }
-}
-
-cls Eq {}
-
-sup Eq on Str {
-    fun eq(&self, that: Str) -> Bool { }
-}
-
-sup Eq on A {
-    fun eq(&self, that: A) -> Bool { }
-}
-
-cls A {
-    a: Str
-    b: B
-}
-
-cls B {
-    x: Str
-    y: Str
-}
+fun function(a: Bool, b: Bool) -> Void { }
+fun function[T, U](a: T, b: U, c: Str) -> BigNum { }
+fun function[T](a: T, b: T, c: Bool) -> T { }
 
 
-fun main(variable: A, a: (Str, Str, Str)) -> Void {
-    let mut x = case "hello world" then
-        == "hello" { 1 }
-        == "hello world" { 2 }
-    else { 3 }
-
-    let mut y = case variable then
-        == A(a="hello world", b=B(x="hello", y="world")) { 1 }
-        == A(a="hello", ..) { 2 }
-    else { 3 }
-
-    let mut z = case a then
-        == ("hello world", ..) { 1 }
-        == ("hello", ..) { 2 }
-    else { 3 }
+fun main() -> Void {
+    let mut y = function(1, "hello", "world")
 }
