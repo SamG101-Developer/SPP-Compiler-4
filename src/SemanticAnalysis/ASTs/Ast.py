@@ -2036,10 +2036,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         type_scope = type_sym.associated_scope
         attributes = Seq(type_sym.type.body.members)
 
-        print(modified_type)
-        print(attributes)
-        print("-" * 100)
-
         # Check that each attribute's given value is of the correct type:
         for attribute in attributes:
             given_argument = arguments.find(lambda a: a.identifier == attribute.identifier)
@@ -2058,7 +2054,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             # Type check
             given_argument_type = given_argument.infer_type(scope_handler, **kwargs)
-            print(attribute.type_declaration)
             if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope):
                 exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
                 exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
