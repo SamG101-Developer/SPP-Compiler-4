@@ -62,24 +62,24 @@ class CommonTypes:
 
     @staticmethod
     def fun_ref(return_type, param_types, pos: int = -1):
-        from src.SemanticAnalysis.ASTs.Ast import TypeTupleAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
-        param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
+        param_types_generic = GenericArgumentNormalAst(-1, CommonTypes.tuple(param_types))
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fun_mut(return_type, param_types, pos: int = -1):
-        from src.SemanticAnalysis.ASTs.Ast import TypeTupleAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
-        param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
+        param_types_generic = GenericArgumentNormalAst(-1, CommonTypes.tuple(param_types))
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fun_mov(return_type, param_types, pos: int = -1):
-        from src.SemanticAnalysis.ASTs.Ast import TypeTupleAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
         return_type_generic = GenericArgumentNormalAst(-1, return_type)
-        param_types_generic = GenericArgumentNormalAst(-1, TypeTupleAst(-1, TokenAst.dummy(TokenType.TkParenL), param_types, TokenAst.dummy(TokenType.TkParenR)))
+        param_types_generic = GenericArgumentNormalAst(-1, CommonTypes.tuple(param_types))
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "FunMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR)))])
