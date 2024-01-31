@@ -1,11 +1,11 @@
 Generics:
 -- Ban generic arguments from being `Void` for attributes (analyse class after substitution).
--- All things generic constraints (for `sup` just remove sup-scopes?).
+-- All things generic constraints.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
 
 Binary expressions:
--- Rearrange from parsed AST order to correct AST order [IMPL + BUGGED].
+-- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
 
 Coroutines:
 -- Check memory status of yielded objects.
@@ -14,7 +14,8 @@ Coroutines:
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
-Keyword `is`:
+Unions, `is`:
+-- Union types & their semantics (assignment especially)
 -- Check that the LHS is a variant type: `Var[...]`
 -- Check that the RHS is a type in the LHS's generic arguments.
 
@@ -24,10 +25,9 @@ Memory checks
 Sup classes
 -- Ensure overriden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
--- In the end, only one `Fun...` with multiple specializations per overload should be generated for each unique method name.
 
 Object initialization
--- Default struct values
+-- Default class attribute values?
 -- Sup initialization
 -- What happens with giving > 1 value per attribute?
 
@@ -35,11 +35,15 @@ Placeholders
 -- Placeholders in `let` and `patterns`
 -- Use to shorthand partial functions?
 
-Other
--- Numeric postfix classes aren't defined but dont throw errors
--- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now (copy from `case` which does work).
+Numbers
+-- Numeric postfix classes aren't defined but dont throw errors.
+-- Require an `_` before numeric postfix.
+
+Error feedback
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
--- Tuple operations
+-- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable with scope analysis.
+
+Other
+-- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now (copy from `case` which does work).
 -- Binary member access for conditional branches
--- Union types & their semantics (assignment especially)
--- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable.
+-- Tuple operations (unpacking, folding etc)
