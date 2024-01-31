@@ -12,8 +12,6 @@ Coroutines:
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
 
 Namespaced types:
--- Compile all spp files in the `src` folder.
--- Searching scopes/symbol-tables for namespaced types.
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
 Keyword `is`:
