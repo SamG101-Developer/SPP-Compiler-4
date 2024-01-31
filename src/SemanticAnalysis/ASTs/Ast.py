@@ -1958,49 +1958,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
 
-        inferred_generic_arguments = infer_generic_argument_values(
-            scope_handler=scope_handler,
-            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
-            infer_from=attributes.map(lambda p: p.type_declaration),
-            replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler, **kwargs)[1]),
-            obj_definition=type_sym.type)
-
-        all_generic_arguments = verify_generic_arguments(
-            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
-            inferred_generic_arguments=inferred_generic_arguments,
-            generic_arguments=Seq(self.class_type.parts[-1].generic_arguments.arguments),
-            obj_definition=type_sym.type,
-            usage=self)
-
-        # Alter the generic symbol for type-checking the arguments
-        for generic_argument in all_generic_arguments:
-            generic_argument_type_class_prototype = type_scope.get_symbol(generic_argument.type).type
-            type_scope.get_symbol(generic_argument.identifier).type = generic_argument_type_class_prototype
-
-        # Create a new type symbol & scope for the type with its generic arguments filled in
-        # modified_class_type = copy.deepcopy(self.class_type)
-        # modified_class_type.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-        # if all_generic_arguments and not scope_handler.current_scope.has_symbol(modified_class_type):
-        #     parent_scope = type_scope._parent_scope
-        #     modified_type_scope = copy.deepcopy(type_scope)
-        #     modified_type_scope._scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-        #
-        #     modified_type_with_generics = copy.deepcopy(self.class_type)
-        #     modified_type_with_generics.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-        #
-        #     for attribute in modified_type_scope.all_symbols(exclusive=True):
-        #         if attribute.type in all_generic_arguments.map(lambda a: a.identifier):
-        #             attribute.type = all_generic_arguments.find(lambda a: a.identifier == attribute.type).type
-        #
-        #     parent_scope._children_scopes.append(modified_type_scope)
-        #     parent_scope.add_symbol(TypeSymbol(modified_type_with_generics, type_sym.type, modified_type_scope))
-        #     self.class_type = modified_type_with_generics
-
-
-        # Update the symbol table to map each generic parameter to its generic argument's type. Then analyse the body,
-        # and then reset the generic parameter's mapped type to None.
-        # TODO
-
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
         arguments = Seq(self.arguments.arguments)
 
@@ -2045,16 +2002,43 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         # Pigeonhole Principle:
         if invalid_argument_names := arguments.map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in attribute_names):
             exception = SemanticError(f"Invalid argument names given to function call:")
-            exception.add_traceback(type_sym.type.identifier.pos, f"Class {self.class_type} declared here with attributes: {attribute_names.map(str).join(", ")}")
+            exception.add_traceback(type_sym.type.identifier.pos, f"Class {self.class_type} declared here with attributes: {attribute_names}")
             exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.")
             raise exception
 
         # Check that all required attributes have been given a value:
         if not default_value_given and (unfilled_required_attributes := attribute_names.set_subtract(arguments.map(lambda a: a.identifier))):
             exception = SemanticError(f"Missing attribute(s) in object initializer for type '{self.class_type}':")
-            exception.add_traceback(type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attribute_names.map(str).join(", ")}'.")
+            exception.add_traceback(type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attribute_names}'.")
             exception.add_traceback(self.pos, f"Object initializer missing attributes '{unfilled_required_attributes.map(str).join(", ")}'.")
             raise exception
+
+        inferred_generic_arguments = infer_generic_argument_values(
+            scope_handler=scope_handler,
+            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+            infer_from=attributes.map(lambda p: p.type_declaration),
+            replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler, **kwargs)[1]),
+            obj_definition=type_sym.type)
+
+        all_generic_arguments = verify_generic_arguments(
+            generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+            inferred_generic_arguments=inferred_generic_arguments,
+            generic_arguments=Seq(self.class_type.parts[-1].generic_arguments.arguments),
+            obj_definition=type_sym.type,
+            usage=self)
+
+        modified_type = copy.deepcopy(self.class_type)
+        modified_type.parts[-1].generic_arguments.arguments = all_generic_arguments.value
+        modified_type.do_semantic_analysis(scope_handler)
+        self._modified_type = modified_type
+
+        type_sym = scope_handler.current_scope.get_symbol(modified_type)
+        type_scope = type_sym.associated_scope
+        attributes = Seq(type_sym.type.body.members)
+
+        print(modified_type)
+        print(attributes)
+        print("-" * 100)
 
         # Check that each attribute's given value is of the correct type:
         for attribute in attributes:
@@ -2074,6 +2058,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             # Type check
             given_argument_type = given_argument.infer_type(scope_handler, **kwargs)
+            print(attribute.type_declaration)
             if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope):
                 exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
                 exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
@@ -2108,7 +2093,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         # TODO : generic arguments
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, self.class_type
+        return ConventionMovAst, self._modified_type
 
 
 @dataclass
@@ -2636,7 +2621,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             error = SemanticError("Invalid function call")
             error.add_traceback(self.pos, f"Function call {self} found here.")
             error.next_exceptions = function_overload_errors
-            print(error.next_exceptions)
             raise error
 
         # TODO: Select the most precise match: this is the overload with the least amount of parameters that have generic types.
@@ -3088,10 +3072,6 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
     def symbolic_eq(self, that, scope: Scope) -> bool:
         # Allows for generics and aliases to match base types etc.
-        print(self, that)
-        print(json.dumps(scope.all_symbols(exclusive=True)))
-        print("-" * 100)
-
         this_type = scope.get_symbol(self).type
         that_type = scope.get_symbol(that).type
         return this_type == that_type
