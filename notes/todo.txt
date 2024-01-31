@@ -1,5 +1,5 @@
 Generics:
--- Ban generic arguments from being `Void` for attributes
+-- Ban generic arguments from being `Void` for attributes (analyse class after substitution).
 -- All things generic constraints (for `sup` just remove sup-scopes?).
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
