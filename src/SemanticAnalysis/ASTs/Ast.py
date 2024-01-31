@@ -3016,6 +3016,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
         this_type_exists = scope_handler.current_scope.has_symbol(self)
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments)
+        generic_arguments.for_each(lambda g: g.do_semantic_analysis(scope_handler, **kwargs))
 
         if not base_type_exists:
             all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
@@ -3027,19 +3028,45 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             raise exception
 
         elif not this_type_exists and self.parts[-1].generic_arguments.arguments:
-            # TODO: is this ok?
+            # Get the symbol for the base type without any generic arguments, and get its associated scope. The parent
+            # scope of the type is needed as this is the scope that holds all the types.
             type_sym = scope_handler.current_scope.get_symbol(self.without_generics())
             type_scope = type_sym.associated_scope
             parent_scope = type_scope._parent_scope
 
+            # For each generic parameter, set it's type to the corresponding generic argument.
+            all_generic_arguments = verify_generic_arguments(
+                generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+                inferred_generic_arguments=Seq([]),
+                generic_arguments=generic_arguments,
+                obj_definition=type_sym.type,
+                usage=self)
+
+            # Copy the scope name, and create a new scope whose name includes the generic arguments. This allows for
+            # multiple types with the same name, but different generic arguments, to exist in the same scope.
             modified_type_scope_name = copy.deepcopy(type_scope._scope_name)
-            modified_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
+            modified_type_scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
             modified_type_scope = Scope(modified_type_scope_name, parent_scope)
             modified_type_scope._sup_scopes = type_scope._sup_scopes
             modified_type_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
 
+            # Copy the type, and substitute the attribute types with the generic arguments.
+            modified_type = copy.deepcopy(type_sym.type)
+
+            # Inject the type into the parent scope
             parent_scope._children_scopes.append(modified_type_scope)
-            parent_scope.add_symbol(TypeSymbol(self, type_sym.type, modified_type_scope))
+            parent_scope.add_symbol(TypeSymbol(self, modified_type, modified_type_scope))
+
+            for generic_argument in all_generic_arguments:
+                type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
+                modified_type_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
+                modified_type_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
+
+                for attribute in Seq(modified_type_scope.all_symbols()).filter_to_type(VariableSymbol):
+                    attribute.type.substitute_generics(generic_argument.identifier, generic_argument.type)
+
+                for attribute in modified_type.body.members:
+                    attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
 
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
@@ -3061,6 +3088,10 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
     def symbolic_eq(self, that, scope: Scope) -> bool:
         # Allows for generics and aliases to match base types etc.
+        print(self, that)
+        print(json.dumps(scope.all_symbols(exclusive=True)))
+        print("-" * 100)
+
         this_type = scope.get_symbol(self).type
         that_type = scope.get_symbol(that).type
         return this_type == that_type
