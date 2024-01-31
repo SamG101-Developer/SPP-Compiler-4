@@ -2541,37 +2541,43 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                 print(non_generic_function_overload in function_overload._specializations)
 
                 # TODO: Only continue if this overload of generics is unique. (creates dupe scopes otherwise)
-                # if non_generic_function_overload not in function_overload._specializations:
-                function_overload._specializations.append(non_generic_function_overload)
-                function_overload._ctx.body.members.append(non_generic_function_overload)
-                non_generic_function_overload.pre_process(function_overload._ctx)
+                if non_generic_function_overload not in function_overload._specializations:
+                    function_overload._specializations.append(non_generic_function_overload)
+                    function_overload._ctx.body.members.append(non_generic_function_overload)
+                    non_generic_function_overload.pre_process(function_overload._ctx)
 
-                restore_scope = scope_handler.current_scope
-                scope_handler.current_scope = function_overload_scope._parent_scope
-                non_generic_function_overload.generate(scope_handler)
-                non_generic_function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[-1]
+                    restore_scope = scope_handler.current_scope
+                    scope_handler.current_scope = function_overload_scope._parent_scope
+                    non_generic_function_overload.generate(scope_handler)
+                    non_generic_function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[-1]
 
-                scope_handler.current_scope = non_generic_function_overload_scope
-                non_generic_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
+                    scope_handler.current_scope = non_generic_function_overload_scope
+                    non_generic_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
 
-                scope_handler.current_scope = restore_scope
+                    scope_handler.current_scope = restore_scope
 
-                for generic_argument in all_generic_arguments:
-                    type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
-                    non_generic_function_overload_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
-                    non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
+                    for generic_argument in all_generic_arguments:
+                        type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
+                        non_generic_function_overload_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
+                        non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
 
-                new_scope = True
+                    new_scope = True
 
-                def remove_scope():
-                    function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
+                    def remove_scope():
+                        function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
 
-                function_overload_scope = non_generic_function_overload_scope
-                # else:
-                #     non_generic_function_overload = Seq(function_overload._specializations).find(lambda s: s == non_generic_function_overload)
-                #     non_generic_function_overload_scope
-                #     function_overload_scope = non_generic_function_overload_scope
-            #
+                    function_overload_scope = non_generic_function_overload_scope
+                else:
+                    non_generic_function_overload = Seq(function_overload._specializations).find(lambda s: s == non_generic_function_overload)
+                    non_generic_function_overload_scope = None
+                    for scope in mock_function_object_sup_scopes[i][0]._children_scopes:
+                        type_symbols = Seq(scope.all_symbols(True)).filter_to_type(TypeSymbol)
+                        if all([type_symbol.name in all_generic_arguments.map(lambda a: a.identifier) and type_symbol.type == scope_handler.current_scope.get_symbol(all_generic_arguments.find(lambda a: a.identifier == type_symbol.name).type).type for type_symbol in type_symbols]):
+                            non_generic_function_overload_scope = scope
+                            break
+
+                    function_overload_scope = non_generic_function_overload_scope
+
 
             # Type check between each argument and its corresponding parameter.
             type_error = False
@@ -3121,6 +3127,9 @@ class WhereBlockAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.where_keyword.print(printer)}{self.constraint_group.print(printer)}"
 
+    def __eq__(self, other):
+        return isinstance(other, WhereBlockAst) and self.constraint_group == other.constraint_group
+
 
 @dataclass
 class WhereConstraintsGroupAst(Ast):
@@ -3132,6 +3141,9 @@ class WhereConstraintsGroupAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.brack_l_token.print(printer)}{Seq(self.constraints).print(printer, ", ")}{self.brack_r_token.print(printer)}"
 
+    def __eq__(self, other):
+        return isinstance(other, WhereConstraintsGroupAst) and self.constraints == other.constraints
+
 
 @dataclass
 class WhereConstraintsAst(Ast):
@@ -3142,6 +3154,9 @@ class WhereConstraintsAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         return f"{Seq(self.types_to_constrain).print(printer, ", ")}{self.colon_token.print(printer)} {Seq(self.constraints).print(printer, ", ")}"
+
+    def __eq__(self, other):
+        return isinstance(other, WhereConstraintsAst) and self.types_to_constrain == other.types_to_constrain and self.constraints == other.constraints
 
 
 @dataclass
