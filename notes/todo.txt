@@ -1,12 +1,8 @@
 Generics:
 -- Ban generic arguments from being `Void` for attributes
 -- All things generic constraints (for `sup` just remove sup-scopes?).
--- Redo generics for class instantiation (create new instances with attributes adjusted) - also see how normal typgen does this etc.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
--- New instances currently generated for genericized classes -> need to re-create the sup-scopes too for generic
-   substitution, or work out a way to forward generics into them somehow, like making them inferrable via the scopes?
-    -- Dont create new genericized instance if it's already been generated too
--- Need to create new instances of the functions for generics?
+-- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
 
 Binary expressions:
 -- Rearrange from parsed AST order to correct AST order [IMPL + BUGGED].
@@ -14,10 +10,6 @@ Binary expressions:
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
-
-Conditional branching:
--- Begin testing and identify all issues (there will be a lot)
--- Add binary member access too.
 
 Namespaced types:
 -- Compile all spp files in the `src` folder.
@@ -50,8 +42,5 @@ Other
 -- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now.
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
 -- Tuple operations
-
-Random failures:
-let mut x = a.function1("hello")
-let mut y = a.function2("hello")
-x = y
+-- Binary member access for conditional branches
+-- Union types & their semantics (assignment especially)

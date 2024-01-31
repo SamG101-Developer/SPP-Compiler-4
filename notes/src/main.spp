@@ -17,5 +17,8 @@ cls FunMov[Ret, In] { }
 
 
 fun main() -> Void {
-    let value = Opt()
+    let value = Opt(value=5)
+
+    let mut x = "1"
+    x = value.value
 }
