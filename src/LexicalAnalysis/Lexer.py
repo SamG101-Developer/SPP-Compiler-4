@@ -51,4 +51,4 @@ class Lexer:
                 output += [Token(self._code[current], TokenType.ERR)]
                 current += 1
 
-        return [Token("\n", TokenType.TkNewLine)] + output + [Token("\0", TokenType.TkEOF)]
+        return [Token("\n", TokenType.TkNewLine)] + output + [Token("<EOF>", TokenType.TkEOF)]

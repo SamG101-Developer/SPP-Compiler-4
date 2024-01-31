@@ -74,7 +74,7 @@ class TokenType(Enum):
     TkArrowR = "->"
     TkAt = "@"
 
-    TkEOF = "\0"
+    TkEOF = "<EOF>"
     TkWhitespace = " "
     TkNewLine = "\n"
 
