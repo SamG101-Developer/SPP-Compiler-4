@@ -3416,7 +3416,7 @@ def verify_generic_arguments(
         generic_argument_type = generic_argument.type if not variadic else CommonTypes.tuple([generic_argument.type])
 
         new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument_type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
-        generic_arguments.replace(generic_argument, new_generic_argument)
+        generic_arguments.replace(generic_argument, new_generic_argument, limit=1)
         if variadic:
             variadic_generic_argument = new_generic_argument
 
