@@ -452,7 +452,7 @@ ConventionAst = (
 
 
 @dataclass
-class FunctionArgumentNormalAst(Ast, SemanticAnalysis):
+class FunctionArgumentNormalAst(Ast, SemanticAnalysis, TypeInfer):
     convention: ConventionAst
     unpack_token: Optional[TokenAst]
     value: ExpressionAst
@@ -469,9 +469,12 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalysis):
         # Pass analysis onto the value of the argument.
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return type(self.convention), self.value.infer_type(scope_handler, **kwargs)[1]
+
 
 @dataclass
-class FunctionArgumentNamedAst(Ast, SemanticAnalysis):
+class FunctionArgumentNamedAst(Ast, SemanticAnalysis, TypeInfer):
     identifier: IdentifierAst
     assignment_token: TokenAst
     convention: ConventionAst
@@ -484,6 +487,9 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Pass analysis onto the value of the argument.
         self.value.do_semantic_analysis(scope_handler, **kwargs)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return type(self.convention), self.value.infer_type(scope_handler, **kwargs)[1]
 
 
 FunctionArgumentAst = (
@@ -2587,7 +2593,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             type_error = False
             for argument in arguments:
                 corresponding_parameter = Seq(function_overload.parameters.parameters).find(lambda p: p.identifier == argument.identifier)
-                argument_type = argument.value.infer_type(scope_handler, **kwargs)
+                argument_type = argument.infer_type(scope_handler, **kwargs)
 
                 # Special case for "self" => use the param.convention, not the inferred type convention.
                 if argument.identifier.value == "self":
