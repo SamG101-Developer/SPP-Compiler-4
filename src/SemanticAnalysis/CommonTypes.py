@@ -61,6 +61,13 @@ class CommonTypes:
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Tup", types)])
 
     @staticmethod
+    def union(types, pos: int = -1):
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        types = GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [GenericArgumentNormalAst(-1, x) for x in types], TokenAst.dummy(TokenType.TkBrackR))
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Var", types)])
+
+    @staticmethod
     def fun_ref(return_type, param_types, pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
