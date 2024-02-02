@@ -117,12 +117,21 @@ class Seq[T]:
         self._value = [x for x in self._value if not func(x)]
         return self
 
-    def replace(self, item: T, replacement: T) -> Seq[T]:
-        self._value = [replacement if x == item else x for x in self._value]
+    def replace(self, item: T, replacement: T, limit: int = -1) -> Seq[T]:
+        limit = self.count(item) if limit == -1 else limit
+        for i, x in enumerate(self._value):
+            if x == item:
+                self._value[i] = replacement
+                limit -= 1
+                if limit == 0:
+                    break
         return self
 
     def pop(self, index: int) -> T:
         return self._value.pop(index)
+
+    def count(self, item: T) -> int:
+        return self._value.count(item)
 
     # Getter operations
 
