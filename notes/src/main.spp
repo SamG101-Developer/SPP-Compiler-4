@@ -4,22 +4,26 @@ mod main
 cls Void { }
 cls Str { }
 cls BigNum { }
-cls Tup[..Ts] { }
+cls Tup[..Items] { }
 cls Opt[T] {
     value: T
 }
 cls Vec[T] { }
 cls Bool { }
+cls Var[..Variants] { }
 
 cls FunRef[Ret, In] { }
 cls FunMut[Ret, In] { }
 cls FunMov[Ret, In] { }
 
+cls Point {
+    x: Str
+    y: Str
+    z: Str
+}
 
-fun main() -> Void {
-    let value = Opt(value=5)
-    let mut x = 123
-    x = value.value
+fun function_test(a: Str, b: &Str) -> Void { }
 
-    let m = inner.MyType()
+fun main(point: &Point) -> Void {
+    let x = point.x
 }
