@@ -364,7 +364,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s, scope_handler, **kwargs, **kwargs)
-        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
+        self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
 
         # Check that no attributes have the same name as each other. Raise an exception if they do.
         if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
@@ -1073,14 +1073,24 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         # Add the "target-return-type" to the function block, so that nested return statements can be type-checked. Set
         # "inline-block" to True, because a new scope has already been created for the function scope, so the InnerScope
         # analyser doesn't need to create a new scope automatically.
-        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"target-return-type": self.return_type, "inline-block": True}))
+        kwargs |= {"target-return-type": self.return_type}
+        self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
+        kwargs.pop("target-return-type")
 
-        # Check that there a return statement at the end for non-Void functions.
-        if not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope) and self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst):
+        # Check that there a return statement at the end for non-Void subroutines.
+        print(self.identifier, kwargs)
+        if ("coroutine" not in kwargs
+                and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
+                and self.body.members
+                and not isinstance(self.body.members[-1], ReturnStatementAst)):
             exception = SemanticError(f"Missing return statement in non-Void function:")
             exception.add_traceback(self.pos, f"Function '{self.identifier}' declared here.")
             exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
             raise exception
+
+        # Check if the function is a coroutine (contains 1 yield statement, can be nested in some inner scope too)
+        if "coroutine" in kwargs:
+            ...
 
         # Exit the function scope.
         if not override_scope:
@@ -1368,8 +1378,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Analyse the condition and then each pattern branch
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
-        kwargs |= {"if-condition": self.condition}
-        Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, **kwargs))
+        Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, if_condition=self.condition, **kwargs))
 
         # Check that the branches don't have comparison operators if the if-expression does. This is because the if
         # expression's partial fragment cannot conflict with the branches partial fragment.
@@ -1410,7 +1419,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         # type (final statement of the pattern block).
         if kwargs.get("assignment", False):
             if Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler, **kwargs)).unique_items().length > 1:
-                conflicting_types = Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler)).unique_items()
+                conflicting_types = Seq(self.branches).map(lambda b: b.body.members[-1].infer_type(scope_handler, **kwargs)).unique_items()
                 exception = SemanticError(f"Conflicting types found in if-expression being used for assignment:")
                 exception.add_traceback(conflicting_types[0][1].pos, f"Type '{conflicting_types[0][0].default()}{conflicting_types[0][1]}' inferred here.")  # TODO : wrong.pos
                 exception.add_traceback(conflicting_types[1][1].pos, f"Type '{conflicting_types[1][0].default()}{conflicting_types[1][1]}' inferred here.")  # TODO : wrong.pos
@@ -1445,10 +1454,9 @@ class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.brace_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler, inline_block: bool = False, **kwargs) -> None:
         # Case where a new scope is not wanted, ie keep inline with the current scope. This is NOT the default.
-        if kwargs.get("inline-block", False):
-            kwargs.pop("inline-block")
+        if inline_block:
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
 
         # Case where a new scope is wanted, ie create a new scope and move into it. This IS the default.
@@ -1555,12 +1563,14 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     memory_info=MemoryStatus(ast_initialized=self.assign_to.identifier))
                 scope_handler.current_scope.add_symbol(sym)
 
+                kwargs |= {"assignment": True}
                 if not self._sup_let_type:
-                    ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **(kwargs | {"assignment": True}))
+                    ensure_memory_integrity_of_expression(self.value, scope_handler, keep_consume=True, **kwargs)
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
                 else:
-                    self.value.do_semantic_analysis(scope_handler, **(kwargs | {"assignment": True}))
+                    self.value.do_semantic_analysis(scope_handler, **kwargs)
                     sym.type = self.value.infer_type(scope_handler, **kwargs)[1]
+                kwargs.pop("assignment")
 
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
@@ -2045,7 +2055,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
         modified_type = copy.deepcopy(self.class_type)
         modified_type.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-        modified_type.do_semantic_analysis(scope_handler)
+        modified_type.do_semantic_analysis(scope_handler, **kwargs)
         self._modified_type = modified_type
 
         type_sym = scope_handler.current_scope.get_symbol(modified_type)
@@ -2120,7 +2130,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return self.expression.infer_type(scope_handler, **kwargs)
 
 
@@ -2138,7 +2148,7 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.paren_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
 
         has_skipped_args = None
@@ -2152,16 +2162,16 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
                 has_skipped_args = argument
                 continue
 
-        lhs_tuple_type_elements = kwargs.get("if-condition").infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+        lhs_tuple_type_elements = if_condition.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
         rhs_tuple_type_elements = self.items
         if len(lhs_tuple_type_elements) != len(rhs_tuple_type_elements) and not has_skipped_args:
             exception = SemanticError(f"Invalid tuple assignment:")
             exception.add_traceback(self.pos, f"Assignment target tuple contains {len(rhs_tuple_type_elements)} elements.")
-            exception.add_traceback(kwargs.get("if-condition").pos, f"Assignment value tuple contains {len(lhs_tuple_type_elements)} elements.")
+            exception.add_traceback(if_condition.pos, f"Assignment value tuple contains {len(lhs_tuple_type_elements)} elements.")
             raise exception
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, kwargs["if-condition"].infer_type(scope_handler, **kwargs)[1]
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, if_condition.infer_type(scope_handler, **kwargs)[1]
 
 
 @dataclass
@@ -2179,7 +2189,7 @@ class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.bracket_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
 
         # Get the attributes on the class type.
@@ -2236,9 +2246,9 @@ class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
                 items=variables,
                 bracket_r_token=self.bracket_r_token),
             assign_token=TokenAst.dummy(TokenType.TkAssign),
-            value=kwargs.get("if-condition"))
+            value=if_condition)
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, self.class_type
 
 
@@ -2257,10 +2267,10 @@ class PatternVariantVariableAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.identifier.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         ...
 
 
@@ -2272,10 +2282,10 @@ class PatternVariantLiteralAst(Ast, SemanticAnalysis, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.literal.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         self.literal.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return self.literal.infer_type(scope_handler, **kwargs)
 
 
@@ -2290,10 +2300,10 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalysis, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}{self.assign_token.print(printer)}{self.value.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, CommonTypes.void(self.pos)
 
 
@@ -2314,7 +2324,7 @@ class PatternVariantElseAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.else_token.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         ...
 
 
@@ -2326,7 +2336,7 @@ class PatternVariantSkipArgumentAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.variadic_token.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         ...
 
 
@@ -2367,10 +2377,10 @@ class PatternBlockAst(Ast, SemanticAnalysis):
     def is_else_branch(self) -> bool:
         return isinstance(self.patterns[0], PatternVariantElseAst)
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         scope_handler.into_new_scope("<pattern-block>")
 
-        Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
+        Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, if_condition, **kwargs))
         self.guard.do_semantic_analysis(scope_handler, **kwargs) if self.guard else None
         self.body.do_semantic_analysis(scope_handler, **kwargs)
         scope_handler.exit_cur_scope()
@@ -2406,10 +2416,10 @@ class PostfixExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         self.lhs.do_semantic_analysis(scope_handler, **kwargs)
-        self.op.do_semantic_analysis(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
+        self.op.do_semantic_analysis(scope_handler, postfix_lhs=self.lhs, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return self.op.infer_type(scope_handler, **(kwargs | {"postfix-lhs": self.lhs}))
+        return self.op.infer_type(scope_handler, postfix_lhs=self.lhs, **kwargs)
 
     def __eq__(self, other):
         return isinstance(other, PostfixExpressionAst) and self.lhs == other.lhs and self.op == other.op
@@ -2638,9 +2648,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         # TODO: This can lead to ambiguities: func(a: Str, b: Vec[T) and func(a: T, b: Arr[I8]) for func("hello", [1, 2, 3])
         return valid_overloads[0]
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, postfix_lhs: ExpressionAst = None, **kwargs) -> None:
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
-        _, _, self_arg = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"), **kwargs)
+        _, _, self_arg = self.__get_matching_overload(scope_handler, postfix_lhs, **kwargs)
         Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
 
         # Analyse the arguments (including the "self" argument, to check for conflicting borrows)
@@ -2651,10 +2661,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
         else:
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, postfix_lhs: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
         # owned, ie ConventionMovAst.
-        function_proto, function_scope, _ = self.__get_matching_overload(scope_handler, kwargs.get("postfix-lhs"), **kwargs)
+        function_proto, function_scope, _ = self.__get_matching_overload(scope_handler, postfix_lhs, **kwargs)
         function_return_type = copy.deepcopy(function_proto.return_type)
         function_return_type = function_scope.get_symbol(function_return_type).type.identifier  # TODO: this is a hack (namespaced types won't work here)
         return ConventionMovAst, function_return_type
@@ -2669,8 +2679,8 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.dot_token.print(printer)}{self.identifier.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        lhs = kwargs.get("postfix-lhs")
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, postfix_lhs: ExpressionAst = None, **kwargs) -> None:
+        lhs = postfix_lhs
 
         # Check that, for numeric access, the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, TokenAst):
@@ -2700,8 +2710,8 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
         else:
             raise NotImplementedError
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        lhs = kwargs.get("postfix-lhs")
+    def infer_type(self, scope_handler: ScopeHandler, postfix_lhs: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        lhs = postfix_lhs
 
         # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
         # correct type
@@ -2713,7 +2723,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
         # correct element.
         elif isinstance(self.identifier, TokenAst):
             lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            return ConventionMovAst, lhs_type[1].parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)]
+            return ConventionMovAst, lhs_type[1].parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type
 
     def __eq__(self, other):
         return isinstance(other, PostfixExpressionOperatorMemberAccessAst) and self.identifier == other.identifier
@@ -2791,7 +2801,7 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         target_return_type = kwargs.get("target-return-type")
 
         if self.expression:
-            ensure_memory_integrity_of_expression(self.expression, scope_handler)
+            ensure_memory_integrity_of_expression(self.expression, scope_handler, **kwargs)
 
         return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
@@ -2845,7 +2855,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
+        self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
         scope_handler.exit_cur_scope()
 
 
@@ -2886,7 +2896,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # self.where_block.do_semantic_analysis(s)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-        self.body.do_semantic_analysis(scope_handler, **(kwargs | {"inline-block": True}))
+        self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
         scope_handler.exit_cur_scope()
 
         # TODO : check there are no direct duplicate sup super-classes
@@ -3089,6 +3099,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
     def symbolic_eq(self, that, scope: Scope) -> bool:
         # Allows for generics and aliases to match base types etc.
+        print(that)
         this_type = scope.get_symbol(self).type
         that_type = scope.get_symbol(that).type
         return this_type == that_type
@@ -3246,13 +3257,13 @@ class WithExpressionAliasAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.variable.print(printer)}{self.assign_token.print(printer)}"
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, with_expression: ExpressionAst = None, **kwargs) -> None:
         let_statement = LetStatementInitializedAst(
             pos=self.variable.pos,
             let_keyword=TokenAst.dummy(TokenType.KwLet),
             assign_to=self.variable,
             assign_token=self.assign_token,
-            value=kwargs.get("with-expression-value"))
+            value=with_expression)
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
@@ -3285,7 +3296,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Create the symbol for the alias
         if self.alias:
-            self.alias.do_semantic_analysis(scope_handler, **(kwargs | {"with-expression-value": self.expression}))
+            self.alias.do_semantic_analysis(scope_handler, with_expression=self.expression, **kwargs)
 
         self.body.do_semantic_analysis(scope_handler, **kwargs)
         scope_handler.exit_cur_scope()
@@ -3297,7 +3308,7 @@ class WithExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
 
 @dataclass
-class YieldExpressionAst(Ast):
+class YieldExpressionAst(Ast, SemanticAnalysis):
     yield_keyword: TokenAst
     with_keyword: Optional[TokenAst]
     convention: ConventionAst
@@ -3310,6 +3321,22 @@ class YieldExpressionAst(Ast):
         s += f"{self.with_keyword.print(printer)}" if self.with_keyword else ""
         s += f"{self.convention.print(printer)}{self.expression.print(printer)}"
         return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.expression.do_semantic_analysis(scope_handler, **kwargs)
+        coroutine_return_type = kwargs.get("target-return-type")
+
+        # Ensure that the return type is a Generator type
+        if not coroutine_return_type.without_generics().symbolic_eq(CommonTypes.gen().without_generics(), scope_handler.current_scope):
+            exception = SemanticError(f"Gen expressions can only occur inside a function that returns a Generator")
+            exception.add_traceback(self.pos, f"Gen expression found here.")
+            exception.add_traceback(coroutine_return_type.pos, f"Function returns type '{coroutine_return_type}'.")
+            raise exception
+
+        kwargs["coroutine"] = True
+
+        # Ensure the return type's Yield typedef matches the expression's type
+        # TODO: required typedefs to be implemented first
 
 
 PrimaryExpressionAst = (
