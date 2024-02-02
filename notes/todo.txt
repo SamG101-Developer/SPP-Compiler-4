@@ -10,12 +10,19 @@ Binary expressions:
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
+-- Add `cor` for couroutines
+    -- Parsing rule allows for conventions for yielding & sending
+    -- CoroutinePrototypeAST can inherit from FunctionPrototypeAST
+    -- Some checks the same, others specific to each (yielding, returning)
+    -- Only allow yielding from coroutines
+
 
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
 Unions:
 -- Union types & their semantics (assignment especially)
+-- Reintroduce `is` .. expression for unions.
 
 Sup classes
 -- Ensure overriden methods exist on the `sup` class.
