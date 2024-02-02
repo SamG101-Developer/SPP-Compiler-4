@@ -14,10 +14,8 @@ Coroutines:
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
-Unions, `is`:
+Unions:
 -- Union types & their semantics (assignment especially)
--- Check that the LHS is a variant type: `Var[...]`
--- Check that the RHS is a type in the LHS's generic arguments.
 
 Memory checks
 -- The `borrow_ref` and `borrow_mut` need to be checked if moving an argument into a function.

@@ -103,7 +103,6 @@ class TokenType(Enum):
 
     # Type helpers
     KwWhere = "where"
-    KwIs = "is"
     KwAs = "as"
 
     # Types

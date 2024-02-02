@@ -47,7 +47,6 @@ OP_PREC = {
     TokenType.TkLe: 5,
     TokenType.TkGe: 5,
     TokenType.TkSs: 5,
-    TokenType.KwIs: 5,
     TokenType.TkBitShiftL: 5,
     TokenType.TkBitShiftR: 5,
     TokenType.TkBitRotateL: 5,

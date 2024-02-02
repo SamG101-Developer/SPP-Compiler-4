@@ -824,9 +824,8 @@ class Parser:
         p4 = self.parse_token(TokenType.TkGe).for_alt()
         p5 = self.parse_token(TokenType.TkLt).for_alt()
         p6 = self.parse_token(TokenType.TkGt).for_alt()
-        p7 = self.parse_token(TokenType.KwIs).for_alt()
-        p8 = (p1 | p2 | p3 | p4 | p5 | p6 | p7).parse_once()
-        return p8
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
 
     @parser_rule
     def parse_pattern_guard(self) -> PatternGuardAst:
@@ -972,9 +971,8 @@ class Parser:
         p5 = self.parse_token(TokenType.TkLt).for_alt()
         p6 = self.parse_token(TokenType.TkGt).for_alt()
         p7 = self.parse_token(TokenType.TkSs).for_alt()
-        p8 = self.parse_token(TokenType.KwIs).for_alt()
-        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
-        return p9
+        p8 = (p1 | p2 | p3 | p4 | p5 | p6 | p7).parse_once()
+        return p8
 
     @parser_rule
     @tested_parser_rule
