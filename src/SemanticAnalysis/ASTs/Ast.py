@@ -470,7 +470,10 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalysis, TypeInfer):
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return type(self.convention), self.value.infer_type(scope_handler, **kwargs)[1]
+        match self.convention, self.value.infer_type(scope_handler, **kwargs)[0]:
+            case ConventionMovAst(), that_convention: convention = that_convention
+            case self_convention, _: convention = type(self_convention)
+        return convention, self.value.infer_type(scope_handler, **kwargs)[1]
 
 
 @dataclass
@@ -489,7 +492,10 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalysis, TypeInfer):
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return type(self.convention), self.value.infer_type(scope_handler, **kwargs)[1]
+        match self.convention, self.value.infer_type(scope_handler, **kwargs)[0]:
+            case ConventionMovAst(), that_convention: convention = that_convention
+            case self_convention, _: convention = type(self_convention)
+        return convention, self.value.infer_type(scope_handler, **kwargs)[1]
 
 
 FunctionArgumentAst = (
@@ -589,10 +595,16 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                         sym.memory_info.ast_consumed = argument.value
 
                     # Cannot move an identifier if is borrowed as a previous argument.
-                    # TODO (include overlaps?)
+                    for i, existing_borrow in borrows_mut | borrows_ref:
+                        existing_borrow_check = str(existing_borrow)
+                        if existing_borrow_check.startswith(str(argument.value)):
+                            exception = SemanticError(f"Cannot move an object '{argument.value}' that's already borrowed:")
+                            exception.add_traceback(i, f"Object '{argument.value}' already borrowed here.")
+                            exception.add_traceback(argument.convention.pos, f"Object '{argument.value}' attempted to be borrowed here.")
+                            raise exception
 
                     # Cannot move from a borrowed context, so enforce this here too.
-                    elif sym.memory_info.is_borrow:
+                    if sym.memory_info.is_borrow:
                         exception = SemanticError(f"Cannot move from a borrowed context:")
                         exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{argument.value}' borrowed here.")
                         exception.add_traceback(argument.pos, f"Partial move '{argument}' attempted here.")
@@ -2637,7 +2649,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             self.arguments.arguments.remove(self_arg)
         else:
-            Seq(self.arguments.arguments).for_each(lambda x: x.value.do_semantic_analysis(scope_handler, **kwargs))
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
