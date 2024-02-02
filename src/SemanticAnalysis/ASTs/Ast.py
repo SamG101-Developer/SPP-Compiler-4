@@ -2759,7 +2759,7 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
 
 
 @dataclass
-class ResidualInnerScopeAst(Ast, SemanticAnalysis, TypeInfer):
+class WhileElseExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     else_keyword: TokenAst
     body: InnerScopeAst[StatementAst]
 
@@ -3218,7 +3218,7 @@ class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
     while_keyword: TokenAst
     condition: ExpressionAst
     body: InnerScopeAst[StatementAst]
-    else_block: Optional[ResidualInnerScopeAst]
+    else_block: Optional[WhileElseExpressionAst]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

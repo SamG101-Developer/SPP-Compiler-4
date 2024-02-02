@@ -589,11 +589,11 @@ class Parser:
 
     @parser_rule
     @tested_parser_rule
-    def parse_while_else_expression(self) -> ResidualInnerScopeAst:
+    def parse_while_else_expression(self) -> WhileElseExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
         p2 = self.parse_inner_scope(self.parse_statement).parse_once()
-        return ResidualInnerScopeAst(c1, p1, p2)
+        return WhileElseExpressionAst(c1, p1, p2)
 
     @parser_rule
     @tested_parser_rule
