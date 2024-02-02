@@ -17,9 +17,6 @@ Namespaced types:
 Unions:
 -- Union types & their semantics (assignment especially)
 
-Memory checks
--- The `borrow_ref` and `borrow_mut` need to be checked if moving an argument into a function.
-
 Sup classes
 -- Ensure overriden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
@@ -45,3 +42,4 @@ Other
 -- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now (copy from `case` which does work).
 -- Binary member access for conditional branches
 -- Tuple operations (unpacking, folding etc)
+-- Mutability of borrows vs value: required (mut x: &mut T) in order to mutate attribute atm.
