@@ -886,7 +886,7 @@ class Parser:
     def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_pattern_variant_nested_for_tuple().parse_one_or_more(TokenType.TkComma)
+        p2 = self.parse_pattern_variant_nested_for_tuple().parse_zero_or_more(TokenType.TkComma)
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return PatternVariantTupleAst(c1, p1, p2, p3)
 
@@ -896,7 +896,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_type_single().parse_once()
         p2 = self.parse_token(TokenType.TkParenL).parse_once()
-        p3 = self.parse_pattern_variant_nested_for_destructure().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_pattern_variant_nested_for_destructure().parse_zero_or_more(TokenType.TkComma)
         p4 = self.parse_token(TokenType.TkParenR).parse_once()
         return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
 
