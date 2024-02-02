@@ -38,6 +38,15 @@ class CommonTypes:
     def ctx(pos: int = -1):
         from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst
         return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Ctx", None)])
+    
+    @staticmethod
+    def gen(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
+        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
+        send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
+        return TypeSingleAst(pos, [GenericIdentifierAst(pos, "Gen", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fut(inner_type, pos: int = -1):
