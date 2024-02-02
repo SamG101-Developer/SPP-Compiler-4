@@ -2993,7 +2993,6 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
         this_type_exists = scope_handler.current_scope.has_symbol(self)
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments)
-        generic_arguments.for_each(lambda g: g.do_semantic_analysis(scope_handler, **kwargs))
 
         if not base_type_exists:
             all_symbols = Seq(scope_handler.current_scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
@@ -3018,6 +3017,13 @@ class TypeSingleAst(Ast, SemanticAnalysis):
                 generic_arguments=generic_arguments,
                 obj_definition=type_sym.type,
                 usage=self)
+            
+            # If the type is a tuple, then it's generic arguments are a tuple (variadic) etc etc, so jump into the
+            # arguments already
+            if self.without_generics() == CommonTypes.tuple([]):
+                Seq(self.parts[-1].generic_arguments.arguments).for_each(lambda g: g.type.do_semantic_analysis(scope_handler, **kwargs))
+            else:
+                all_generic_arguments.for_each(lambda g: g.type.do_semantic_analysis(scope_handler, **kwargs))
 
             # Copy the scope name, and create a new scope whose name includes the generic arguments. This allows for
             # multiple types with the same name, but different generic arguments, to exist in the same scope.
@@ -3366,7 +3372,7 @@ def verify_generic_arguments(
     required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
 
     # Check that inferred generics haven't been given explicitly:
-    if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length:
+    if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
         if generic_parameters:
             exception = SemanticError(f"Generic arguments have already been inferred:")
             exception.add_traceback(generic_parameters[0].pos, f"Inferrable generic parameter '{generic_parameters[0]}' declared here.")
@@ -3389,7 +3395,7 @@ def verify_generic_arguments(
         available_generic_parameter_names.remove(generic_argument.identifier)
 
     # Check there aren't too many generic arguments provided for this overload:
-    if generic_arguments.length > generic_parameters.length:
+    if generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
         exception = SemanticError(f"Too many generic arguments given to function call:")
         exception.add_traceback(obj_definition.pos, f"Function overload declared here with generic parameters: {generic_parameters.map(lambda p: p.identifier).map(str).join(", ")}")
         exception.add_traceback_minimal(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - generic_parameters.length} extra generic arguments found here.")
@@ -3397,9 +3403,22 @@ def verify_generic_arguments(
 
     # Convert each normal generic argument to a named generic argument with the next available generic parameter
     # name:
+    variadic_generic_argument = None
     for generic_argument in generic_arguments.filter(lambda a: type(a) == GenericArgumentNormalAst):
-        new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument.type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
+        # Check if there are no more generic parameter names (in which case append to variadic)
+        if not available_generic_parameter_names:
+            variadic_generic_argument.type.parts[-1].generic_arguments.arguments.append(generic_argument)
+            generic_arguments.remove(generic_argument)
+            continue
+
+        # Check if available generic parameter names' current item is variadic
+        variadic = isinstance(generic_parameters.find(lambda p: p.identifier == available_generic_parameter_names[0]), GenericParameterVariadicAst)
+        generic_argument_type = generic_argument.type if not variadic else CommonTypes.tuple([generic_argument.type])
+
+        new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument_type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
         generic_arguments.replace(generic_argument, new_generic_argument)
+        if variadic:
+            variadic_generic_argument = new_generic_argument
 
     # Check that all required generic parameters have been given an argument:
     if unfilled_required_generic_parameters := Seq(required_generic_parameters).map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
