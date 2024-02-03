@@ -348,9 +348,9 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
         # Add new TypeSymbols for each generic parameter to the scope, representing "None". This is because the
         # attributes may rely on these generic types. Build VariableSymbols for each attribute of the class. Add "Self"
         # as a TypeSymbol pointing to the current class.
+        s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         Seq(self.body.members).for_each(lambda m: s.current_scope.add_symbol(VariableSymbol(m.identifier, m.type_declaration)))
-        s.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), self))
 
         # Move back into the parent scope.
         s.exit_cur_scope()
@@ -1078,7 +1078,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         kwargs.pop("target-return-type")
 
         # Check that there a return statement at the end for non-Void subroutines.
-        print(self.identifier, kwargs)
         if ("coroutine" not in kwargs
                 and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
                 and self.body.members
@@ -2844,8 +2843,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         scope_handler.into_new_scope(IdentifierAst(self.identifier.parts[0].pos, self.identifier.parts[-1].value + "#SUP-functions"))
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         scope_handler.exit_cur_scope()
@@ -2855,6 +2853,11 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         # self.where_block.do_semantic_analysis(s)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+
+        self.identifier.without_generics().do_semantic_analysis(scope_handler)  # ?
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
         self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
         scope_handler.exit_cur_scope()
 
@@ -2881,6 +2884,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         scope_handler.into_new_scope(IdentifierAst(self.identifier.parts[0].pos, self.identifier.parts[-1].value + f"#SUP-{self.super_class}"))
+        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         scope_handler.exit_cur_scope()
@@ -2888,14 +2892,16 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-        # TODO: is this check here rather the pre-process ok?
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
-        # self.where_block.do_semantic_analysis(s)
+        self.where_block.do_semantic_analysis(scope_handler, **kwargs)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+
+        self.identifier.without_generics().do_semantic_analysis(scope_handler)  # ?
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, scope_handler.current_scope.get_symbol(self.super_class).type))
+
         self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
         scope_handler.exit_cur_scope()
 
@@ -3099,7 +3105,6 @@ class TypeSingleAst(Ast, SemanticAnalysis):
 
     def symbolic_eq(self, that, scope: Scope) -> bool:
         # Allows for generics and aliases to match base types etc.
-        print(that)
         this_type = scope.get_symbol(self).type
         that_type = scope.get_symbol(that).type
         return this_type == that_type
@@ -3184,7 +3189,7 @@ UnaryOperatorAst = TokenAst
 
 
 @dataclass
-class WhereBlockAst(Ast):
+class WhereBlockAst(Ast, SemanticAnalysis):
     where_keyword: TokenAst
     constraint_group: WhereConstraintsGroupAst
 
@@ -3194,6 +3199,9 @@ class WhereBlockAst(Ast):
 
     def __eq__(self, other):
         return isinstance(other, WhereBlockAst) and self.constraint_group == other.constraint_group
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
 
 
 @dataclass
