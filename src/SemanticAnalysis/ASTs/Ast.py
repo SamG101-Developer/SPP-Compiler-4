@@ -281,6 +281,8 @@ class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         ast = combine_comparison_operators(ast)
         ast = convert_all_to_function(ast)
 
+
+
         self._as_func = ast
         self._as_func.do_semantic_analysis(scope_handler, **kwargs)
         return self._as_func
@@ -548,9 +550,9 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
                 case IdentifierAst(): sym = scope_handler.current_scope.get_symbol(argument.value)
                 case PostfixExpressionAst() if isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst):
                     temp = argument.value
-                    while not isinstance(temp.lhs, IdentifierAst):
+                    while isinstance(temp, PostfixExpressionAst):
                         temp = temp.lhs
-                    sym = scope_handler.current_scope.get_symbol(temp.lhs)
+                    sym = scope_handler.current_scope.get_symbol(temp) if isinstance(temp, IdentifierAst) else None
                 case _: sym = None
 
             # Check that an argument is initialized before being used: applies to (postfix) identifier only.
@@ -1377,11 +1379,12 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Analyse the condition and then each pattern branch
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
-        Seq(self.branches).for_each(lambda b: b.do_semantic_analysis(scope_handler, if_condition=self.condition, **kwargs))
 
         # Check that the branches don't have comparison operators if the if-expression does. This is because the if
         # expression's partial fragment cannot conflict with the branches partial fragment.
         for branch in self.branches:
+            branch.do_semantic_analysis(scope_handler, if_condition=self.condition, **kwargs)
+
             if self.comp_operator and branch.comp_operator:
                 exception = SemanticError(f"Comparison operators [{self.comp_operator}, {branch.comp_operator}] found in case-expression and pattern block:")
                 exception.add_traceback(self.comp_operator.pos, f"1st Comparison operator '{self.comp_operator}' found here.")
@@ -1396,23 +1399,25 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
 
         # Check that the combination of the case expression and the branch expressions can be combined successfully ie
         # does the complete function exist?
-        for branch in self.branches:
-            for pattern in branch.patterns:
-                if isinstance(pattern, PatternVariantElseAst): continue
+        # for branch in self.branches:
+        #     for pattern in branch.patterns:
+        #         if isinstance(pattern, PatternVariantElseAst): continue
 
-                complete_pattern = BinaryExpressionAst(
-                    pos=(self.comp_operator or branch.comp_operator).pos,
-                    lhs=self.condition,
-                    op=(self.comp_operator or branch.comp_operator),
-                    rhs=pattern)
-                complete_pattern.do_semantic_analysis(scope_handler, **kwargs)
+                # complete_pattern = BinaryExpressionAst(
+                #     pos=(self.comp_operator or branch.comp_operator).pos,
+                #     lhs=self.condition,
+                #     op=(self.comp_operator or branch.comp_operator),
+                #     rhs=pattern)
+                # TODO: complete_pattern.do_semantic_analysis(scope_handler, **kwargs)
+                # TODO: the "rhs" argument is wrong. maybe make a dummy variable of that type?
+                # TODO: beneath check too
 
                 # Overriding the comparison classes forces a Bool return type. This check is for the future when member
                 # access is implemented too.
-                if (pattern_type := complete_pattern.infer_type(scope_handler, **kwargs))[1] != CommonTypes.bool():
-                    exception = SemanticError(f"Comparisons must evaluate to a boolean expression")
-                    exception.add_traceback(complete_pattern.pos, f"Comparison evaluated here with type '{pattern_type[0].default()}{pattern_type[1]}'")
-                    raise exception
+                # if (pattern_type := complete_pattern.infer_type(scope_handler, **kwargs))[1] != CommonTypes.bool():
+                #     exception = SemanticError(f"Comparisons must evaluate to a boolean expression")
+                #     exception.add_traceback(complete_pattern.pos, f"Comparison evaluated here with type '{pattern_type[0].default()}{pattern_type[1]}'")
+                #     raise exception
 
         # If this "if" expression is being used for assignment, then check that all branches have the same returning
         # type (final statement of the pattern block).
@@ -1573,6 +1578,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
+                # TODO: move into LocalVariableTupleAst
                 rhs_tuple_type_elements = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
                 if len(self.assign_to.items) != len(rhs_tuple_type_elements):
                     exception = SemanticError(f"Invalid tuple assignment:")
@@ -1601,19 +1607,10 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
             case LocalVariableDestructureAst():
                 # Check that all the arguments given are attributes on the class type
-                self.assign_to.class_type.do_semantic_analysis(scope_handler, **kwargs)
+                self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
-                class_type = self.assign_to.class_type
-                class_type_sym = scope_handler.current_scope.get_symbol(class_type)
-                attributes = Seq(class_type_sym.type.body.members).map(lambda m: m.identifier)
-
+                new_let_statements = []
                 for argument in self.assign_to.items:
-                    if not attributes.contains(argument.identifier):
-                        exception = SemanticError(f"Invalid destructure assignment:")
-                        exception.add_traceback(class_type.pos, f"Class '{class_type}' declared here with attributes: {attributes}")
-                        exception.add_traceback(argument.pos, f"Attribute '{argument.identifier}' not found on class '{class_type}'")
-                        raise exception
-
                     current_let_statement = argument
                     new_rhs = PostfixExpressionAst(
                         pos=self.pos,
@@ -1631,6 +1628,9 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                         value=new_rhs,
                         _sup_let_type=self._sup_let_type)
 
+                    new_let_statements.append(new_let_statement)
+
+                for new_let_statement in new_let_statements:
                     new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
@@ -1860,7 +1860,7 @@ class LocalVariableTupleAst(Ast):
 
 
 @dataclass
-class LocalVariableDestructureAst(Ast):
+class LocalVariableDestructureAst(Ast, SemanticAnalysis, TypeInfer):
     class_type: TypeAst
     bracket_l_token: TokenAst
     items: List[LocalVariableSingleAst]
@@ -1870,11 +1870,90 @@ class LocalVariableDestructureAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.class_type.print(printer)}{self.bracket_l_token.print(printer)}{Seq(self.items).print(printer, ", ")}{self.bracket_r_token.print(printer)}"
 
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        self.class_type.do_semantic_analysis(scope_handler, **kwargs)
+        class_type_sym = scope_handler.current_scope.get_symbol(self.class_type)
+        attributes = Seq(class_type_sym.type.body.members)
+
+        has_skipped_args = None
+        for argument in self.items:
+            if isinstance(argument, LocalVariableSkipArgumentAst):
+                if has_skipped_args:
+                    exception = SemanticError(f"Multiple '..' given to pattern:")
+                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
+                    exception.add_traceback_minimal(argument.variadic_token.pos, f"2nd variadic argument given here.")
+                    raise exception
+                has_skipped_args = argument
+                continue
+
+            unpack = argument.unpack_token if isinstance(argument, LocalVariableSingleAst) else None
+            if unpack:
+                exception = SemanticError(f"Cannot use the unpack token '..' in a destructure pattern:")
+                exception.add_traceback(unpack.pos, f"Unpack token '..' found here.")
+                raise exception
+
+            if not attributes.map(lambda a: a.identifier).contains(argument.identifier):
+                exception = SemanticError(f"Invalid destructure assignment:")
+                exception.add_traceback(self.class_type.pos, f"Class '{self.class_type}' declared here with attributes: {attributes}")
+                exception.add_traceback(argument.pos, f"Attribute '{argument.identifier}' not found on class '{self.class_type}'")
+                raise exception
+
+            if isinstance(argument, LocalVariableAssignmentAst):
+                value = argument.value
+                value.do_semantic_analysis(scope_handler, **kwargs)
+
+                corresponding_attribute = attributes.find(lambda attribute: attribute.identifier == argument.identifier)
+                value_type = value.infer_type(scope_handler, **kwargs)
+
+                if value_type[0] != ConventionMovAst or not value_type[1].symbolic_eq(corresponding_attribute.type_declaration, scope_handler.current_scope):
+                    exception = SemanticError(f"Invalid type '{value_type[0].default()}{value_type[1]}' given to attribute '{argument.identifier}':")
+                    exception.add_traceback(corresponding_attribute.identifier.pos, f"Attribute '{corresponding_attribute.identifier}' declared here with type '{corresponding_attribute.type_declaration}'.")
+                    exception.add_traceback(value.pos, f"Attribute '{argument.identifier}' given value here with type '{value_type[0].default()}{value_type[1]}'.")
+                    raise exception
+
+        attributes_assigned_to = Seq(self.items).filter(lambda a: not isinstance(a, LocalVariableSkipArgumentAst))
+        if attributes_assigned_to.length < attributes.length and not has_skipped_args:
+            exception = SemanticError(f"Missing attribute(s) in pattern for type '{self.class_type}':")
+            exception.add_traceback(class_type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attributes}'.")
+            exception.add_traceback(self.pos, f"Initialization missing attributes '{attributes.map(lambda a: a.identifier) - attributes_assigned_to.map(lambda v: v.identifier)}'. Consider adding a '..' to mark variables as deliberately excluded.")
+            raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        return ConventionMovAst, self.class_type
+
+
+@dataclass
+class LocalVariableAssignmentAst(Ast):
+    identifier: IdentifierAst
+    assign_token: TokenAst
+    value: LocalVariableNestedAst
+
+    def print(self, printer: AstPrinter) -> str:
+        return f"{self.identifier.print(printer)}{self.assign_token.print(printer)}{self.value.print(printer)}"
+
+
+@dataclass
+class LocalVariableSkipArgumentAst(Ast):
+    variadic_token: TokenAst
+
+    @ast_printer_method
+    def print(self, printer: AstPrinter) -> str:
+        return f"{self.variadic_token.print(printer)}"
+
 
 LocalVariableAst = (
         LocalVariableSingleAst |
         LocalVariableTupleAst |
         LocalVariableDestructureAst)
+
+
+LocalVariableNestedAst = (
+        LocalVariableSingleAst |
+        LocalVariableTupleAst |
+        LocalVariableDestructureAst |
+        LocalVariableAssignmentAst |
+        LocalVariableSkipArgumentAst
+)
 
 
 @dataclass
@@ -2148,7 +2227,7 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
+        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, if_condition=if_condition, **kwargs))
 
         has_skipped_args = None
         for argument in self.items:
@@ -2188,64 +2267,19 @@ class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.bracket_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
+    def convert_to_variable(self) -> LocalVariableDestructureAst:
+        converted_items = Seq(self.items).filter_to_type(PatternVariantVariableAssignmentAst, PatternVariantSkipArgumentAst, PatternVariantVariableAst).map(lambda i: i.convert_to_variable())
 
-        # Get the attributes on the class type.
-        self.class_type.do_semantic_analysis(scope_handler, **kwargs)
-        class_type_sym = scope_handler.current_scope.get_symbol(self.class_type)
-        attributes = Seq(class_type_sym.type.body.members)
-
-        # Map variable arguments into variables (PatternVariantVariableAst => LocalVariableSingleAst).
-        arguments = Seq(self.items)
-        variables = []
-
-        has_skipped_args = None
-        for argument in arguments:
-            if isinstance(argument, PatternVariantSkipArgumentAst):
-                if has_skipped_args:
-                    exception = SemanticError(f"Multiple '..' given to pattern:")
-                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
-                    exception.add_traceback_minimal(argument.variadic_token.pos, f"2nd variadic argument given here.")
-                    raise exception
-                has_skipped_args = argument
-                continue
-
-            unpack = argument.unpack_token if isinstance(argument, PatternVariantVariableAst) else None
-            variable = LocalVariableSingleAst(pos=self.pos, is_mutable=argument.is_mutable, unpack_token=unpack, identifier=argument.identifier)
-            variables.append(variable)
-
-            if isinstance(argument, PatternVariantVariableAssignmentAst):
-                value = argument.value
-                value.do_semantic_analysis(scope_handler, **kwargs)
-
-                corresponding_attribute = attributes.find(lambda attribute: attribute.identifier == argument.identifier)
-                value_type = value.infer_type(scope_handler, **kwargs)
-
-                if value_type[0] != ConventionMovAst or not value_type[1].symbolic_eq(corresponding_attribute.type_declaration, scope_handler.current_scope):
-                    exception = SemanticError(f"Invalid type '{value_type[0].default()}{value_type[1]}' given to attribute '{argument.identifier}':")
-                    exception.add_traceback(corresponding_attribute.identifier.pos, f"Attribute '{corresponding_attribute.identifier}' declared here with type '{corresponding_attribute.type_declaration}'.")
-                    exception.add_traceback(value.pos, f"Attribute '{argument.identifier}' given value here with type '{value_type[0].default()}{value_type[1]}'.")
-                    raise exception
-
-        if len(variables) < attributes.length and not has_skipped_args:
-            exception = SemanticError(f"Missing attribute(s) in pattern for type '{self.class_type}':")
-            exception.add_traceback(class_type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attributes.map(lambda a: a.identifier)}'.")
-            exception.add_traceback(self.pos, f"Pattern missing attributes '{attributes.map(lambda a: a.identifier) - Seq(variables).map(lambda v: v.identifier)}'. Consider adding a '..' to mark variables as deliberately excluded.")
-            raise exception
-
-        # Model the pattern as a let statement, allowing the arguments to be introduced as variables.
-        let_statement = LetStatementInitializedAst(
+        return LocalVariableDestructureAst(
             pos=self.pos,
-            let_keyword=TokenAst.dummy(TokenType.KwLet),
-            assign_to=LocalVariableDestructureAst(
-                pos=self.class_type.pos,
-                class_type=self.class_type,
-                bracket_l_token=self.bracket_l_token,
-                items=variables,
-                bracket_r_token=self.bracket_r_token),
-            assign_token=TokenAst.dummy(TokenType.TkAssign),
-            value=if_condition)
+            class_type=self.class_type,
+            bracket_l_token=self.bracket_l_token,
+            items=converted_items.value,
+            bracket_r_token=self.bracket_r_token)
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
+        conversion = self.convert_to_variable()
+        conversion.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, self.class_type
@@ -2253,7 +2287,6 @@ class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
 
 @dataclass
 class PatternVariantVariableAst(Ast, SemanticAnalysis, TypeInfer):
-    # TODO : introduce identifier as a symbol
     is_mutable: Optional[TokenAst]
     unpack_token: Optional[TokenAst]
     identifier: IdentifierAst
@@ -2266,8 +2299,15 @@ class PatternVariantVariableAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.identifier.print(printer)}"
         return s
 
+    def convert_to_variable(self) -> LocalVariableSingleAst:
+        return LocalVariableSingleAst(
+            pos=self.pos,
+            is_mutable=self.is_mutable,
+            unpack_token=self.unpack_token,
+            identifier=self.identifier)
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        ...
+        conversion = self.convert_to_variable()
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         ...
@@ -2281,6 +2321,9 @@ class PatternVariantLiteralAst(Ast, SemanticAnalysis, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.literal.print(printer)}"
 
+    def convert_to_variable(self) -> LocalVariableAst:
+        return self.literal
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         self.literal.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -2290,7 +2333,6 @@ class PatternVariantLiteralAst(Ast, SemanticAnalysis, TypeInfer):
 
 @dataclass
 class PatternVariantVariableAssignmentAst(Ast, SemanticAnalysis, TypeInfer):
-    is_mutable: Optional[TokenAst]
     identifier: IdentifierAst
     assign_token: TokenAst
     value: PatternVariantAst
@@ -2299,8 +2341,16 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalysis, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.identifier.print(printer)}{self.assign_token.print(printer)}{self.value.print(printer)}"
 
+    def convert_to_variable(self) -> LocalVariableAssignmentAst:
+        return LocalVariableAssignmentAst(
+            pos=self.pos,
+            identifier=self.identifier,
+            assign_token=self.assign_token,
+            value=self.value.convert_to_variable())
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        ...
+        conversion = self.convert_to_variable()
+        conversion.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
         return ConventionMovAst, CommonTypes.void(self.pos)
@@ -2335,8 +2385,14 @@ class PatternVariantSkipArgumentAst(Ast, SemanticAnalysis):
     def print(self, printer: AstPrinter) -> str:
         return f"{self.variadic_token.print(printer)}"
 
+    def convert_to_variable(self) -> LocalVariableSkipArgumentAst:
+        return LocalVariableSkipArgumentAst(
+            pos=self.pos,
+            variadic_token=self.variadic_token)
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        ...
+        conversion = self.convert_to_variable()
+        conversion.do_semantic_analysis(scope_handler, **kwargs)
 
 
 PatternVariantAst = (
