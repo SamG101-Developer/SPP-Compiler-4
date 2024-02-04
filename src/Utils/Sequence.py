@@ -113,6 +113,11 @@ class Seq[T]:
         self._value.remove(item)
         return self
 
+    def remove_none(self) -> Seq[T]:
+        # remove all None from list
+        self._value = [x for x in self._value if x is not None]
+        return self
+
     def remove_if(self, func: Callable[[T], bool]) -> Seq[T]:
         self._value = [x for x in self._value if not func(x)]
         return self
