@@ -1,5 +1,5 @@
 Generics:
--- Ban generic arguments from being `Void` for attributes (analyse class after substitution).
+-- Ban generic arguments from being `Void` for attributes (analyse class after generic substitution).
 -- All things generic constraints.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
@@ -46,7 +46,8 @@ Error feedback
 -- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable with scope analysis.
 
 Other
--- Nested `let` statements ie `let Vector(direction, Pos(x, y, z)) = ...` doesn't work right now (copy from `case` which does work).
 -- Binary member access for conditional branches
 -- Tuple operations (unpacking, folding etc)
 -- Mutability of borrows vs value: required (mut x: &mut T) in order to mutate attribute atm.
+-- The `Self` type needs to change for parameter types.
+-- Variables not always introduced into pattern scope from patterns.

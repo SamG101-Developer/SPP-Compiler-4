@@ -16,14 +16,41 @@ cls FunRef[Ret, In] { }
 cls FunMut[Ret, In] { }
 cls FunMov[Ret, In] { }
 
-cls Point {
-    x: Str
-    y: Str
-    z: Str
+cls Gen[Yield, Return, Send] { }
+
+cls Eq { }
+sup Eq {
+    fun eq(&self, that: Self) -> Bool { }
 }
 
-fun function_test(a: Str, b: &Str) -> Void { }
+cls Vec3D {
+    x: P
+    y: P
+    z: P
+}
 
-fun main(point: &Point) -> Void {
-    let x = point.x
+cls Velocity {
+    direction: Vec3D
+    speed: BigNum
+}
+
+cls P {
+    where_: BigNum
+}
+
+sup Eq on Velocity {
+    fun eq(&self, that: Self) -> Bool { }
+}
+
+fun main(velocity: Velocity) -> Void {
+    case velocity then
+        == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
+        == Velocity(direction=Vec3D(y=P(where_=2), ..), speed) { "world" }
+    else { "other" }
+
+    let mut a = (1, "hello world", false)
+    case a then
+        == (x, y, z) { "hello" }
+        == (4, 5, 6) { "world" }
+    else { "other" }
 }
