@@ -1375,7 +1375,7 @@ class IfExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         # Move into a new scope for the IfExpressionAst. Whilst no symbols will be stored in this scope specifically,
         # this scope holds each scope created for the pattern blocks. This keeps it cleaner rather than having all the
         # pattern blocks in the parent scope to this if expression.
-        scope_handler.into_new_scope("<if-expression>")
+        scope_handler.into_new_scope(f"<if-expression:{self.condition}>")
 
         # Analyse the condition and then each pattern branch
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
@@ -1797,7 +1797,9 @@ class LiteralTupleAst(Ast, SemanticAnalysis, TypeInfer):
         Seq(self.items).for_each(lambda i: i.do_semantic_analysis(scope_handler, **kwargs))
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        return ConventionMovAst, CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs)[1]).value, pos=self.pos)
+        tuple_type = CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs)[1]).value, pos=self.pos)
+        tuple_type.do_semantic_analysis(scope_handler, **kwargs)
+        return ConventionMovAst, tuple_type
 
 
 @dataclass
@@ -2129,7 +2131,9 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
             inferred_generic_arguments=inferred_generic_arguments,
             generic_arguments=Seq(self.class_type.parts[-1].generic_arguments.arguments),
             obj_definition=type_sym.type,
-            usage=self)
+            usage=self,
+            scope_handler=scope_handler,
+            **kwargs)
 
         modified_type = copy.deepcopy(self.class_type)
         modified_type.parts[-1].generic_arguments.arguments = all_generic_arguments.value
@@ -2433,7 +2437,7 @@ class PatternBlockAst(Ast, SemanticAnalysis):
         return isinstance(self.patterns[0], PatternVariantElseAst)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
-        scope_handler.into_new_scope("<pattern-block>")
+        scope_handler.into_new_scope(f"<pattern-block:{Seq(self.patterns)}>")
 
         Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, if_condition, **kwargs))
         self.guard.do_semantic_analysis(scope_handler, **kwargs) if self.guard else None
@@ -2533,7 +2537,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer)
                     inferred_generic_arguments=inferred_generic_arguments,
                     generic_arguments=Seq(self.generic_arguments.arguments),
                     obj_definition=function_overload,
-                    usage=self)
+                    usage=self,
+                    scope_handler=scope_handler,
+                    **kwargs)
 
             except SemanticError as e:
                 function_overload_errors.append(e)
@@ -3098,7 +3104,6 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             # scope of the type is needed as this is the scope that holds all the types.
             type_sym = scope_handler.current_scope.get_symbol(self.without_generics())
             type_scope = type_sym.associated_scope
-            parent_scope = type_scope._parent_scope
 
             # For each generic parameter, set it's type to the corresponding generic argument.
             all_generic_arguments = verify_generic_arguments(
@@ -3106,7 +3111,9 @@ class TypeSingleAst(Ast, SemanticAnalysis):
                 inferred_generic_arguments=Seq([]),
                 generic_arguments=generic_arguments,
                 obj_definition=type_sym.type,
-                usage=self)
+                usage=self,
+                scope_handler=scope_handler,
+                **kwargs) if self.without_generics() != CommonTypes.tuple([]) else Seq(self.parts[-1].generic_arguments.arguments)
             
             # If the type is a tuple, then it's generic arguments are a tuple (variadic) etc etc, so jump into the
             # arguments already
@@ -3119,7 +3126,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             # multiple types with the same name, but different generic arguments, to exist in the same scope.
             modified_type_scope_name = copy.deepcopy(type_scope._scope_name)
             modified_type_scope_name.parts[-1].generic_arguments.arguments = all_generic_arguments.value
-            modified_type_scope = Scope(modified_type_scope_name, parent_scope)
+            modified_type_scope = Scope(modified_type_scope_name, scope_handler.global_scope)
             modified_type_scope._sup_scopes = type_scope._sup_scopes
             modified_type_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
 
@@ -3127,19 +3134,23 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             modified_type = copy.deepcopy(type_sym.type)
 
             # Inject the type into the parent scope
-            parent_scope._children_scopes.append(modified_type_scope)
-            parent_scope.add_symbol(TypeSymbol(self, modified_type, modified_type_scope))
+            scope_handler.global_scope._children_scopes.append(modified_type_scope)
+            scope_handler.global_scope.add_symbol(TypeSymbol(self, modified_type, modified_type_scope))
 
+            # Check each generic argument is a valid type
             for generic_argument in all_generic_arguments:
+                generic_argument.type.do_semantic_analysis(scope_handler, **kwargs)
                 type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
-                modified_type_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
-                modified_type_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
 
-                for attribute in Seq(modified_type_scope.all_symbols()).filter_to_type(VariableSymbol):
-                    attribute.type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                if self.without_generics() != CommonTypes.tuple([]):  # todo
+                    modified_type_scope.add_symbol(TypeSymbol(generic_argument.identifier, type_sym.type))
+                    modified_type_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
 
-                for attribute in modified_type.body.members:
-                    attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+                    for attribute in Seq(modified_type_scope.all_symbols()).filter_to_type(VariableSymbol):
+                        attribute.type.substitute_generics(generic_argument.identifier, generic_argument.type)
+
+                    for attribute in modified_type.body.members:
+                        attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
 
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
@@ -3475,7 +3486,9 @@ def verify_generic_arguments(
         inferred_generic_arguments: Seq[GenericArgumentAst],
         generic_arguments: Seq[GenericArgumentAst],
         obj_definition: IdentifierAst,
-        usage: Ast) -> Seq[GenericArgumentAst]:
+        usage: Ast,
+        scope_handler: ScopeHandler,
+        **kwargs) -> Seq[GenericArgumentAst]:
 
     available_generic_parameter_names = generic_parameters.map(lambda p: p.identifier)
     required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
@@ -3513,17 +3526,28 @@ def verify_generic_arguments(
     # Convert each normal generic argument to a named generic argument with the next available generic parameter
     # name:
     variadic_generic_argument = None
-    for generic_argument in generic_arguments.filter(lambda a: type(a) == GenericArgumentNormalAst):
+    for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
         # Check if there are no more generic parameter names (in which case append to variadic)
         if not available_generic_parameter_names:
             variadic_generic_argument.type.parts[-1].generic_arguments.arguments.append(generic_argument)
+            # variadic_generic_argument.type.do_semantic_analysis(scope_handler, **kwargs)
             generic_arguments.remove(generic_argument)
             continue
 
         # Check if available generic parameter names' current item is variadic
         variadic = isinstance(generic_parameters.find(lambda p: p.identifier == available_generic_parameter_names[0]), GenericParameterVariadicAst)
-        generic_argument_type = generic_argument.type if not variadic else CommonTypes.tuple([generic_argument.type])
 
+        # If if generic parameter is not variadic, the argument is just the argument. Otherwise, (for a variadic),
+        # package the argument in a tuple, so following arguments for the variadic parameter can be bound to the tuple
+        # too.
+        if not variadic:
+            generic_argument_type = generic_argument.type
+        else:
+            generic_argument_type = CommonTypes.tuple([generic_argument.type])
+            generic_argument_type.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Create the new generic argument, naming it with the first available name, and replace the old generic argument
+        # with the new one. If this is the first argument for a variadic parameter, mark it as such.
         new_generic_argument = GenericArgumentNamedAst(generic_argument.pos, generic_argument_type, available_generic_parameter_names.pop(0), TokenAst.dummy(TokenType.TkAssign))
         generic_arguments.replace(generic_argument, new_generic_argument, limit=1)
         if variadic:
