@@ -1,27 +1,5 @@
 mod main
 
-# Class declarations (will be in STL when designed)
-cls Void { }
-cls Str { }
-cls BigNum { }
-cls Tup[..Items] { }
-cls Opt[T] {
-    value: T
-}
-cls Vec[T] { }
-cls Bool { }
-cls Var[..Variants] { }
-
-cls FunRef[Ret, In] { }
-cls FunMut[Ret, In] { }
-cls FunMov[Ret, In] { }
-
-cls Gen[Yield, Return, Send] { }
-
-cls Eq { }
-sup Eq {
-    fun eq(&self, that: Self) -> Bool { }
-}
 
 cls Vec3D {
     x: P
@@ -31,18 +9,20 @@ cls Vec3D {
 
 cls Velocity {
     direction: Vec3D
-    speed: BigNum
+    speed: std.BigNum
 }
 
 cls P {
-    where_: BigNum
+    where_: std.BigNum
 }
 
-sup Eq on Velocity {
+##
+sup std.ops.Eq on Velocity {
     fun eq(&self, that: Self) -> Bool { }
 }
+##
 
-fun main(velocity: Velocity) -> Void {
+fun main(velocity: Velocity) -> std.Void {
     case velocity then
         == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
         == Velocity(direction=Vec3D(y=P(where_=2), ..), speed) { "world" }
