@@ -35,8 +35,13 @@ class Scope:
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
         if isinstance(name, TypeSingleAst):
+
             name = copy.deepcopy(name)
             namespace = copy.deepcopy(name.parts[:-1])  # TODO: for now (will need to consider typedefs on sup blocks)
+            # For namespaced types, look from the global scope immediately
+            if namespace:
+                while scope._parent_scope:
+                    scope = scope._parent_scope
             for part in namespace:
                 if Seq(self._children_scopes).map(lambda s: s._scope_name).contains(part):
                     scope = Seq(self._children_scopes).filter(lambda s: s._scope_name == part).first()
@@ -138,8 +143,17 @@ class ScopeHandler:
     def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope
 
-    def reset(self):
-        self._current_scope = self._global_scope
+    # def move_to_namespace(self, namespace) -> None:
+    #     scope = self._global_scope
+    #     for part in namespace:
+    #         if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+    #             scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+    #         else:
+    #             self.into_new_scope(part)
+    #     self._current_scope = scope
+
+    def reset(self, scope: Optional[Scope] = None) -> None:
+        self._current_scope = scope or self._global_scope
         self._iterator = iter(self)
 
     def __iter__(self) -> ScopeIterator:
@@ -148,7 +162,7 @@ class ScopeHandler:
                 yield child_scope
                 yield from iterate(child_scope)
 
-        return ScopeIterator(iterate(self._global_scope))
+        return ScopeIterator(iterate(self._current_scope))
 
     def move_to_next_scope(self) -> Scope:
         self._current_scope = next(self._iterator)
