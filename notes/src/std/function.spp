@@ -1,0 +1,6 @@
+mod std.function
+
+
+cls FunRef[Ret, In] { }
+cls FunMut[Ret, In] { }
+cls FunMov[Ret, In] { }
