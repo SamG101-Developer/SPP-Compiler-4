@@ -23,23 +23,8 @@ class Analyser:
     def stage_1_analysis(self, scope_handler: ScopeHandler) -> None:
         # Create the error formatter to pickup any errors raised during analysis. These will need to be formatted
         # specifically.
-        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
         err_fmt = ErrorFormatter(self._tokens, self._file_name)
-
-        # Create the module namespace by splitting the module name based on the path separator. The module namespace is
-        # the path to the module, relative to the src path, without the file name and without the src folder itself.
-        module_namespace = self._file_name.split(os.path.sep)
-        module_namespace = module_namespace[module_namespace.index("src") + 1 : -1]
-
-        # For each part in the module namespace, if the current scope has a child scope with the same name, set the
-        # current scope to that child scope. Otherwise, create a new scope with the name of the part and set the current
-        # scope to that new scope.
-        for part in module_namespace:
-            part = IdentifierAst(-1, part)
-            if Seq(scope_handler.current_scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-                scope_handler.current_scope = Seq(scope_handler.current_scope._children_scopes).filter(lambda s: s._scope_name == part).first()
-            else:
-                scope_handler.into_new_scope(part)
+        self.move_scope_handler_to_namespace(scope_handler)
 
         # Preprocess and generate the symbols & scopes for the module. If there is an error, then handle it.
         try:
@@ -55,6 +40,7 @@ class Analyser:
         # Create the error formatter to pickup any errors raised during analysis. These will need to be formatted
         # specifically.
         err_fmt = ErrorFormatter(self._tokens, self._file_name)
+        self.move_scope_handler_to_namespace(scope_handler)
 
         # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
@@ -62,6 +48,25 @@ class Analyser:
 
         except SemanticError as e:
             handle_semantic_error(err_fmt, e)
+
+    def move_scope_handler_to_namespace(self, scope_handler: ScopeHandler):
+        # Create the module namespace by splitting the module name based on the path separator. The module namespace is
+        # the path to the module, relative to the src path, without the file name and without the src folder itself.
+
+        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
+        module_namespace = self._file_name.split(os.path.sep)
+        module_namespace = module_namespace[module_namespace.index("src") + 1 : -1]
+
+        # For each part in the module namespace, if the current scope has a child scope with the same name, set the
+        # current scope to that child scope. Otherwise, create a new scope with the name of the part and set the current
+        # scope to that new scope.
+        for part in module_namespace:
+            part = IdentifierAst(-1, part)
+            if Seq(scope_handler.current_scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+                scope = Seq(scope_handler.current_scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+                scope_handler.reset(scope)
+            else:
+                scope_handler.into_new_scope(part)
 
 
 def handle_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> NoReturn:
