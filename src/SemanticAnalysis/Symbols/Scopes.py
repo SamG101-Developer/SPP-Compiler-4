@@ -23,8 +23,27 @@ class Scope:
         self._sup_scopes = []
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol) -> TypeSymbol | VariableSymbol:
+        # For TypeAst, shift the scope if a namespaced type is being added.
+        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst
+        scope = self
+        if isinstance(symbol.name, TypeSingleAst):
+            name = copy.deepcopy(symbol.name)
+            namespace = copy.deepcopy(name.parts[:-1])
+            # For namespaced types, look from the global scope immediately
+            if namespace:
+                while scope._parent_scope:
+                    scope = scope._parent_scope
+            for part in namespace:
+                if Seq(self._children_scopes).map(lambda s: s._scope_name).contains(part):
+                    scope = Seq(self._children_scopes).filter(lambda s: s._scope_name == part).first()
+                    namespace.pop(0)
+                else:
+                    break
+            name.parts[:-1] = namespace
+            symbol.name = name
+
         # Add a symbol to the symbol table.
-        self._symbol_table.add(symbol)
+        scope._symbol_table.add(symbol)
         return symbol
 
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
