@@ -447,7 +447,7 @@ class ConventionPartInitAst:
         return isinstance(other, ConventionPartInitAst)
 
 
-ConventionAst = (
+type ConventionAst = (
         ConventionMovAst |
         ConventionRefAst |
         ConventionMutAst)
@@ -500,7 +500,7 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalysis, TypeInfer):
         return convention, self.value.infer_type(scope_handler, **kwargs)[1]
 
 
-FunctionArgumentAst = (
+type FunctionArgumentAst = (
         FunctionArgumentNormalAst |
         FunctionArgumentNamedAst)
 
@@ -818,7 +818,7 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
         return isinstance(other, FunctionParameterVariadicAst) and self.identifier == other.identifier
 
 
-FunctionParameterAst = (
+type FunctionParameterAst = (
         FunctionParameterSelfAst |
         FunctionParameterRequiredAst |
         FunctionParameterOptionalAst |
@@ -1005,7 +1005,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         sup_block_ast = SupPrototypeInheritanceAst(
             pos=-1,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
-            generic_parameters=None,
+            generic_parameters=self.generic_parameters,
             super_class=copy.deepcopy(function_class_type),
             on_keyword=TokenAst.dummy(TokenType.KwOn),
             identifier=mock_class_name,
@@ -1132,7 +1132,7 @@ class GenericArgumentNamedAst(GenericArgumentNormalAst, SemanticAnalysis):
         return isinstance(other, GenericArgumentNamedAst) and self.identifier == other.identifier and self.type == other.type
 
 
-GenericArgumentAst = (
+type GenericArgumentAst = (
         GenericArgumentNormalAst |
         GenericArgumentNamedAst)
 
@@ -1240,7 +1240,7 @@ class GenericParameterVariadicAst(GenericParameterRequiredAst):
         return f"{self.variadic_token.print(printer)}{super().print(printer)}"
 
 
-GenericParameterAst = (
+type GenericParameterAst = (
         GenericParameterRequiredAst |
         GenericParameterOptionalAst |
         GenericParameterVariadicAst)
@@ -1507,7 +1507,7 @@ class LambdaCaptureItemNamedAst(Ast):
         return f"{self.identifier.print(printer)}{self.assignment_token.print(printer)}{self.convention.print(printer)}{self.value.print(printer)}"
 
 
-LambdaCaptureItemAst = (
+type LambdaCaptureItemAst = (
         LambdaCaptureItemNormalAst |
         LambdaCaptureItemNamedAst)
 
@@ -1655,7 +1655,7 @@ class LetStatementUninitializedAst(Ast, SemanticAnalysis):
         scope_handler.current_scope.add_symbol(sym)
 
 
-LetStatementAst = (
+type LetStatementAst = (
         LetStatementInitializedAst |
         LetStatementUninitializedAst)
 
@@ -1716,7 +1716,7 @@ class LiteralNumberBase16Ast(Ast):
         return s
 
 
-LiteralNumberAst = (
+type LiteralNumberAst = (
         LiteralNumberBase10Ast |
         LiteralNumberBase02Ast |
         LiteralNumberBase16Ast)
@@ -1778,7 +1778,7 @@ class LiteralArrayEmptyAst(Ast, SemanticAnalysis, TypeInfer):
         return ConventionMovAst, CommonTypes.arr(self.element_type, pos=self.pos)
 
 
-LiteralArrayAst = (
+type LiteralArrayAst = (
         LiteralArrayNonEmptyAst |
         LiteralArrayEmptyAst)
 
@@ -1826,7 +1826,7 @@ class LiteralRegexAst(Ast):
         return f"{self.regex.print(printer)}"
 
 
-LiteralAst = (
+type LiteralAst = (
         LiteralNumberAst |
         LiteralStringAst |
         LiteralArrayAst |
@@ -1943,13 +1943,13 @@ class LocalVariableSkipArgumentAst(Ast):
         return f"{self.variadic_token.print(printer)}"
 
 
-LocalVariableAst = (
+type LocalVariableAst = (
         LocalVariableSingleAst |
         LocalVariableTupleAst |
         LocalVariableDestructureAst)
 
 
-LocalVariableNestedAst = (
+type LocalVariableNestedAst = (
         LocalVariableSingleAst |
         LocalVariableTupleAst |
         LocalVariableDestructureAst |
@@ -2022,7 +2022,7 @@ class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalysis):
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
-ObjectInitializerArgumentAst = (
+type ObjectInitializerArgumentAst = (
         ObjectInitializerArgumentNormalAst |
         ObjectInitializerArgumentNamedAst)
 
@@ -2061,6 +2061,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         type_sym = scope_handler.current_scope.get_symbol(self.class_type)
         type_scope = type_sym.associated_scope
         attributes = Seq(type_sym.type.body.members)
+        print(attributes)
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
 
@@ -2142,7 +2143,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
         type_sym = scope_handler.current_scope.get_symbol(modified_type)
         type_scope = type_sym.associated_scope
-        attributes = Seq(type_sym.type.body.members)
 
         # Check that each attribute's given value is of the correct type:
         for attribute in attributes:
@@ -2162,6 +2162,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             # Type check
             given_argument_type = given_argument.infer_type(scope_handler, **kwargs)
+            print(attribute.type_declaration)
             if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope):
                 exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
                 exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
@@ -2399,7 +2400,7 @@ class PatternVariantSkipArgumentAst(Ast, SemanticAnalysis):
         conversion.do_semantic_analysis(scope_handler, **kwargs)
 
 
-PatternVariantAst = (
+type PatternVariantAst = (
         PatternVariantTupleAst |
         PatternVariantDestructureAst |
         PatternVariantVariableAst |
@@ -2407,7 +2408,7 @@ PatternVariantAst = (
         PatternVariantBoolMemberAst |
         PatternVariantElseAst)
 
-PatternVariantNestedAst = (
+type PatternVariantNestedAst = (
         PatternVariantVariableAssignmentAst |
         PatternVariantTupleAst |
         PatternVariantDestructureAst |
@@ -2799,12 +2800,12 @@ class PostfixExpressionOperatorEarlyReturnAst(Ast):
         return f"{self.return_token.print(printer)}"
 
 
-PostfixExpressionOperatorAst = (
+type PostfixExpressionOperatorAst = (
         PostfixExpressionOperatorFunctionCallAst |
         PostfixExpressionOperatorMemberAccessAst |
         PostfixExpressionOperatorEarlyReturnAst)
 
-PostfixMemberPartAst = (
+type PostfixMemberPartAst = (
         IdentifierAst |
         TokenAst)
 
@@ -2974,7 +2975,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         #   - If in this function, it'll happen for every sup-block -- only needs to happen once though (cls block?)
 
 
-SupPrototypeAst = (
+type SupPrototypeAst = (
         SupPrototypeNormalAst |
         SupPrototypeInheritanceAst)
 
@@ -3032,7 +3033,7 @@ class TypedefStatementAllItemsAst(Ast):
         return f"{self.all_token.print(printer)}"
 
 
-TypedefStatementItemAst = (
+type TypedefStatementItemAst = (
         TypedefStatementSpecificItemAst |
         TypedefStatementSpecificItemsAst |
         TypedefStatementAllItemsAst)
@@ -3069,15 +3070,15 @@ class TypeSingleAst(Ast, SemanticAnalysis):
         return f"{Seq(self.parts).print(printer, ".")}"
 
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> Self:
-        self._substitute_generics(from_ty.parts[-1], to_ty.parts[-1])
+        namespace_parts = Seq(self.parts).filter(lambda p: isinstance(p, IdentifierAst)).value
+        self._substitute_generics(from_ty, to_ty)
         return self
 
-    def _substitute_generics(self, from_ty: TypePartAst, to_ty: TypePartAst) -> Self:
-        printer = AstPrinter()
+    def _substitute_generics(self, from_ty: TypeSingleAst, to_ty: TypeSingleAst) -> Self:
         type_parts = [(i, p) for i, p in enumerate(self.parts) if isinstance(p, GenericIdentifierAst)]
-        type_part = type_parts[-1]
-        if type_part[1].value == from_ty.value:
-            self.parts[type_part[0]] = to_ty
+        replace_n = len(self.parts) - len(type_parts)
+        if self.without_generics() == from_ty.without_generics():
+            self.parts = to_ty.parts
 
         for i, part in type_parts:
             for g in part.generic_arguments.arguments if part.generic_arguments else []:
@@ -3105,7 +3106,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
             type_sym = scope_handler.current_scope.get_symbol(self.without_generics())
             type_scope = type_sym.associated_scope
 
-            # For each generic parameter, set it's type to the corresponding generic argument.
+            # For each generic parameter, set its type to the corresponding generic argument.
             all_generic_arguments = verify_generic_arguments(
                 generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
                 inferred_generic_arguments=Seq([]),
@@ -3115,7 +3116,7 @@ class TypeSingleAst(Ast, SemanticAnalysis):
                 scope_handler=scope_handler,
                 **kwargs) if self.without_generics() != CommonTypes.tuple([]) else Seq(self.parts[-1].generic_arguments.arguments)
             
-            # If the type is a tuple, then it's generic arguments are a tuple (variadic) etc etc, so jump into the
+            # If the type is a tuple, then its generic arguments are a tuple (variadic) etc etc, so jump into the
             # arguments already
             if self.without_generics() == CommonTypes.tuple([]):
                 Seq(self.parts[-1].generic_arguments.arguments).for_each(lambda g: g.type.do_semantic_analysis(scope_handler, **kwargs))
@@ -3155,10 +3156,14 @@ class TypeSingleAst(Ast, SemanticAnalysis):
     def __iter__(self):
         # Iterate the parts, and recursively the parts of generic parameters
         def iterate(type_single: TypeSingleAst):
-            for part in type_single.parts:
-                yield part
+            namespace_parts = Seq(type_single.parts).filter(lambda p: isinstance(p, IdentifierAst)).value
+            non_namespace_parts = Seq(type_single.parts).filter(lambda p: not isinstance(p, IdentifierAst)).value
+
+            for part in non_namespace_parts:
+                yield TypeSingleAst(part.pos, [*namespace_parts, part])
                 for g in part.generic_arguments.arguments:
                     yield from iterate(g.type)
+
         return iterate(self)
 
     def without_generics(self) -> TypeSingleAst:
@@ -3210,12 +3215,12 @@ class TypeUnionAst(Ast):
         return CommonTypes.union(self.items)
 
 
-TypeAst = (
+type TypeAst = (
         TypeSingleAst |
         TypeTupleAst |
         TypeUnionAst)
 
-TypePartAst = (
+type TypePartAst = (
         IdentifierAst |
         GenericIdentifierAst |
         TokenAst)
@@ -3252,7 +3257,7 @@ class UnaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
         return ConventionMovAst, CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs)[1], pos=self.pos)
 
 
-UnaryOperatorAst = TokenAst
+type UnaryOperatorAst = TokenAst
 
 
 @dataclass
@@ -3414,7 +3419,7 @@ class YieldExpressionAst(Ast, SemanticAnalysis):
         # TODO: required typedefs to be implemented first
 
 
-PrimaryExpressionAst = (
+type PrimaryExpressionAst = (
         LiteralAst |
         IdentifierAst |
         LambdaPrototypeAst |
@@ -3428,28 +3433,28 @@ PrimaryExpressionAst = (
         InnerScopeAst |  # [StatementAst]
         TokenAst)
 
-ExpressionAst = (
+type ExpressionAst = (
         BinaryExpressionAst |
         UnaryExpressionAst |
         PostfixExpressionAst |
         PrimaryExpressionAst |
         TokenAst)
 
-StatementAst = (
+type StatementAst = (
         TypedefStatementAst |
         ReturnStatementAst |
         AssignmentStatementAst |
         LetStatementAst |
         ExpressionAst)
 
-SupMemberAst = (
+type SupMemberAst = (
         SupMethodPrototypeAst |
         SupTypedefAst |
         ClassPrototypeAst |
         LetStatementAst |
         SupPrototypeInheritanceAst)
 
-ModuleMemberAst = (
+type ModuleMemberAst = (
         ClassPrototypeAst |
         FunctionPrototypeAst |
         TypedefStatementAst |
@@ -3490,6 +3495,13 @@ def verify_generic_arguments(
         scope_handler: ScopeHandler,
         **kwargs) -> Seq[GenericArgumentAst]:
 
+    match obj_definition:
+        case FunctionPrototypeAst(): what = "Function overload"
+        case ClassPrototypeAst(): what = "Class"
+        case TypeSingleAst(): what = "Type"
+
+    # TODO : change "function overload" in error messages to be based on obj_definition etc
+
     available_generic_parameter_names = generic_parameters.map(lambda p: p.identifier)
     required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
 
@@ -3507,8 +3519,8 @@ def verify_generic_arguments(
 
     # Check if there are any named generic arguments with names that don't match any generic parameter names:
     if invalid_generic_argument_names := generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
-        exception = SemanticError(f"Invalid generic argument names given to function call:")
-        exception.add_traceback(obj_definition.pos, f"Function overload declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
+        exception = SemanticError(f"Invalid generic argument names given:")
+        exception.add_traceback(obj_definition.pos, f"{what} declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
         exception.add_traceback_minimal(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.")
         raise exception
 
@@ -3518,13 +3530,12 @@ def verify_generic_arguments(
 
     # Check there aren't too many generic arguments provided for this overload:
     if generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
-        exception = SemanticError(f"Too many generic arguments given to function call:")
-        exception.add_traceback(obj_definition.pos, f"Function overload declared here with generic parameters: {generic_parameters.map(lambda p: p.identifier).map(str).join(", ")}")
+        exception = SemanticError(f"Too many generic arguments given:")
+        exception.add_traceback(obj_definition.pos, f"{what} declared here with generic parameters: {generic_parameters.map(lambda p: p.identifier).map(str).join(", ")}")
         exception.add_traceback_minimal(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - generic_parameters.length} extra generic arguments found here.")
         raise exception
 
-    # Convert each normal generic argument to a named generic argument with the next available generic parameter
-    # name:
+    # Convert each normal generic argument to a named generic argument with the next available generic parameter name:
     variadic_generic_argument = None
     for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
         # Check if there are no more generic parameter names (in which case append to variadic)
@@ -3554,9 +3565,9 @@ def verify_generic_arguments(
             variadic_generic_argument = new_generic_argument
 
     # Check that all required generic parameters have been given an argument:
-    if unfilled_required_generic_parameters := Seq(required_generic_parameters).map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
+    if unfilled_required_generic_parameters := required_generic_parameters.map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
         exception = SemanticError(f"Missing generic arguments in function call:")
-        exception.add_traceback(obj_definition.pos, f"Function overload declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
+        exception.add_traceback(obj_definition.pos, f"{what} declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
         exception.add_traceback_minimal(usage.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
         raise exception
 
@@ -3570,12 +3581,19 @@ def infer_generic_argument_values(
         replace_with: Seq[TypeAst],
         obj_definition: IdentifierAst) -> Seq[GenericArgumentNamedAst]:
 
+    # print(f"obj: {obj_definition}")
+    # print(f"generic parameters: {generic_parameters}")
+    # print(f"infer from: {infer_from}")
+    # print(f"replace with: {replace_with}")
+
     # Infer any generic type arguments that can be inferred (from parameter types etc)
     # Return a list of non-inferred generic argument types.
     inferred_generic_parameters = Seq([])
     for generic_parameter in generic_parameters:
         for parameter_t, argument_t in infer_from.zip(replace_with):
-            if parameter_t != generic_parameter.identifier:
+            # Check if the parameter type or any of its nested generic argument names matches the generic parameter.
+            parameter_type_parts = Seq(list(iter(parameter_t)))
+            if generic_parameter.identifier not in parameter_type_parts:
                 continue
 
             # Check if the generic argument has already been inferred.
@@ -3587,10 +3605,11 @@ def infer_generic_argument_values(
                 exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.")
                 raise exception
 
+            argument_t_namespace = Seq(list(iter(argument_t))).filter(lambda p: isinstance(p, IdentifierAst)).value
             if not duplicate_inferred_parameter:
                 for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
-                    if generic_parameter.identifier.parts[-1] == p_1:
-                        inferred_generic_parameters.append(GenericArgumentNamedAst(p_2.pos, argument_t, generic_parameter.identifier, TokenAst.dummy(TokenType.TkAssign)))
+                    if generic_parameter.identifier == p_1:
+                        inferred_generic_parameters.append(GenericArgumentNamedAst(p_2.pos, p_2, generic_parameter.identifier, TokenAst.dummy(TokenType.TkAssign)))
                         break
 
     return inferred_generic_parameters
