@@ -51,3 +51,4 @@ Other
 -- Mutability of borrows vs value: required (mut x: &mut T) in order to mutate attribute atm.
 -- The `Self` type needs to change for parameter types.
 -- Variables not always introduced into pattern scope from patterns.
+-- Comments take up lines in a file, but not after parsing (are removed in tokenizer -> keep the "\n")
