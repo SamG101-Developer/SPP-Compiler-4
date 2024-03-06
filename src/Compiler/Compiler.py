@@ -15,7 +15,7 @@ class Compiler:
     _module_tree: ModuleTree
     _mode: str
 
-    def __init__(self, src_path: str, mode: str = "d") -> None:
+    def __init__(self, src_path: str, mode: str = "r") -> None:
         # Save the src path and generate the module tree.
         self._src_path = src_path
         self._module_tree = ModuleTree(src_path)
