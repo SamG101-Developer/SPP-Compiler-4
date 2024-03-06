@@ -184,7 +184,7 @@ class Seq[T]:
         return self.not_empty()
 
     def __str__(self):
-        return self.map(str).join(", ") if self.not_empty() else "<empty>"
+        return f"[{self.map(str).join(", ")}]" if self.not_empty() else "<empty>"
 
     @property
     def value(self) -> List[T]:
