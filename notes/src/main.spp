@@ -16,11 +16,10 @@ cls P {
     where_: std.BigNum
 }
 
-##
-sup std.ops.Eq on Velocity {
-    fun eq(&self, that: Self) -> Bool { }
+
+fun test[T](vec: std.Vec[std.Vec[T]]) -> std.Str {
+    ret "1234"
 }
-##
 
 fun main(velocity: Velocity) -> std.Void {
     case velocity then
@@ -33,4 +32,8 @@ fun main(velocity: Velocity) -> std.Void {
         == (x, y, z) { "hello" }
         == (4, 5, 6) { "world" }
     else { "other" }
+
+    test(std.Vec[std.Vec[std.Str]]())
+
+    let x = std.Opt(value=std.Vec[std.Str]())
 }

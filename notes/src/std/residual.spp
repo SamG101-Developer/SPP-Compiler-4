@@ -2,5 +2,16 @@ mod std.residuals
 
 
 cls Opt[T] {
-    value: Vec[T]
+    value: std.Vec[T]
 }
+
+
+##
+fun some[T](x: T) -> Opt[T] {
+    ret Opt(value=Vec())
+}
+
+fun none[T]() -> Opt[T] {
+    ret Opt(value=Vec())
+}
+##
