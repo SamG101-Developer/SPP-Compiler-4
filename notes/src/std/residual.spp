@@ -2,7 +2,7 @@ mod std.residuals
 
 
 cls Opt[T] {
-    value: std.Vec[T]
+    value: Vec[T]
 }
 
 

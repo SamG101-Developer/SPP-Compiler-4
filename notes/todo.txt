@@ -10,12 +10,11 @@ Binary expressions:
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
--- Add `cor` for couroutines
+-- Add `cor` for couroutines?
     -- Parsing rule allows for conventions for yielding & sending
     -- CoroutinePrototypeAST can inherit from FunctionPrototypeAST
     -- Some checks the same, others specific to each (yielding, returning)
     -- Only allow yielding from coroutines
-
 
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
@@ -52,3 +51,4 @@ Other
 -- The `Self` type needs to change for parameter types.
 -- Variables not always introduced into pattern scope from patterns.
 -- Comments take up lines in a file, but not after parsing (are removed in tokenizer -> keep the "\n")
+-- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
