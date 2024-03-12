@@ -21,6 +21,11 @@ fun test[T](vec: std.Vec[std.Vec[T]]) -> std.Str {
     ret "1234"
 }
 
+fun some_function() -> std.Void {
+    let mut x = 1_u64
+    x = 2_u64
+}
+
 fun main(velocity: Velocity) -> std.Void {
     case velocity then
         == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
@@ -33,7 +38,10 @@ fun main(velocity: Velocity) -> std.Void {
         == (4, 5, 6) { "world" }
     else { "other" }
 
-    test(std.Vec[std.Vec[std.Str]]())
+    let Velocity(direction, speed) = velocity
+    let Vec3D(x, y, ..) = direction
+    # let direction2 = direction
 
+    test(std.Vec[std.Vec[std.Str]]())
     let x = std.Opt(value=std.Vec[std.Str]())
 }

@@ -3,3 +3,6 @@ mod std.number
 
 cls BigNum { }
 cls BigDec { }
+
+
+cls U64 { }

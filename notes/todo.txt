@@ -33,12 +33,8 @@ Object initialization
 -- What happens with giving > 1 value per attribute?
 
 Placeholders
--- Placeholders in `let` and `patterns`
--- Use to shorthand partial functions?
-
-Numbers
--- Numeric postfix classes aren't defined but dont throw errors.
--- Require an `_` before numeric postfix.
+-- Placeholders in `let` and `patterns` (use the `_` character)
+-- Use to shorthand partial functions? => convert into lambdas?
 
 Error feedback
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
