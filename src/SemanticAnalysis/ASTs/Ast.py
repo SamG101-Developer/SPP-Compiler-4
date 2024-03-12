@@ -2141,6 +2141,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         modified_type.do_semantic_analysis(scope_handler, **kwargs)
         self._modified_type = modified_type
 
+        class_scope = type_scope
         type_sym = scope_handler.current_scope.get_symbol(modified_type)
         type_scope = type_sym.associated_scope
 
@@ -2162,8 +2163,7 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
 
             # Type check
             given_argument_type = given_argument.infer_type(scope_handler, **kwargs)
-            print(attribute.type_declaration)
-            if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope):
+            if given_argument_type[0] != ConventionMovAst or not given_argument_type[1].symbolic_eq(attribute.type_declaration, type_scope, class_scope):
                 exception = SemanticError(f"Invalid type '{given_argument_type[0].default()}{given_argument_type[1]}' given to attribute '{attribute.identifier}':")
                 exception.add_traceback(attribute.identifier.pos, f"Attribute '{attribute.identifier}' declared here with type '{attribute.type_declaration}'.")
                 exception.add_traceback(given_argument.pos, f"Attribute '{attribute.identifier}' given value here with type '{given_argument_type[0].default()}{given_argument_type[1]}'.")
@@ -3175,10 +3175,11 @@ class TypeSingleAst(Ast, SemanticAnalysis):
     def __eq__(self, that):
         return isinstance(that, TypeSingleAst) and self.parts == that.parts
 
-    def symbolic_eq(self, that, scope: Scope) -> bool:
+    def symbolic_eq(self, that, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
         # Allows for generics and aliases to match base types etc.
-        this_type = scope.get_symbol(self).type
-        that_type = scope.get_symbol(that).type
+        that_scope = that_scope or this_scope
+        this_type = this_scope.get_symbol(self).type
+        that_type = that_scope.get_symbol(that).type
         return this_type == that_type
 
     def __hash__(self):
