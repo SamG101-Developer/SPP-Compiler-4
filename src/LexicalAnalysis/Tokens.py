@@ -73,6 +73,7 @@ class TokenType(Enum):
     TkAssign = "="
     TkArrowR = "->"
     TkAt = "@"
+    TkUnderscore = "_"
 
     TkEOF = "<EOF>"
     TkWhitespace = " "
@@ -104,6 +105,7 @@ class TokenType(Enum):
     # Type helpers
     KwWhere = "where"
     KwAs = "as"
+    KwIs = "is"
 
     # Types
     KwTrue = "true"

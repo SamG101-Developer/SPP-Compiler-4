@@ -1466,26 +1466,27 @@ class Parser:
     @tested_parser_rule
     def parse_numeric_postfix_type(self) -> TokenType:
         # TODO : start with a underscore
-        p1  = self.parse_characters("i8").for_alt()
-        p2  = self.parse_characters("i16").for_alt()
-        p3  = self.parse_characters("i32").for_alt()
-        p4  = self.parse_characters("i64").for_alt()
-        p5  = self.parse_characters("i128").for_alt()
-        p6  = self.parse_characters("i256").for_alt()
-        p7  = self.parse_characters("u8").for_alt()
-        p8  = self.parse_characters("u16").for_alt()
-        p9  = self.parse_characters("u32").for_alt()
-        p10 = self.parse_characters("u64").for_alt()
-        p11 = self.parse_characters("u128").for_alt()
-        p12 = self.parse_characters("u256").for_alt()
-        p13 = self.parse_characters("f8").for_alt()
-        p14 = self.parse_characters("f16").for_alt()
-        p15 = self.parse_characters("f32").for_alt()
-        p16 = self.parse_characters("f64").for_alt()
-        p17 = self.parse_characters("f128").for_alt()
-        p18 = self.parse_characters("f256").for_alt()
-        p19 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16 | p17 | p18).parse_once()
-        return p19
+        p1  = self.parse_token(TokenType.TkUnderscore).parse_once()
+        p2  = self.parse_characters("i8").for_alt()
+        p3  = self.parse_characters("i16").for_alt()
+        p4  = self.parse_characters("i32").for_alt()
+        p5  = self.parse_characters("i64").for_alt()
+        p6  = self.parse_characters("i128").for_alt()
+        p7  = self.parse_characters("i256").for_alt()
+        p8  = self.parse_characters("u8").for_alt()
+        p9  = self.parse_characters("u16").for_alt()
+        p10 = self.parse_characters("u32").for_alt()
+        p11 = self.parse_characters("u64").for_alt()
+        p12 = self.parse_characters("u128").for_alt()
+        p13 = self.parse_characters("u256").for_alt()
+        p14 = self.parse_characters("f8").for_alt()
+        p15 = self.parse_characters("f16").for_alt()
+        p16 = self.parse_characters("f32").for_alt()
+        p17 = self.parse_characters("f64").for_alt()
+        p18 = self.parse_characters("f128").for_alt()
+        p19 = self.parse_characters("f256").for_alt()
+        p20 = (p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16 | p17 | p18 | p19).parse_once()
+        return p20
 
     # ===== ARRAYS =====
 

@@ -8,7 +8,7 @@ import difflib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from ordered_set import OrderedSet
-from typing import List, Optional, Self, Any, Tuple, Type, Dict
+from typing import List, Optional, Self, Tuple, Type
 
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler, Scope
 from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol, MemoryStatus
@@ -19,13 +19,13 @@ from src.SemanticAnalysis.ASTs.AstPrinter import AstPrinter, ast_printer_method,
 from src.SemanticAnalysis.TypeInfer import TypeInfer
 from src.SemanticAnalysis.PreProcessor import PreProcessor
 from src.SemanticAnalysis.CommonTypes import CommonTypes
-from src.SemanticAnalysis.LLVMGeneration import LLVMGeneration
+# from src.SemanticAnalysis.LLVMGeneration import LLVMGeneration
 
 from src.LexicalAnalysis.Tokens import Token, TokenType
 from src.Utils.Sequence import Seq
 
-import llvmlite.ir as llvm_ir
-import llvmlite.binding as llvm_binding
+# import llvmlite.ir as llvm_ir
+# import llvmlite.binding as llvm_binding
 
 
 @dataclass
@@ -1587,6 +1587,9 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     raise exception
 
                 for i, current_let_statement in enumerate(self.assign_to.items):
+                    if isinstance(current_let_statement, LocalVariableSkipArgumentAst):
+                        pass
+
                     new_rhs = PostfixExpressionAst(
                         pos=self.pos,
                         lhs=self.value,
@@ -1610,15 +1613,17 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                 self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
                 new_let_statements = []
-                for argument in self.assign_to.items:
-                    current_let_statement = argument
+                for current_let_statement in self.assign_to.items:
+                    if isinstance(current_let_statement, LocalVariableSkipArgumentAst):
+                        continue
+
                     new_rhs = PostfixExpressionAst(
                         pos=self.pos,
                         lhs=self.value,
                         op=PostfixExpressionOperatorMemberAccessAst(
                             pos=self.pos,
                             dot_token=TokenAst.dummy(TokenType.TkDot),
-                            identifier=argument.identifier))
+                            identifier=current_let_statement.identifier))
 
                     new_let_statement = LetStatementInitializedAst(
                         pos=self.pos,
@@ -1664,14 +1669,21 @@ type LetStatementAst = (
 class LiteralNumberBase10Ast(Ast, SemanticAnalysis, TypeInfer):
     sign: Optional[TokenAst]
     number: TokenAst
-    primitive_type: Optional[IdentifierAst]  # TypeAst?
+    raw_type: Optional[IdentifierAst]
+    type: Optional[TypeAst] = dataclasses.field(default=None, init=False)
+
+    def __post_init__(self) -> None:
+        if self.raw_type:
+            corrected_raw_type = GenericIdentifierAst(self.raw_type.pos, self.raw_type.value.title(), None)
+            std_namespace = IdentifierAst(self.raw_type.pos, "std")
+            self.type = TypeSingleAst(self.raw_type.pos, [std_namespace, corrected_raw_type])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{self.sign.print(printer)}" if self.sign else ""
         s += f"{self.number.print(printer)}"
-        s += f"{self.primitive_type.print(printer)}" if self.primitive_type else ""
+        s += f"_{self.raw_type.print(printer)}" if self.raw_type else ""
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
@@ -1680,14 +1692,14 @@ class LiteralNumberBase10Ast(Ast, SemanticAnalysis, TypeInfer):
         ...
 
     def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        if self.primitive_type:
-            return ConventionMovAst, TypeSingleAst(pos=self.primitive_type.pos, parts=[GenericIdentifierAst(self.primitive_type.pos, self.primitive_type.value, None)])
+        if self.type:
+            return ConventionMovAst, self.type
         if self.number.token.token_type == TokenType.LxDecFloat:
             return ConventionMovAst, CommonTypes.big_dec(self.pos)
         return ConventionMovAst, CommonTypes.big_num(self.pos)
 
     def __eq__(self, other):
-        return isinstance(other, LiteralNumberBase10Ast) and self.sign == other.sign and self.number == other.number and self.primitive_type == other.primitive_type
+        return isinstance(other, LiteralNumberBase10Ast) and self.sign == other.sign and self.number == other.number and self.type == other.type
 
 
 @dataclass
@@ -2061,7 +2073,6 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         type_sym = scope_handler.current_scope.get_symbol(self.class_type)
         type_scope = type_sym.associated_scope
         attributes = Seq(type_sym.type.body.members)
-        print(attributes)
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
 
