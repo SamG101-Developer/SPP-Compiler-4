@@ -53,9 +53,6 @@ class LocalVariableTupleAst(Ast, SemanticAnalysis):
                 has_skipped_args = argument
                 continue
 
-        import inspect
-        print(inspect.stack()[1].filename, inspect.stack()[1].lineno)
-
         lhs_tuple_type_elements = other_tuple.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
         rhs_tuple_type_elements = self.items
         if len(lhs_tuple_type_elements) != len(rhs_tuple_type_elements) and not has_skipped_args:
