@@ -102,12 +102,14 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             case LocalVariableTupleAst():
                 # Check there are the same number of elements on the LHS as the RHS
                 # TODO: move into LocalVariableTupleAst
-                rhs_tuple_type_elements = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
-                if len(self.assign_to.items) != len(rhs_tuple_type_elements):
-                    exception = SemanticError(f"Invalid tuple assignment:")
-                    exception.add_traceback(self.assign_to.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
-                    exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_elements)} elements.")
-                    raise exception
+                # rhs_tuple_type_elements = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+                # if len(self.assign_to.items) != len(rhs_tuple_type_elements):
+                #     exception = SemanticError(f"Invalid tuple assignment:")
+                #     exception.add_traceback(self.assign_to.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
+                #     exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_elements)} elements.")
+                #     raise exception
+
+                self.assign_to.do_semantic_analysis(scope_handler, other_tuple=self.value, **kwargs)
 
                 # Form new let statements based off the variables the RHS is being destructured into.
                 new_let_statements = []

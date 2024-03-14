@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
 
@@ -10,7 +9,11 @@ from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+from src.SemanticAnalysis.ASTs.LocalVariableTupleAst import LocalVariableTupleAst
+from src.SemanticAnalysis.ASTs.PatternVariantLiteralAst import PatternVariantLiteralAst
 from src.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
+from src.SemanticAnalysis.ASTs.PatternVariantVariableAssignmentAst import PatternVariantVariableAssignmentAst
+from src.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
 
 from src.Utils.Sequence import Seq
 
@@ -35,32 +38,25 @@ class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
         s += f"{self.paren_r_token.print(printer)}"
         return s
 
+    def convert_to_variable(self) -> "LocalVariableTupleAst":
+        # Convert inner patterns to variables.
+        converted_items = Seq(self.items).filter_to_type(
+            PatternVariantVariableAssignmentAst,
+            PatternVariantSkipArgumentAst,
+            PatternVariantVariableAst,
+            PatternVariantLiteralAst,
+        ).map(lambda i: i.convert_to_variable())
+
+        # Return the new LocalVariableTupleAst.
+        return LocalVariableTupleAst(
+            pos=self.pos,
+            paren_l_token=self.paren_l_token,
+            items=converted_items.value,
+            paren_r_token=self.paren_r_token)
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
-        Seq(self.items).for_each(lambda x: x.do_semantic_analysis(scope_handler, if_condition=if_condition, **kwargs))
-
-        # todo: offload this into the LocalVariableTupleAst
-        # todo: offload from the let statement into the LocalVariableTupleAst
-        # todo: currently has 2 implementations
-        # todo: see "PatternVariantDestructureAst"
-
-        has_skipped_args = None
-        for argument in self.items:
-            if isinstance(argument, PatternVariantSkipArgumentAst):
-                if has_skipped_args:
-                    exception = SemanticError(f"Multiple '..' given to pattern:")
-                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
-                    exception.add_traceback_minimal(argument.variadic_token.pos, f"2nd variadic argument given here.")
-                    raise exception
-                has_skipped_args = argument
-                continue
-
-        lhs_tuple_type_elements = if_condition.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
-        rhs_tuple_type_elements = self.items
-        if len(lhs_tuple_type_elements) != len(rhs_tuple_type_elements) and not has_skipped_args:
-            exception = SemanticError(f"Invalid tuple assignment:")
-            exception.add_traceback(self.pos, f"Assignment target tuple contains {len(rhs_tuple_type_elements)} elements.")
-            exception.add_traceback(if_condition.pos, f"Assignment value tuple contains {len(lhs_tuple_type_elements)} elements.")
-            raise exception
+        conversion = self.convert_to_variable()
+        conversion.do_semantic_analysis(scope_handler, other_tuple=if_condition, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         return ConventionMovAst, if_condition.infer_type(scope_handler, **kwargs)[1]
