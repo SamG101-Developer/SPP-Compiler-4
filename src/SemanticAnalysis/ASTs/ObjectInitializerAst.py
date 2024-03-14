@@ -56,6 +56,12 @@ class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
         # TODO: move most of this into the ObjectInitializerArgumentGroupAst
         type_sym = scope_handler.current_scope.get_symbol(self.class_type)
         type_scope = type_sym.associated_scope
+        if not type_sym.type:
+            exception = SemanticError(f"Cannot instantiate generic type: '{self.class_type}'")
+            exception.add_traceback(type_sym.name.pos, f"Generic type '{self.class_type}' declared here.")
+            exception.add_traceback(self.class_type.pos, f"Object initializer declared here.")
+            raise exception
+
         attributes = Seq(type_sym.type.body.members)
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
