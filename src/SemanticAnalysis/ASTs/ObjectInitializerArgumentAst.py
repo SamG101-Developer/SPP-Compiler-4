@@ -1,0 +1,6 @@
+from src.SemanticAnalysis.ASTs.ObjectInitializerArgumentNamedAst import ObjectInitializerArgumentNamedAst
+from src.SemanticAnalysis.ASTs.ObjectInitializerArgumentNormalAst import ObjectInitializerArgumentNormalAst
+
+type ObjectInitializerArgumentAst = ObjectInitializerArgumentNormalAst | ObjectInitializerArgumentNamedAst
+
+__all__ = ["ObjectInitializerArgumentAst"]

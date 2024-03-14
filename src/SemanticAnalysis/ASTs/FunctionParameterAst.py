@@ -1,0 +1,8 @@
+from src.SemanticAnalysis.ASTs.FunctionParameterSelfAst import FunctionParameterSelfAst
+from src.SemanticAnalysis.ASTs.FunctionParameterRequiredAst import FunctionParameterRequiredAst
+from src.SemanticAnalysis.ASTs.FunctionParameterOptionalAst import FunctionParameterOptionalAst
+from src.SemanticAnalysis.ASTs.FunctionParameterVariadicAst import FunctionParameterVariadicAst
+
+type FunctionParameterAst = FunctionParameterSelfAst | FunctionParameterRequiredAst | FunctionParameterOptionalAst | FunctionParameterVariadicAst
+
+__all__ = ['FunctionParameterAst']

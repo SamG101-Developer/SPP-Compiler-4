@@ -4,7 +4,7 @@ from typing import NoReturn
 from src.LexicalAnalysis.Tokens import Token
 from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.ASTs.Ast import ProgramAst
+from src.SemanticAnalysis.ASTs import ProgramAst
 from src.Utils.ErrorFormatter import ErrorFormatter
 
 from src.Utils.Sequence import Seq
@@ -53,7 +53,7 @@ class Analyser:
         # Create the module namespace by splitting the module name based on the path separator. The module namespace is
         # the path to the module, relative to the src path, without the file name and without the src folder itself.
 
-        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst
+        from src.SemanticAnalysis.ASTs import IdentifierAst
         module_namespace = self._file_name.split(os.path.sep)
         module_namespace = module_namespace[module_namespace.index("src") + 1 : -1]
 

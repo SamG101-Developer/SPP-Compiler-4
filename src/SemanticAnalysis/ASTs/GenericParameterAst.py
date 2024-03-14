@@ -1,0 +1,8 @@
+from __future__ import annotations
+from src.SemanticAnalysis.ASTs.GenericParameterRequiredAst import GenericParameterRequiredAst
+from src.SemanticAnalysis.ASTs.GenericParameterOptionalAst import GenericParameterOptionalAst
+from src.SemanticAnalysis.ASTs.GenericParameterVariadicAst import GenericParameterVariadicAst
+
+type GenericParameterAst = GenericParameterRequiredAst | GenericParameterOptionalAst | GenericParameterVariadicAst
+
+__all__ = ["GenericParameterAst"]

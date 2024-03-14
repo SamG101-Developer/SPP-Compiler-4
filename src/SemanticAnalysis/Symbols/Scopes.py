@@ -24,7 +24,7 @@ class Scope:
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
-        from src.SemanticAnalysis.ASTs.Ast import TypeSingleAst
+        from src.SemanticAnalysis.ASTs import TypeSingleAst
         scope = self
         if isinstance(symbol.name, TypeSingleAst):
             name = copy.deepcopy(symbol.name)
@@ -48,7 +48,7 @@ class Scope:
 
     def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
-        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeSingleAst
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst
         assert isinstance(name, IdentifierAst) or isinstance(name, TypeSingleAst), f"Expected IdentifierAst or TypeAst, got {type(name)}"
         scope = self
 
@@ -90,7 +90,7 @@ class Scope:
         return self.get_symbol(name) is not None
 
     def set_symbol(self, name: IdentifierAst | TypeAst, symbol: TypeSymbol | VariableSymbol) -> None:
-        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
         assert isinstance(name, IdentifierAst) or type(symbol) in TypeAst.__value__.__args__
         self._symbol_table.set(name, symbol)
 

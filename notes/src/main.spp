@@ -26,6 +26,14 @@ fun some_function() -> std.Void {
     x = 2_u64
 }
 
+fun bbb(a: std.Str) -> std.Str {
+    ret a
+}
+
+fun bbb(a: std.Bool) -> std.Bool {
+    ret false
+}
+
 fun main(velocity: Velocity) -> std.Void {
     case velocity then
         == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
@@ -44,4 +52,7 @@ fun main(velocity: Velocity) -> std.Void {
 
     test(std.Vec[std.Vec[std.Str]]())
     let x = std.Opt(value=std.Vec[std.Str]())
+
+    let mut variable = bbb(false)
+    variable = false
 }

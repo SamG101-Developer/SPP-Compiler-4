@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import dataclasses
+import copy, dataclasses
 from dataclasses import dataclass
 from typing import Optional, List
+
+from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 
 
 @dataclass
@@ -20,7 +22,7 @@ class MemoryStatus:
         return self.is_borrow_ref or self.is_borrow_mut
 
     def as_ast(self):
-        from src.SemanticAnalysis.ASTs.Ast import ConventionMovAst, ConventionRefAst, ConventionMutAst, TokenAst
+        from src.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst, TokenAst
         from src.LexicalAnalysis.Tokens import TokenType
 
         if self.is_borrow_mut:
@@ -43,9 +45,9 @@ class VariableSymbol(Symbol):
     memory_info: MemoryStatus = dataclasses.field(default_factory=MemoryStatus)
 
     def __post_init__(self):
-        from src.SemanticAnalysis.ASTs.Ast import IdentifierAst, TypeAst
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
         assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name} ({type(self.name)})"
-        assert type(self.type) in TypeAst.__value__.__args__ or self.type is None, f"Got variable symbol with type: {type(self.type)}"
+        assert isinstance(self.type, TypeAst) or self.type is None, f"Got variable symbol with type: {type(self.type)}"
 
     def __json__(self) -> dict:
         return {
@@ -62,8 +64,8 @@ class TypeSymbol(Symbol):
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
 
     def __post_init__(self):
-        from src.SemanticAnalysis.ASTs.Ast import ClassPrototypeAst, TypeAst
-        assert type(self.name) in TypeAst.__value__.__args__
+        from src.SemanticAnalysis.ASTs import ClassPrototypeAst, TypeAst
+        assert isinstance(self.name, TypeAst), f"Got type symbol with name: {self.name} ({type(self.name)}"  # TODO: This is not correct
         assert isinstance(self.type, ClassPrototypeAst) or self.type is None
 
     def __json__(self) -> dict:
@@ -72,6 +74,15 @@ class TypeSymbol(Symbol):
             "name": self.name,
             "type": self.type,
         }
+
+    @property
+    def fq_type(self) -> TypeAst:
+        associated_scope = self.associated_scope._parent_scope
+        fq_type = copy.deepcopy(self.name)
+        while associated_scope._parent_scope is not None:
+            fq_type.parts.insert(0, associated_scope._scope_name)
+            associated_scope = associated_scope._parent_scope
+        return fq_type
 
 
 class SymbolTable[SymbolType]:

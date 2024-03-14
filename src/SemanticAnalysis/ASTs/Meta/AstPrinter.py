@@ -46,3 +46,9 @@ def ast_printer_method(func, next_indent: bool = False):
 
 def ast_printer_method_indent(func):
     return ast_printer_method(func, True)
+
+
+__all__ = [
+    "AstPrinter",
+    "ast_printer_method",
+    "ast_printer_method_indent"]
