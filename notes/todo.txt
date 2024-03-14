@@ -1,5 +1,4 @@
 Generics:
--- Ban generic arguments from being `Void` for attributes (analyse class after generic substitution).
 -- All things generic constraints.
 -- Ban member access on generic types (for now, until constraints are implemented => constraints as sup-scopes).
 -- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
@@ -10,7 +9,7 @@ Binary expressions:
 Coroutines:
 -- Check memory status of yielded objects.
 -- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
--- Add `cor` for couroutines?
+-- Add `cor` for coroutines?
     -- Parsing rule allows for conventions for yielding & sending
     -- CoroutinePrototypeAST can inherit from FunctionPrototypeAST
     -- Some checks the same, others specific to each (yielding, returning)
@@ -24,7 +23,7 @@ Unions:
 -- Reintroduce `is` .. expression for unions.
 
 Sup classes
--- Ensure overriden methods exist on the `sup` class.
+-- Ensure overridden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
 
 Object initialization

@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from typing import List
 
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
+from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -42,6 +44,11 @@ class ClassAttributeAst(Ast, SemanticAnalysis):
         # Check the annotations and that the type is valid.
         Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        if self.type_declaration.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
+            exception = SemanticError(f"Attribute '{self.identifier.value}' cannot have type 'Void'.")
+            exception.add_traceback(self.pos, f"Attribute '{self.identifier.value}' declared here.")
+            raise exception
 
 
 __all__ = ["ClassAttributeAst"]
