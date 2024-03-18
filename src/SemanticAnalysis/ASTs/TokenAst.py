@@ -19,9 +19,9 @@ class TokenAst(Ast):
     token: Token
 
     @staticmethod
-    def dummy(token_type: TokenType, info=None) -> TokenAst:
+    def dummy(token_type: TokenType, info=None, pos=-1) -> TokenAst:
         # Quick way to create a token ast for a given token type.
-        return TokenAst(-1, Token(info or token_type.value, token_type))
+        return TokenAst(pos, Token(info or token_type.value, token_type))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
