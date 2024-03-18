@@ -38,15 +38,6 @@ class CommonTypes:
     def ctx(pos: int = -1):
         from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst
         return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "Ctx", None)])
-    
-    @staticmethod
-    def gen(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
-        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
-        from src.LexicalAnalysis.Tokens import TokenType
-        gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
-        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
-        send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
-        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "Gen", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def fut(inner_type, pos: int = -1):
@@ -102,3 +93,45 @@ class CommonTypes:
         param_types_generic = GenericArgumentNormalAst(-1, CommonTypes.tuple(param_types))
         types = GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [return_type_generic, param_types_generic], TokenAst.dummy(TokenType.TkBrackR))
         return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "FunMov", types)])
+
+    @staticmethod
+    def gen_ref(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
+        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
+        send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
+        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "GenRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+
+    @staticmethod
+    def gen_mut(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
+        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
+        send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
+        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "GenMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+
+    @staticmethod
+    def gen_mov(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
+        from src.LexicalAnalysis.Tokens import TokenType
+        gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
+        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
+        send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
+        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+
+    @staticmethod
+    def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> "ConventionAst":
+        from src.LexicalAnalysis.Tokens import TokenType
+        from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+        from src.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
+        from src.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+        from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+
+        match identifier.value[-3:]:
+            case "Ref": return ConventionRefAst(pos, TokenAst.dummy(TokenType.TkBitAnd, pos=pos))
+            case "Mut": return ConventionMutAst(pos, TokenAst.dummy(TokenType.TkBitAnd, pos=pos), TokenAst.dummy(TokenType.KwMut, pos=pos))
+            case "Mov": return ConventionMovAst(pos)
+            case _:
+                raise
