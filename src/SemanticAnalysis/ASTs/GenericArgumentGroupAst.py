@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from src.LexicalAnalysis.Tokens import TokenType
 
@@ -77,6 +77,14 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalysis):
 
         # Analyse each argument.
         Seq(self.arguments).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
+
+    def __getitem__(self, item: str) -> Optional["TypeAst"]:
+        from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
+
+        mock_identifier = IdentifierAst(-1, item)
+        for argument in self.arguments:
+            if isinstance(argument, GenericArgumentNamedAst) and argument.identifier.parts[-1].value == mock_identifier.value:
+                return argument.type
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
