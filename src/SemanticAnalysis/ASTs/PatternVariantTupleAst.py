@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -19,7 +19,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class PatternVariantTupleAst(Ast, SemanticAnalysis, TypeInfer):
+class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantTupleAst node represents a tuple destructuring pattern on a conditional branch. This is used to
     match a tuple of values to a tuple of patterns. For example, "== (1, (2, 3), a)" would match a tuple of 3 elements,

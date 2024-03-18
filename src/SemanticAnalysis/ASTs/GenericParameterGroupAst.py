@@ -4,10 +4,10 @@ from typing import List
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -22,7 +22,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class GenericParameterGroupAst(Ast, Default, SemanticAnalysis):
+class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
     """
     The GenericParameterGroupAst node is used to represent a group of generic parameters in a
     function/class/superimposition prototype, NOT the arguments to a function call or object instantiation (see

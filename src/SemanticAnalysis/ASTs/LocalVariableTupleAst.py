@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import List
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class LocalVariableTupleAst(Ast, SemanticAnalysis):
+class LocalVariableTupleAst(Ast, SemanticAnalyser):
     """
     The LocalVariableTupleAst node represents a tuple of local variables. This is an advanced form of a local variable,
     and is seen mostly in the "let" statement. For example, in the statement "let (mut x, y) = (5, 6)", "(mut x, y)" is

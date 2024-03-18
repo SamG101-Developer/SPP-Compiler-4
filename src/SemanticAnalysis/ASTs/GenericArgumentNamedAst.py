@@ -1,15 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class GenericArgumentNamedAst(Ast, SemanticAnalysis):
+class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     """
     The FunctionArgumentNamedAst node represents a named argument being given to a parameter of a function. This looks
     like `function_call(x=123)`, where `x=123` is the argument being given to the function. The argument has an

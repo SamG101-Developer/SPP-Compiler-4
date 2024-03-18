@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -20,7 +20,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class LocalVariableDestructureAst(Ast, SemanticAnalysis, TypeInfer):
+class LocalVariableDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     class_type: "TypeAst"
     bracket_l_token: "TokenAst"
     items: List["LocalVariableSingleAst"]

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ArrayLiteralNonEmptyAst(Ast, SemanticAnalysis, TypeInfer):
+class ArrayLiteralNonEmptyAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The ArrayLiteralNonEmptyAst class is the AST for a non-empty array literal. This means that the array has at least
     one element, and the elements are used to determine the type that the generic parameter `T` maps to, in the `Arr[T]`

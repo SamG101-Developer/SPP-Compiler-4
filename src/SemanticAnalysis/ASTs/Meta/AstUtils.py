@@ -1,9 +1,9 @@
 from __future__ import annotations
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.Utils.Sequence import Seq
 

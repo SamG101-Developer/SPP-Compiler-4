@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -18,7 +18,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class PatternVariantDestructureAst(Ast, SemanticAnalysis, TypeInfer):
+class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantDestructureAst node represents a destructuring pattern on a conditional branch. This is used to
     match a value to a pattern. For example, "case point then == Point(x, y)" would destructure the "point" into "x" and

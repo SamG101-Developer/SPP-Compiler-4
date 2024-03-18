@@ -3,11 +3,11 @@ import difflib, hashlib
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -22,7 +22,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class IdentifierAst(Ast, SemanticAnalysis, TypeInfer):
+class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The IdentifierAst node represents an identifier. This is an identifier for variable, parameters, etc., and will
     start with a lowercase letter.

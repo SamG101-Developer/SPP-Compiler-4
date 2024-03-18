@@ -3,9 +3,9 @@ from typing import Optional, Tuple, Type
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis, BIN_OP_FUNCS, OP_PREC
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser, BIN_OP_FUNCS, OP_PREC
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -21,7 +21,7 @@ from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
-class BinaryExpressionAst(Ast, SemanticAnalysis, TypeInfer):
+class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The BinaryExpressionAst node is used to represent a binary expression, such as "a + b" or "a < b". The binary
     expression has a left-hand-side, a right-hand-side, and an operator.

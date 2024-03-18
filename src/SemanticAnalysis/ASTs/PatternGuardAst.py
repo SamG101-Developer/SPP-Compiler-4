@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -13,7 +13,7 @@ from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
-class PatternGuardAst(Ast, SemanticAnalysis):
+class PatternGuardAst(Ast, SemanticAnalyser):
     """
     The PatternGuardAst node represents a guard on a conditional branch. This is used to add a condition to a branch's
     pattern, allowing for more precise matching. For example, "case point then == Point(x=0, y) && y > 0" would only

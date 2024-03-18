@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
-class ArrayLiteralEmptyAst(Ast, SemanticAnalysis, TypeInfer):
+class ArrayLiteralEmptyAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The ArrayLiteralEmptyAst class is the AST for an empty array literal. This means that the array has no elements, so
     the element type `T` cannot be inferred. This is gotten around by specifying the type inside the "[]" brackets.

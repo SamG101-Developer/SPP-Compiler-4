@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class PostfixExpressionAst(Ast, SemanticAnalysis, TypeInfer):
+class PostfixExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PostfixExpressionAst node represents a postfix expression. This combines the expression on the LHS with the
     postfix operator on the RHS (function call, member access, etc.).

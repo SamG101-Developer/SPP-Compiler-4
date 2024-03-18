@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ModulePrototypeAst(Ast, SemanticAnalysis):
+class ModulePrototypeAst(Ast, SemanticAnalyser):
     """
     The ModulePrototypeAst node represents a module definition, containing the module identifier and implementation.
     Annotations can also be attached.

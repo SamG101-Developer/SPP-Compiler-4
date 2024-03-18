@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class PatternVariantElseAst(Ast, SemanticAnalysis):
+class PatternVariantElseAst(Ast, SemanticAnalyser):
     """
     The PatternVariantElseAst node represents an else branch. This is used to as a default branch when no other branches
     match. For example, "case point then == Point(x=0, y) {...} else {...}" could reach the else statement if the

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
-from src.SemanticAnalysis.PreProcessor import PreProcessor
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from src.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
+class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
     """
     A ProgramAst node represents the root of the AST. It contains a module and an EOF token.
 

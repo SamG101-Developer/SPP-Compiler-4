@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -10,7 +10,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ModuleImplementationAst(Ast, SemanticAnalysis):
+class ModuleImplementationAst(Ast, SemanticAnalyser):
     """
     The ModuleImplementationAst node represents the contents of a module, contained under a ModulePrototypeAst node.
     This includes "cls", "sup", "fun", and "use" blocks/statements.

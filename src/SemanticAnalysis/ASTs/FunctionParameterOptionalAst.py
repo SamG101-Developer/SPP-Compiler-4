@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol, MemoryStatus
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -14,7 +14,7 @@ from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
-class FunctionParameterOptionalAst(Ast, SemanticAnalysis):
+class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
     """
     The FunctionParameterOptionalAst node represents an optional parameter of a function. This is a parameter that can
     be given an argument when calling the function. The parameter cannot have a convention (ie must be mov/copy). The type

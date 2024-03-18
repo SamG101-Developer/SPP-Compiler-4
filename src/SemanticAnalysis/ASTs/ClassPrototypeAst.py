@@ -2,13 +2,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.PreProcessor import PreProcessor
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -20,7 +20,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
+class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
     """
     The ClassPrototypeAst node is used to represent the definition of a class. The class can be annotated, has an
     identifier, contains a list of attributes, and can have generic parameters and a where block.

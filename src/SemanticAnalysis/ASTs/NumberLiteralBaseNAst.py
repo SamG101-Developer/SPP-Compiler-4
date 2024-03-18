@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 
@@ -17,7 +17,7 @@ from src.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
 
 
 @dataclass
-class NumberLiteralBaseNAst(Ast, SemanticAnalysis, TypeInfer):
+class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The NumberLiteralBaseNAst node is the base class of explicit base numbers, containing common information such as the
     explicit number type, etc.

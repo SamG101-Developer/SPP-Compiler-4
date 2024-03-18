@@ -2,8 +2,8 @@ import os.path
 from typing import NoReturn
 
 from src.LexicalAnalysis.Tokens import Token
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTs import ProgramAst
 from src.Utils.ErrorFormatter import ErrorFormatter
 

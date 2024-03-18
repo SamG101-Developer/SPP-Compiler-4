@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalysis):
+class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalyser):
     """
     The ObjectInitializerArgumentNamedAst node is used to represent a named argument of an object initializer. This is
     when a field name and value are provided in the object initializer. The identifier can be the keyword "sup" for

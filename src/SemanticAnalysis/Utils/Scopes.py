@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
-from src.SemanticAnalysis.Symbols.Symbols import SymbolTable, TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol
 from src.Utils.Sequence import Seq
 
 
@@ -161,15 +161,6 @@ class ScopeHandler:
 
     def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope
-
-    # def move_to_namespace(self, namespace) -> None:
-    #     scope = self._global_scope
-    #     for part in namespace:
-    #         if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-    #             scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
-    #         else:
-    #             self.into_new_scope(part)
-    #     self._current_scope = scope
 
     def reset(self, scope: Optional[Scope] = None) -> None:
         self._current_scope = scope or self._global_scope

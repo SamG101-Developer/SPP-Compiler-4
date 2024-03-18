@@ -2,12 +2,11 @@ from dataclasses import dataclass, field
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol, MemoryStatus
-from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
-from src.SemanticAnalysis.PreProcessor import PreProcessor
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
+from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from src.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -26,7 +25,7 @@ from src.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import P
 
 
 @dataclass
-class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
+class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
     """
     The LetStatementInitializedAst node is used to represent a variable being initialized with a value. The variable
     could be a single variable, a tuple or a destructure. Recursive destructuring is supported.

@@ -6,11 +6,11 @@ from typing import List, Optional
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import Scope, ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol, VariableSymbol
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -26,7 +26,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class TypeSingleAst(Ast, SemanticAnalysis):
+class TypeSingleAst(Ast, SemanticAnalyser):
     """
     A TypeSingleIdentifier is a single type, ie `std.Vec[T]`. It is made up of a sequence of TypePartAst's, which can be
     either IdentifierAsts (namespace parts), GenericIdentifierAsts (type parts), or TokenAsts (numbers for tuple

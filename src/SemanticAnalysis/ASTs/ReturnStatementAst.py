@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
-class ReturnStatementAst(Ast, SemanticAnalysis):
+class ReturnStatementAst(Ast, SemanticAnalyser):
     """
     The ReturnStatementAst node represents a return statement. This is a statement that returns a value from a function.
     It has a return keyword and an optional expression to return.

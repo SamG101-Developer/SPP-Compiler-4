@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -19,7 +19,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
+class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
     """
     The InnerScopeAst node represents a new scope, enclosed in "{}" braces, with a list of members. The members are type
     `T`.

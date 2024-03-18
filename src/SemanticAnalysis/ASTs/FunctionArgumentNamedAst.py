@@ -2,9 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -13,7 +13,7 @@ from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
-class FunctionArgumentNamedAst(Ast, SemanticAnalysis, TypeInfer):
+class FunctionArgumentNamedAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The GenericArgumentNamedAst node represents a named generic argument being given to a generic parameter of a
     function/class/superimposition block. This looks like `function_call[T=Str](123)`, where `T=Str` is the generic

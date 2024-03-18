@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -19,7 +19,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class FunctionParameterGroupAst(Ast, SemanticAnalysis):
+class FunctionParameterGroupAst(Ast, SemanticAnalyser):
     """
     The FunctionParameterGroupAst node is used to represent a group of function parameters in a function prototype, NOT
     the arguments to a function call (see FunctionArgumentGroupAst).

@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
 from src.LexicalAnalysis.Tokens import TokenType
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
-class SemanticAnalysis(ABC):
+class SemanticAnalyser(ABC):
     @abstractmethod
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         pass

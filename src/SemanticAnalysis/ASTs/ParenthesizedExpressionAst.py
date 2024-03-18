@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class ParenthesizedExpressionAst(Ast, SemanticAnalysis, TypeInfer):
+class ParenthesizedExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The ParenthesizedExpressionAst node represents a parenthesized expression.
 

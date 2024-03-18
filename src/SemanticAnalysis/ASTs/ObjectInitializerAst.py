@@ -4,10 +4,10 @@ from typing import Optional, Tuple, Type
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -25,7 +25,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ObjectInitializerAst(Ast, SemanticAnalysis, TypeInfer):
+class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The ObjectInitializerAst node represents the construction of an object of a class type, with the given arguments.
 

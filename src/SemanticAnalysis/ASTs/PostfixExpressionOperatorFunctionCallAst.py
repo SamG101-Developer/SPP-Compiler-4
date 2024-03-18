@@ -2,11 +2,11 @@ import copy
 from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import Scope, ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.LexicalAnalysis.Tokens import TokenType
 
@@ -28,7 +28,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalysis, TypeInfer):
+class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PostfixExpressionOperatorFunctionCallAst node represents a function call operation, with given generic arguments
     and function arguments. This node also resolves overloads at compile time. Folding can be applied to a function for

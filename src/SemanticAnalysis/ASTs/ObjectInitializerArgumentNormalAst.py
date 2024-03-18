@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -9,7 +9,7 @@ from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
 
 
 @dataclass
-class ObjectInitializerArgumentNormalAst(Ast, SemanticAnalysis):
+class ObjectInitializerArgumentNormalAst(Ast, SemanticAnalyser):
     """
     The ObjectInitializerArgumentNormalAst node is used to represent a normal argument of an object initializer. This is
     when a variable matches the name of an attribute on the target type.

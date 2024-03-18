@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
-class WithExpressionAliasAst(Ast, SemanticAnalysis):
+class WithExpressionAliasAst(Ast, SemanticAnalyser):
     """
     The WithExpressionAliasAst node represents the aliasing of a variable in a "with" expression. This allows for an
     expression to be evaluated into a variable, and then the ".enter()" method called on the variable. Any type of local

@@ -46,3 +46,4 @@ Other
 -- Allow global constants (can't be moved, can be copied or "&" though)
 -- Static methods not callable from class type (parsing issue)
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
+-- Some namespaced types don't analyse as namespaced

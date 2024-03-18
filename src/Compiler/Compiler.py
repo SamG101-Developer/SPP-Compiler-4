@@ -6,7 +6,7 @@ from src.LexicalAnalysis.Lexer import Lexer
 from src.SyntacticAnalysis.Parser import Parser
 from src.SemanticAnalysis.ASTs.Meta import Ast
 from src.SemanticAnalysis.Analyse import Analyser
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.Compiler.ModuleTree import ModuleTree
 
 

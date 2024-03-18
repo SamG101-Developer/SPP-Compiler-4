@@ -4,9 +4,9 @@ from typing import List, Optional
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -20,7 +20,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class GenericArgumentGroupAst(Ast, Default, SemanticAnalysis):
+class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
     """
     The GenericArgumentGroupAst node is used to group the generic arguments to a function call or object initialization,
     NOT the generic parameters of a function/class/superimposition prototype (see GenericParameterGroupAst).

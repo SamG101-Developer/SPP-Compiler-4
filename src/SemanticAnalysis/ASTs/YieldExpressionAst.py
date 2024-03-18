@@ -1,17 +1,17 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Type
+from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class YieldExpressionAst(Ast, SemanticAnalysis):
+class YieldExpressionAst(Ast, SemanticAnalyser):
     """
     The YieldExpressionAst node is used to represent a yield expression in a coroutine (always yields to a generator
     object). Yield expressions are expression to allow "sending" a value into the coroutine with "let x = yield 5", and

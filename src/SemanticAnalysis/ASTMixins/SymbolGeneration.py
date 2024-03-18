@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 class SymbolGenerator(ABC):

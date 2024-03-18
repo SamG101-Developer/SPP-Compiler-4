@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class GenericArgumentNormalAst(Ast, SemanticAnalysis):
+class GenericArgumentNormalAst(Ast, SemanticAnalyser):
     """
     The GenericArgumentNormalAst node represents a non-named generic argument being given to a generic parameter of a
     function/class/superimposition block. This looks like `function_call[Str](123)`, where `Str` is the generic argument

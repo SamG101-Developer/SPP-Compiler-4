@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -12,7 +12,7 @@ from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
-class FunctionArgumentNormalAst(Ast, SemanticAnalysis, TypeInfer):
+class FunctionArgumentNormalAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The FunctionArgumentNormalAst node represents a non-named argument being given to a parameter of a function. This
     looks like `function_call(123)`, where `123` is the argument being given to the function. The argument has a

@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from ordered_set import OrderedSet
 from typing import List
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -27,7 +27,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class FunctionArgumentGroupAst(Ast, SemanticAnalysis):
+class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
     """
     The FunctionArgumentGroupAst node is used to group the arguments to a function call, NOT the parameters of a
     function prototype (see FunctionParameterGroupAst).

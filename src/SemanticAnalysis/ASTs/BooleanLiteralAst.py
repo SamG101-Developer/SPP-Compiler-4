@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
-class BooleanLiteralAst(Ast, SemanticAnalysis, TypeInfer):
+class BooleanLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The BooleanLiteralAst node represents a boolean value, which can be either `true` or `false`.
 

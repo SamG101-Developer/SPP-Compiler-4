@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class TupleLiteralAst(Ast, SemanticAnalysis, TypeInfer):
+class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The TupleLiteralAst node is used to represent a fixed-size collection of elements, which can be any type. Tuples
     have special operations, such as indexing, unpacking, destructuring and more.

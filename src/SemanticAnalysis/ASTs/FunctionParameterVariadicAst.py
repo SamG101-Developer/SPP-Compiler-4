@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol, MemoryStatus
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
-class FunctionParameterVariadicAst(Ast, SemanticAnalysis):
+class FunctionParameterVariadicAst(Ast, SemanticAnalyser):
     """
     The FunctionParameterVariadicAst node represents a variadic parameter of a function. This is a parameter that can
     be given any number of arguments when calling the function. The parameter can have a convention, that all the arguments

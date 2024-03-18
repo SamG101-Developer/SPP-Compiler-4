@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
 
 
 @dataclass
-class GenericParameterVariadicAst(Ast, SemanticAnalysis):
+class GenericParameterVariadicAst(Ast, SemanticAnalyser):
     """
     The GenericParameterVariadicAst node represents a variadic generic parameter of a function/class/superimposition
     prototype. This is a generic parameter that can be given any number of generic arguments when calling the function

@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol, MemoryStatus
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class LetStatementUninitializedAst(Ast, SemanticAnalysis):
+class LetStatementUninitializedAst(Ast, SemanticAnalyser):
     """
     The LetStatementUninitializedAst node represents a "let" statement where a value is not provided to the variable.
     This means that the variable cannot be used until it has been assigned a value. Uninitialized variables must be

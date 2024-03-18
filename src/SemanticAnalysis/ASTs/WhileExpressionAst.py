@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -13,7 +13,7 @@ from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
-class WhileExpressionAst(Ast, SemanticAnalysis, TypeInfer):
+class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The WhileExpressionAst node is used to represent a while-loop. This is a loop that will continue to execute the body
     of the loop while the condition is true. The keyword to use it is "loop".

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -16,7 +16,7 @@ from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
-class WhileElseExpressionAst(Ast, SemanticAnalysis, TypeInfer):
+class WhileElseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The WhileElseExpressionAst node represents a while-else expression. This is used to execute a block of code if the
     condition for the WhileExpressionAst is already "false" at the first iteration.

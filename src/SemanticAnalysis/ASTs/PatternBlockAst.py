@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -19,7 +19,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class PatternBlockAst(Ast, SemanticAnalysis):
+class PatternBlockAst(Ast, SemanticAnalyser):
     """
     The PatternBlockAst node represents a pattern block. This contains a number of "|" separated patterns, and is used
     to match a value against a pattern.

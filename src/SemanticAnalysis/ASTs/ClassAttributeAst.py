@@ -2,9 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -13,7 +13,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassAttributeAst(Ast, SemanticAnalysis):
+class ClassAttributeAst(Ast, SemanticAnalyser):
     """
     The ClassAttributeAst node is used to represent an attribute in a ClassPrototypeAst node. The attribute contains the
     name and type of the attribute, and any annotations that are attached to the attribute.

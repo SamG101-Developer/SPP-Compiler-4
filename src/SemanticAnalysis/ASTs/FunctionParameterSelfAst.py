@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Symbols.Symbols import VariableSymbol, MemoryStatus
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -17,7 +17,7 @@ from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
-class FunctionParameterSelfAst(Ast, SemanticAnalysis):
+class FunctionParameterSelfAst(Ast, SemanticAnalyser):
     """
     The FunctionParameterSelfAst node represents the "self" parameter of a function. This is a special parameter that
     represents the instance of the type that the function is being called on. The "self" parameter is always the first

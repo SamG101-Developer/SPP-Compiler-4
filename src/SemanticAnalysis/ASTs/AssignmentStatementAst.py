@@ -3,11 +3,11 @@ from typing import List, Tuple, Type
 
 from src.LexicalAnalysis.Tokens import TokenType
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -23,7 +23,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class AssignmentStatementAst(Ast, SemanticAnalysis, TypeInfer):
+class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The AssignmentStatementAst node is used to represent a variable being assigned a value. The LHS can be any
     expression but is semantically analysed to ensure that it is a variable or attribute being assigned to. There can be

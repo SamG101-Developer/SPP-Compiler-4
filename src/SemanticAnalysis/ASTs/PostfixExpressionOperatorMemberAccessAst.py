@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,7 +15,7 @@ from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
-class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalysis):
+class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
     """
     The PostfixExpressionOperatorMemberAccessAst node represents the member access operator of some expression.
 

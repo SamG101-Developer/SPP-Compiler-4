@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
-from src.SemanticAnalysis.PreProcessor import PreProcessor
-from src.SemanticAnalysis.Symbols.Symbols import TypeSymbol
-from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
-from src.SemanticAnalysis.Symbols.SymbolGeneration import SymbolGenerator
-from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from src.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -18,7 +18,7 @@ from src.Utils.Sequence import Seq
 
 
 @dataclass
-class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis):
+class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
     """
     The SupPrototypeNormalAst node represents a superimposition prototype for methods and typedefs to be superimposed
     over a class.
