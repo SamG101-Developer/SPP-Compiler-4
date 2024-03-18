@@ -56,6 +56,7 @@ class AstUtils:
         from src.SemanticAnalysis.ASTs.GenericArgumentNormalAst import GenericArgumentNormalAst
         from src.SemanticAnalysis.ASTs.GenericParameterRequiredAst import GenericParameterRequiredAst
         from src.SemanticAnalysis.ASTs.GenericParameterVariadicAst import GenericParameterVariadicAst
+        from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
         from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
         from src.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
 
@@ -68,7 +69,7 @@ class AstUtils:
         # TODO : change "function overload" in error messages to be based on obj_definition etc
 
         available_generic_parameter_names = generic_parameters.map(lambda p: p.identifier)
-        required_generic_parameters = generic_parameters.filter(lambda p: isinstance(p, GenericParameterRequiredAst))
+        required_generic_parameters = generic_parameters.filter_to_type(GenericParameterRequiredAst)
 
         # Check that inferred generics haven't been given explicitly:
         if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
@@ -83,7 +84,7 @@ class AstUtils:
             raise exception
 
         # Check if there are any named generic arguments with names that don't match any generic parameter names:
-        if invalid_generic_argument_names := generic_arguments.filter(lambda a: isinstance(a, GenericArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
+        if invalid_generic_argument_names := generic_arguments.filter_to_type(GenericArgumentNamedAst).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
             exception = SemanticError(f"Invalid generic argument names given:")
             exception.add_traceback(obj_definition.pos, f"{what} declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
             exception.add_traceback_minimal(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.")
@@ -124,9 +125,10 @@ class AstUtils:
 
             # Create the new generic argument, naming it with the first available name, and replace the old generic argument
             # with the new one. If this is the first argument for a variadic parameter, mark it as such.
+            new_generic_argument_identifier = available_generic_parameter_names.pop(0)
             new_generic_argument = GenericArgumentNamedAst(
                 pos=generic_argument.pos,
-                identifier=available_generic_parameter_names.pop(0),
+                raw_identifier=IdentifierAst(new_generic_argument_identifier.pos, new_generic_argument_identifier.parts[-1].value),
                 assignment_token=TokenAst.dummy(TokenType.TkAssign),
                 type=generic_argument_type)
 
@@ -180,7 +182,7 @@ class AstUtils:
                         if generic_parameter.identifier == p_1:
                             inferred_generic_parameters.append(GenericArgumentNamedAst(
                                 pos=p_2.pos,
-                                identifier=generic_parameter.identifier,
+                                raw_identifier=IdentifierAst(generic_parameter.identifier.pos, generic_parameter.identifier.parts[-1].value),
                                 assignment_token=TokenAst.dummy(TokenType.TkAssign),
                                 type=p_2))
                             break

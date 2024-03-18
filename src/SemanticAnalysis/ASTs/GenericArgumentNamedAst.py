@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
@@ -22,15 +22,21 @@ class GenericArgumentNamedAst(Ast, SemanticAnalysis):
         - value: The value of the argument.
     """
 
-    identifier: "TypeAst"
+    raw_identifier: "IdentifierAst"
     assignment_token: "TokenAst"
     type: "TypeAst"
+    identifier: "TypeAst" = field(default=None, init=False)
+
+    def __post_init__(self):
+        from src.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
+        from src.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
+        self.identifier = TypeSingleAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionArgumentNamedAst.
         s = ""
-        s += f"{self.identifier.print(printer)}"
+        s += f"{self.raw_identifier.print(printer)}"
         s += f"{self.assignment_token.print(printer)}"
         s += f"{self.type.print(printer)}"
         return s
