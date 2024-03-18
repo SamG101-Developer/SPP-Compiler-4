@@ -55,6 +55,7 @@ class AstUtils:
         from src.SemanticAnalysis.ASTs.GenericArgumentNamedAst import GenericArgumentNamedAst
         from src.SemanticAnalysis.ASTs.GenericArgumentNormalAst import GenericArgumentNormalAst
         from src.SemanticAnalysis.ASTs.GenericParameterRequiredAst import GenericParameterRequiredAst
+        from src.SemanticAnalysis.ASTs.GenericParameterOptionalAst import GenericParameterOptionalAst
         from src.SemanticAnalysis.ASTs.GenericParameterVariadicAst import GenericParameterVariadicAst
         from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
         from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
@@ -143,7 +144,19 @@ class AstUtils:
             exception.add_traceback_minimal(usage.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
             raise exception
 
-        return inferred_generic_arguments + generic_arguments
+        # Combine the inferred generic arguments with the rest of the generic arguments.
+        all_generic_arguments = inferred_generic_arguments + generic_arguments
+
+        # Load the missing optional generic parameters with their default values.
+        for optional_generic_parameter in generic_parameters.filter_to_type(GenericParameterOptionalAst):
+            if not all_generic_arguments.find(lambda a: a.identifier == optional_generic_parameter.identifier):
+                all_generic_arguments.append(GenericArgumentNamedAst(
+                    pos=optional_generic_parameter.pos,
+                    raw_identifier=IdentifierAst(optional_generic_parameter.identifier.pos, optional_generic_parameter.identifier.parts[-1].value),
+                    assignment_token=TokenAst.dummy(TokenType.TkAssign),
+                    type=optional_generic_parameter.default_value))
+
+        return all_generic_arguments
 
     @staticmethod
     def infer_generic_argument_values(
