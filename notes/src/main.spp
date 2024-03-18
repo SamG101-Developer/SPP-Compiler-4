@@ -18,7 +18,7 @@ cls P {
 
 
 fun test[T](vec: std.Vec[std.Vec[T]]) -> std.Str {
-    ret "1234"
+    ret "hello"
 }
 
 fun some_function() -> std.Void {
@@ -55,4 +55,20 @@ fun main(velocity: Velocity) -> std.Void {
 
     let mut variable = bbb(false)
     variable = false
+
+    loop variable {
+        let x = 1
+        let y = 2
+        let z = 3
+    }
+    else {
+        let p = 1
+    }
+}
+
+
+fun coroutine_function() -> std.GenRef[Yield=std.Str] {
+    gen &"3456"
+    gen "world"
+    ret
 }

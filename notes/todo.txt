@@ -8,12 +8,8 @@ Binary expressions:
 
 Coroutines:
 -- Check memory status of yielded objects.
--- Check the type of yielded, returned, and sent objects against the `Gen[Yield, Return, Send]` type parameters.
--- Add `cor` for coroutines?
-    -- Parsing rule allows for conventions for yielding & sending
-    -- CoroutinePrototypeAST can inherit from FunctionPrototypeAST
-    -- Some checks the same, others specific to each (yielding, returning)
-    -- Only allow yielding from coroutines
+-- Check the type of sent objects against the `Send` generic parameter.
+-- Fix the return type to check against the `Return` generic parameter (not the function return type) for coroutines.
 
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
