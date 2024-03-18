@@ -31,6 +31,8 @@ class ErrorFormatter:
         carets_line_as_string = f"{carets} <- "
         carets_line_as_string = " " * sum([len(str(token)) for token in self._tokens[error_line_start_pos : start_pos]]) + carets_line_as_string
 
+        # todo: comment the rest because I FORGOT HOW IT WORKS
+
         formatted_message = ""
         current_line = ""
         current_line_length = 0
