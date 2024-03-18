@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.SemanticAnalysis.Analysis.SemanticAnalysis import SemanticAnalysis
+from src.SemanticAnalysis.Analysis.SemanticError import SemanticError
 from src.SemanticAnalysis.Symbols.Scopes import ScopeHandler
 from src.SemanticAnalysis.Types.CommonTypes import CommonTypes
 from src.SemanticAnalysis.Types.TypeInfer import TypeInfer
@@ -43,6 +44,19 @@ class InnerScopeAst[T](Ast, SemanticAnalysis, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler, inline_block: bool = False, **kwargs) -> None:
+        from src.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
+
+        # Make sure nothing comes after a return statement.
+        return_encountered = None
+        for member in self.members:
+            if return_encountered:
+                exception = SemanticError(f"Unreachable code:")
+                exception.add_traceback(return_encountered.pos, f"Return statement found here.")
+                exception.add_traceback(member.pos, f"Unreachable code found here.")
+                raise exception
+            if isinstance(member, ReturnStatementAst):
+                return_encountered = member
+
         # When a new scope is unwanted, analyse the members in the current scope.
         if inline_block:
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
