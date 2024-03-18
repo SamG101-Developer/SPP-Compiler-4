@@ -78,6 +78,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
     _orig: "IdentifierAst" = field(default=None, kw_only=True)
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True)
     _specializations: List["FunctionPrototypeAst"] = field(default_factory=list, kw_only=True)
+    _is_coro: bool = field(default=False, init=False)
 
     def __post_init__(self):
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
@@ -229,7 +230,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
     def generate(self, s: ScopeHandler) -> None:
         # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
         # for each generic parameter. Exit the newly created function scope.
-        s.into_new_scope(self.identifier)
+        s.into_new_scope(f"<function:{self._orig}>")
         Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
         s.exit_cur_scope()
 
@@ -249,12 +250,12 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
         # Add the "target-return-type" to the function block, so that nested return statements can be type-checked. Set
         # "inline-block" to True, because a new scope has already been created for the function scope, so the InnerScope
         # analyser doesn't need to create a new scope automatically.
-        kwargs |= {"target-return-type": self.return_type}
+        kwargs |= {"target-return-type": self.return_type, "fn-proto": self}
         self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
         kwargs.pop("target-return-type")
 
         # Check that there a return statement at the end for non-Void subroutines.
-        if ("coroutine" not in kwargs
+        if (not self._is_coro
                 and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
                 and self.body.members
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
@@ -264,8 +265,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalysis)
             raise exception
 
         # Check if the function is a coroutine (contains 1 yield statement, can be nested in some inner scope too)
-        if "coroutine" in kwargs:
-            ...
+        # if "coroutine" in kwargs:
+        #     kwargs.pop("coroutine")
 
         # Exit the function scope.
         if not override_scope:

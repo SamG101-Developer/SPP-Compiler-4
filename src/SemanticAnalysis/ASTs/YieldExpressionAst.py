@@ -46,6 +46,9 @@ class YieldExpressionAst(Ast, SemanticAnalysis):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
+        # Mark the function as a coroutine.
+        kwargs["fn-proto"]._is_coro = True
+
         # Analyse the expression.
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
         coroutine_return_type = kwargs.get("target-return-type")
@@ -56,8 +59,6 @@ class YieldExpressionAst(Ast, SemanticAnalysis):
             exception.add_traceback(self.pos, f"Gen expression found here.")
             exception.add_traceback(coroutine_return_type.pos, f"Function returns type '{coroutine_return_type}'.")
             raise exception
-
-        kwargs["coroutine"] = True
 
         # Determine the given yield type and convention (if the expression is a parameter variable it could have an
         # implicit convention)
@@ -72,7 +73,7 @@ class YieldExpressionAst(Ast, SemanticAnalysis):
         expected_yield_type = coroutine_return_type.parts[-1].generic_arguments["Yield"]
         expected_convention = CommonTypes.type_variant_to_convention(coroutine_return_type.parts[-1])
 
-        # Check that the convention-type pairs match.
+        # Check the convention-type pairs match.
         if not expected_yield_type.symbolic_eq(given_yield_type, scope_handler.current_scope) or not isinstance(expected_convention, given_convention):
             exception = SemanticError(f"Invalid yield type from coroutine:")
             exception.add_traceback(expected_yield_type.pos, f"Coroutine yield type specified here as '{expected_convention}{expected_yield_type}'.")

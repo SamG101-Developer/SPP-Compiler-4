@@ -37,13 +37,25 @@ class ReturnStatementAst(Ast, SemanticAnalysis):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from src.SemanticAnalysis.ASTs.TypeAst import TypeAst
+        from src.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
+
         # If there is a value being returned, analyse it and ensure its memory status is "owned".
         if self.expression:
             self.expression.do_semantic_analysis(scope_handler, **kwargs)
             AstUtils.ensure_memory_integrity_of_expression(self.expression, scope_handler, **kwargs)
 
         # Check the return type matches the function's return type.
-        target_return_type = kwargs.get("target-return-type")
+        target_return_type = kwargs["target-return-type"]
+        # todo
+        if kwargs["fn-proto"]._is_coro:
+            print([str(x.identifier) for x in target_return_type.parts[-1].generic_arguments.arguments])
+            target_return_type = target_return_type.parts[-1].generic_arguments["Return"]
+            if not target_return_type:  # get default:
+                function_return_type = scope_handler.current_scope.get_symbol(kwargs["target-return-type"])
+                function_return_type_return_type_generic_parameter = function_return_type.associated_scope.get_symbol(TypeAst(-1, [GenericIdentifierAst(-1, "Return", None)])).type
+            print(f"COR RET TY: {target_return_type}")
+
         return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
             exception = SemanticError(f"Returning variable of incorrect type:")
