@@ -160,6 +160,12 @@ class TypeSingleAst(Ast, SemanticAnalyser):
         return isinstance(that, TypeSingleAst) and self.parts == that.parts
 
     def symbolic_eq(self, that, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
+        # Special cases for union types.
+        if that.without_generics() == CommonTypes.union([]):
+            for generic_argument in that.parts[-1].generic_arguments.arguments:
+                if generic_argument.type.symbolic_eq(self, this_scope, that_scope):
+                    return True
+
         # Allows for generics and aliases to match base types etc.
         that_scope = that_scope or this_scope
         this_type = this_scope.get_symbol(self).type
