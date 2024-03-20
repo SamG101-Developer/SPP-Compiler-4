@@ -63,7 +63,7 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
 
         # When a new scope is wanted (default behaviour), create a new scope and analyse the members in the new scope.
         else:
-            scope_handler.into_new_scope("<inner-scope>")
+            scope_handler.into_new_scope(f"<inner-scope: child-of:[{scope_handler.current_scope._scope_name}]>")
             Seq(self.members).for_each(lambda m: m.do_semantic_analysis(scope_handler, **kwargs))
             scope_handler.exit_cur_scope()
 
