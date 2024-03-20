@@ -159,6 +159,9 @@ class ScopeHandler:
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
 
+        # advance the iterator onwards
+        next(self._iterator)
+
     def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope
 
