@@ -36,6 +36,8 @@ class Lexer:
                 elif token.startswith("Lx") and (matched := re.match(value, self._code[current:])):
                     if TokenType[token] not in [TokenType.LxSingleLineComment, TokenType.LxMultiLineComment]:
                         output.append(Token(matched.group(0), TokenType[token]))
+                    if TokenType[token] == TokenType.LxMultiLineComment:
+                        output.extend([Token("\n", TokenType.TkNewLine)] * matched.group(0).count("\n"))
                     current += len(matched.group(0))
                     break
 
