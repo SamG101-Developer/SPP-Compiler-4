@@ -1,16 +1,14 @@
 from dataclasses import dataclass
 from typing import Tuple, Type
 
-from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+
+from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from src.SemanticAnalysis.ASTs.LocalVariableAssignmentAst import LocalVariableAssignmentAst
 
 
 @dataclass
@@ -39,21 +37,36 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{self.value.print(printer)}"
         return s
 
-    def convert_to_variable(self) -> "LocalVariableAssignmentAst":
+    def convert_to_variable(self, **kwargs) -> "LocalVariableAssignmentAst":
+        from src.SemanticAnalysis.ASTs.LocalVariableAssignmentAst import LocalVariableAssignmentAst
+
         # Return the new LocalVariableAssignmentAst.
-        return LocalVariableAssignmentAst(
+        bindings = LocalVariableAssignmentAst(
             pos=self.pos,
             identifier=self.identifier,
             assign_token=self.assign_token,
             value=self.value.convert_to_variable())
 
+        return bindings
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
-        # todo
-        conversion = self.convert_to_variable()
-        conversion.do_semantic_analysis(scope_handler, **kwargs)
+        from src.LexicalAnalysis.Tokens import TokenType
+        from src.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
+        from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+
+        bindings = self.convert_to_variable()
+        declaration = LetStatementInitializedAst(
+            pos=self.pos,
+            let_keyword=TokenAst.dummy(TokenType.KwLet),
+            assign_to=bindings,
+            assign_token=TokenAst.dummy(TokenType.TkAssign),
+            value=if_condition)
+
+        declaration.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         # The pattern's type is "Void", as all let statements return void.
+        from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return ConventionMovAst, CommonTypes.void(self.pos)
 
 

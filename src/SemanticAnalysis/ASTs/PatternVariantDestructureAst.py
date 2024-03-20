@@ -8,12 +8,6 @@ from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from src.SemanticAnalysis.ASTs.LocalVariableDestructureAst import LocalVariableDestructureAst
-from src.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
-from src.SemanticAnalysis.ASTs.PatternVariantVariableAssignmentAst import PatternVariantVariableAssignmentAst
-from src.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
-
 from src.Utils.Sequence import Seq
 
 
@@ -47,24 +41,43 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def convert_to_variable(self) -> "LocalVariableDestructureAst":
+        from src.SemanticAnalysis.ASTs.LocalVariableDestructureAst import LocalVariableDestructureAst
+        from src.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
+        from src.SemanticAnalysis.ASTs.PatternVariantVariableAssignmentAst import PatternVariantVariableAssignmentAst
+        from src.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
+
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(PatternVariantVariableAssignmentAst, PatternVariantSkipArgumentAst, PatternVariantVariableAst).map(lambda i: i.convert_to_variable())
 
         # Return the new LocalVariableDestructureAst.
-        return LocalVariableDestructureAst(
+        bindings = LocalVariableDestructureAst(
             pos=self.pos,
             class_type=self.class_type,
             bracket_l_token=self.bracket_l_token,
             items=converted_items.value,
             bracket_r_token=self.bracket_r_token)
 
+        return bindings
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+        from src.LexicalAnalysis.Tokens import TokenType
+        from src.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
+        from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+
         # Convert the destructuring pattern into a variable, and analyse it.
-        conversion = self.convert_to_variable()
-        conversion.do_semantic_analysis(scope_handler, **kwargs)
+        bindings = self.convert_to_variable()
+        declaration = LetStatementInitializedAst(
+            pos=self.pos,
+            let_keyword=TokenAst.dummy(TokenType.KwLet),
+            assign_to=bindings,
+            assign_token=TokenAst.dummy(TokenType.TkAssign),
+            value=if_condition)
+
+        declaration.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         # The destructuring pattern's type is the class type being destructured into.
+        from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return ConventionMovAst, self.class_type
 
 

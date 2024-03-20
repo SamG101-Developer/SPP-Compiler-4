@@ -52,7 +52,6 @@ class PatternBlockAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
         # Create & enter a new scope for the pattern block.
-
         scope_handler.into_new_scope(f"<pattern-block:{Seq(self.patterns)}>")
 
         # Analyse the patterns, guard and body.

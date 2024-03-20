@@ -28,19 +28,28 @@ fun union_test(x: std.Str | std.BigNum) -> std.Void {
 fun main(velocity: Velocity) -> std.Void {
     case velocity then
         == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
-        == Velocity(direction=Vec3D(y=P(where_=2), ..), speed) { "world" }
     else { "other" }
 
     let mut a = (1, "hello world", false)
     case a then
-        == (x, y, z) { "hello" }
+        == (x, y, z) { "hello"
+            let mut variable = x
+            variable = 1
+        }
         == (4, 5, 6) { "world" }
     else { "other" }
 
-    let Velocity(direction, speed) = velocity
-    let Vec3D(x, y, ..) = direction
-    # let direction2 = direction
+    # let Velocity(direction, speed) = velocity
+    # let Vec3D(x, y, ..) = direction
 
     union_test(123)
+
+
+    ##
+    comment
+    hello
+    world
+    123
+    ##
 }
 

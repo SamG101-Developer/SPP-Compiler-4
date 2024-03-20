@@ -27,7 +27,7 @@ Placeholders
 -- Use to shorthand partial functions? => convert into lambdas?
 
 Patterns:
--- Variables not always introduced into pattern scope from patterns.
+-- Don't mark destructure variables as "moved" until entire "case" expression is done (could be destructured on multiple branches)
 -- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
