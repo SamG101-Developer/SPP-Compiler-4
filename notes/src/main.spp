@@ -17,6 +17,14 @@ cls P {
 }
 
 
+fun union_test(x: std.Str | std.BigNum) -> std.Void {
+    case x then
+        is "hello" { "world" }
+        is 123 { "world" }
+    else { "other" }
+}
+
+
 fun main(velocity: Velocity) -> std.Void {
     case velocity then
         == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
@@ -32,5 +40,7 @@ fun main(velocity: Velocity) -> std.Void {
     let Velocity(direction, speed) = velocity
     let Vec3D(x, y, ..) = direction
     # let direction2 = direction
+
+    union_test(123)
 }
 
