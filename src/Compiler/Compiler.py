@@ -57,12 +57,13 @@ class Compiler:
         for module, analyser in zip(modules, analysers):
             scope_handler.reset()
             analyser.stage_1_analysis(scope_handler)
-        self._write_to_file(self._src_path + os.sep + "symbols.json", "symbols", scope_handler.global_scope)
+        self._write_to_file(self._src_path + os.sep + "symbols1.json", "symbols", scope_handler.global_scope)
 
         # Stage 2 analysis is the semantic analysis, which is done on all modules. Reset scope to move out of namespace.
         for module, analyser in zip(modules, analysers):
             scope_handler.reset()
             analyser.stage_2_analysis(scope_handler)
+        self._write_to_file(self._src_path + os.sep + "symbols2.json", "symbols", scope_handler.global_scope)
 
     def _write_to_file(self, file_path: str, section: str, what) -> None:
         if self._mode == "r":
