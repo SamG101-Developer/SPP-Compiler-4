@@ -30,15 +30,14 @@ Patterns:
 -- Variables not always introduced into pattern scope from patterns.
 -- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
+-- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
 Error feedback
 -- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
 -- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable with scope analysis.
 
 Other
--- Binary member access for conditional branches
 -- Tuple operations (unpacking, folding etc)
--- Mutability of borrows vs value: required (mut x: &mut T) in order to mutate attribute atm.
 -- The `Self` type needs to change for parameter types.
 -- Comments take up lines in a file, but not after parsing (are removed in tokenizer -> keep the "\n")
 -- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`

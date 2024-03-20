@@ -70,7 +70,11 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                     lhs_symbols.append(sym)
 
                 case PostfixExpressionAst() if isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
-                    sym = scope_handler.current_scope.get_symbol(lhs.lhs)
+                    temp = lhs
+                    while isinstance(temp, PostfixExpressionAst):
+                        temp = temp.lhs
+
+                    sym = scope_handler.current_scope.get_symbol(temp)
                     lhs_symbols.append(sym)
 
                 case _:
@@ -83,13 +87,24 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
         if self.op.token.token_type == TokenType.TkAssign:
             for i, lhs_symbol in enumerate(lhs_symbols):
 
-                # If the symbol isn't muutable or is the "&" borrow type, then this symbol cannot be mutated.
+                # If the symbol isn't mutable or is the "&" borrow type, then this symbol cannot be mutated.
                 # TODO: this is slightly wrong: it won't allow "&" variables to be re-assigned but it should.
                 # TODO: it  should prevent "&" from being used in "&mut" i think? maybe just remove the "or ..."?
-                if (not lhs_symbol.is_mutable or lhs_symbol.memory_info.is_borrow_ref) and lhs_symbol.memory_info.ast_initialized:
+                # if (not (lhs_symbol.is_mutable or lhs_symbol.memory_info.is_borrow_mut) or lhs_symbol.memory_info.is_borrow_ref) and lhs_symbol.memory_info.ast_initialized:
+
+                # Mutation to identifiers requires a "mut" variable declaration, and mutation to attributes requires
+                # either a "mut" variable declaration or a "&mut" borrow declaration.
+                if lhs_symbol.memory_info.ast_initialized and (
+                        isinstance(self.lhs[i], IdentifierAst) and not lhs_symbol.is_mutable
+                        or isinstance(self.lhs[i], PostfixExpressionAst) and lhs_symbol.memory_info.is_borrow_ref
+                        or isinstance(self.lhs[i], PostfixExpressionAst) and not lhs_symbol.is_mutable and not lhs_symbol.memory_info.is_borrow_mut):
+
                     exception = SemanticError(f"Cannot assign to an immutable variable:")
-                    exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{self.lhs[i]}' declared here immutably.")
-                    exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
+                    exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{lhs_symbol.name}' declared here immutably.")
+
+                    match self.lhs[i]:
+                        case IdentifierAst(): exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
+                        case PostfixExpressionAst(): exception.add_traceback(self.op.pos, f"Attribute '{self.lhs[i]}' assigned to here.")
                     raise exception
 
                 # Resolve any (partial-) moves from the memory status information in the symbols acquired earlier. For

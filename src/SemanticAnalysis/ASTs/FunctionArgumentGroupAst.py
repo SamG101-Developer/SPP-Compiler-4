@@ -143,7 +143,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                             raise exception
 
                     # Cannot move from a borrowed context, so enforce this here too.
-                    if sym.memory_info.is_borrow:
+                    if sym.memory_info.is_borrow and isinstance(argument.value, PostfixExpressionAst) and isinstance(argument.value.op, PostfixExpressionOperatorMemberAccessAst):
                         exception = SemanticError(f"Cannot move from a borrowed context:")
                         exception.add_traceback(sym.memory_info.ast_borrow.pos, f"Variable '{argument.value}' borrowed here.")
                         exception.add_traceback(argument.pos, f"Partial move '{argument}' attempted here.")
