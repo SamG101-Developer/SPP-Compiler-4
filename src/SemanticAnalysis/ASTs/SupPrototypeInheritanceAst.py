@@ -40,14 +40,14 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         super().pre_process(context)
 
     # def generate(self, scope_handler: ScopeHandler) -> None:
-        # scope_handler.into_new_scope(self.identifier.parts[-1].value + f"#SUP-{self.super_class}")
-        # scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
-        # Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
-        # Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        # scope_handler.exit_cur_scope()
+    #     scope_handler.into_new_scope(self.identifier.parts[-1].value + f"#SUP-{self.super_class}")
+    #     scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
+    #     Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
+    #     Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+    #     scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        # Enter te "sup" scope.
+        # Enter the "sup" scope.
         scope_handler.move_to_next_scope()
 
         # Analyse the generic parameters, the where block, the body, and the superclass.

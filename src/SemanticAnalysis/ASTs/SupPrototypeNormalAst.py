@@ -71,7 +71,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        # Enter te "sup" scope.
+        # Enter the "sup" scope.
         scope_handler.move_to_next_scope()
 
         # Analyse the generic parameters, the where block, and the body.
