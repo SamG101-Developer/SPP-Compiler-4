@@ -6,9 +6,8 @@ Binary expressions:
 -- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
 
 Coroutines:
--- Check memory status of yielded objects.
+-- Law of Exclusivity of yielded values (inside tuples)
 -- Check the type of sent objects against the `Send` generic parameter.
--- Fix the return type to check against the `Return` generic parameter (not the function return type) for coroutines.
 
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.

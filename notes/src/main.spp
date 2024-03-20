@@ -53,3 +53,14 @@ fun main(velocity: Velocity) -> std.Void {
     ##
 }
 
+fun my_coroutine(x: &std.BigNum) -> std.GenRef[Yield=std.BigNum, Return=std.BigNum, Send=std.Void] {
+    let number = 123
+
+    gen x
+    gen x
+    gen &number
+
+    ret 4
+}
+
+

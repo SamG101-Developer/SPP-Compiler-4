@@ -80,5 +80,10 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
             exception.add_traceback_minimal(self.expression.pos, f"Yield expression found here with type: '{given_convention}{given_yield_type}'.")
             raise exception
 
+        # TODO:
+        #  - Mark symbol as moved / partially moved for GenMov generators.
+        #  - Mark symbol as borrowed for Gen[Ref|Mut] generators.
+        #  - Enfore the Law of Exclusivity for Gen[Ref|Mut] generators (within tuples).
+
 
 __all__ = ["YieldExpressionAst"]
