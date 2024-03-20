@@ -54,6 +54,16 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
         # For attribute access, check the attribute exists on the type being accessed.
         elif isinstance(self.identifier, IdentifierAst):
             lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
+
+            # Generic type
+            # todo: allowed based on contraints
+            if not lhs_type_scope:
+                lhs_type = lhs.infer_type(scope_handler, **kwargs)
+                exception = SemanticError(f"Cannot access attributes on unconstrained generic types:")
+                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
+                exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                raise exception
+
             if not lhs_type_scope.has_symbol(self.identifier):
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
                 exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
