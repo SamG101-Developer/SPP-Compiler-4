@@ -32,16 +32,13 @@ Patterns:
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
-Error feedback
--- "Attribute ..." with wrong type: include the class name in the error message, ie "Class.attribute declared here" etc.
--- For types, "did you mean ..." doesn't work for namespaced types. Probably fixable with scope analysis.
-
 Other
 -- Tuple operations (unpacking, folding etc)
 -- The `Self` type needs to change for parameter types.
--- Comments take up lines in a file, but not after parsing (are removed in tokenizer -> keep the "\n")
 -- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
--- Allow global constants (can't be moved, can be copied or "&" though)
+-- Allow global constants (can't be (partially-)moved, can be copied or "&" though)
 -- Static methods not callable from class type (parsing issue)
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Some namespaced types don't analyse as namespaced
+-- Suggest similar namespaces for undefined namespaces
+-- Special `Copy` type that doesn't "move" the value
