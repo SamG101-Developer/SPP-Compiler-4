@@ -184,6 +184,15 @@ class ScopeHandler:
             scope_to_check = scope_to_check._parent_scope
         return scope_to_check == self._global_scope
 
+    def get_namespaced_scope(self, namespace: list["IdentifierAst"]) -> Optional[Scope]:
+        scope = self._global_scope
+        for part in namespace:
+            if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+                scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+            else:
+                return None
+        return scope
+
     @property
     def current_scope(self) -> Scope:
         return self._current_scope
