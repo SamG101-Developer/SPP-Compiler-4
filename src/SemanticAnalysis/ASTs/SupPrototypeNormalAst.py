@@ -61,11 +61,15 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
         scope_handler.into_new_scope(self.identifier.parts[-1].value + "#SUP-functions")
-        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
+        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier.without_generics()).type))
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+
+        # Add the superimposition scope to the class scope.
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Exit the new scope.
         scope_handler.exit_cur_scope()
@@ -81,10 +85,6 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
         # Ensure the type being superimposed over, exists.
         self.identifier.without_generics().do_semantic_analysis(scope_handler)  # ?
-
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Analyse the members of the body, and exit the "sup" scope.
         self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)

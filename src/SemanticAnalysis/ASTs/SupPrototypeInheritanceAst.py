@@ -1,7 +1,13 @@
 from dataclasses import dataclass
 
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from src.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
+
+from src.Utils.Sequence import Seq
 
 
 @dataclass
@@ -39,12 +45,21 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # Use the SupPrototypeNormalAst's implementation.
         super().pre_process(context)
 
-    # def generate(self, scope_handler: ScopeHandler) -> None:
-    #     scope_handler.into_new_scope(self.identifier.parts[-1].value + f"#SUP-{self.super_class}")
-    #     scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
-    #     Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
-    #     Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-    #     scope_handler.exit_cur_scope()
+    def generate(self, scope_handler: ScopeHandler) -> None:
+        # Create a new scope, and add the "Self" type to the scope.
+        scope_handler.into_new_scope(self.identifier.parts[-1].value + f"#SUP-{self.super_class}")
+        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier).type))
+
+        # Generate the body members (prototype), and register the generic parameters types.
+        Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+
+        # Add the superimposition scope to the class scope.
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
+        # Exit the new scope.
+        scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Enter the "sup" scope.
@@ -59,11 +74,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
 
         # Ensure the type being superimposed over, exists.
         self.identifier.without_generics().do_semantic_analysis(scope_handler)  # ?
-
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-        # cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, scope_handler.current_scope.get_symbol(self.super_class).type))  # todo: not this? because tree structure instead?
 
         # Analyse the members of the body, and exit the "sup" scope.
         self.body.do_semantic_analysis(scope_handler, inline_block=True, **kwargs)
