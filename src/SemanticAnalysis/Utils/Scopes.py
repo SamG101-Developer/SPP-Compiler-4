@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Final, Optional, Iterator, List, Tuple
+from typing import Any, Final, Optional, Iterator, List, Reversible, Tuple
 
 from src.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol
 from src.Utils.Sequence import Seq
@@ -29,13 +29,10 @@ class Scope:
         if isinstance(symbol.name, TypeSingleAst):
             name = copy.deepcopy(symbol.name)
             namespace = copy.deepcopy(name.parts[:-1])
-            # For namespaced types, look from the global scope immediately
-            if namespace:
-                while scope._parent_scope:
-                    scope = scope._parent_scope
-            for part in namespace:
-                if Seq(self._children_scopes).map(lambda s: s._scope_name).contains(part):
-                    scope = Seq(self._children_scopes).filter(lambda s: s._scope_name == part).first()
+
+            for part in copy.deepcopy(namespace):
+                if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+                    scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
                     namespace.pop(0)
                 else:
                     break
@@ -46,7 +43,7 @@ class Scope:
         scope._symbol_table.add(symbol)
         return symbol
 
-    def get_symbol(self, name: IdentifierAst | TypeAst) -> Optional[TypeSymbol | VariableSymbol]:
+    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst
         assert isinstance(name, IdentifierAst) or isinstance(name, TypeSingleAst), f"Expected IdentifierAst or TypeAst, got {type(name)}"
@@ -54,26 +51,26 @@ class Scope:
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
         if isinstance(name, TypeSingleAst):
-
             name = copy.deepcopy(name)
             namespace = copy.deepcopy(name.parts[:-1])  # TODO: for now (will need to consider typedefs on sup blocks)
-            # For namespaced types, look from the global scope immediately
-            if namespace:
-                while scope._parent_scope:
-                    scope = scope._parent_scope
-            for part in namespace:
-                if Seq(self._children_scopes).map(lambda s: s._scope_name).contains(part):
-                    scope = Seq(self._children_scopes).filter(lambda s: s._scope_name == part).first()
+
+            # For each part in the namespace, enter the child scope if it exists.
+            # print("NS", namespace)
+            for part in copy.deepcopy(namespace):
+                # print("P", part)
+                if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
+                    scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
                     namespace.pop(0)
                 else:
                     break
+
             name.parts[:-1] = namespace
 
         # Get the symbol from the symbol table. If it doesn't exist, then get the symbol from the parent scope. This is
         # done recursively until the symbol is found, or the global scope is reached.
         sym = scope._symbol_table.get(name)
 
-        if not sym and self._parent_scope:
+        if not sym and self._parent_scope and not exclusive:
             sym = self._parent_scope.get_symbol(name)
         if sym:
             return sym
@@ -86,8 +83,8 @@ class Scope:
             if sym:
                 return sym
 
-    def has_symbol(self, name: IdentifierAst | TypeAst) -> bool:
-        return self.get_symbol(name) is not None
+    def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> bool:
+        return self.get_symbol(name, exclusive) is not None
 
     def set_symbol(self, name: IdentifierAst | TypeAst, symbol: TypeSymbol | VariableSymbol) -> None:
         from src.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
@@ -130,14 +127,20 @@ class Scope:
 class ScopeIterator:
     _iterator: Iterator[Scope]
     _current: Optional[Scope]
+    _consumed: List[Scope]
 
     def __init__(self, iterator: Iterator[Scope]):
         self._iterator = iterator
         self._current = None
+        self._consumed = []
 
     def __next__(self):
+        self._consumed.append(self._current)
         self._current = next(self._iterator)
         return self._current
+
+    def __reversed__(self):
+        return reversed(self._consumed)
 
     @property
     def current(self) -> Optional[Scope]:
@@ -149,8 +152,8 @@ class ScopeHandler:
     _current_scope: Scope
     _iterator: ScopeIterator
 
-    def __init__(self):
-        self._global_scope = Scope("Global")
+    def __init__(self, global_scope: Optional[Scope] = None):
+        self._global_scope = global_scope or Scope("Global")
         self._current_scope = self._global_scope
         self._iterator = iter(self)
 
@@ -158,8 +161,6 @@ class ScopeHandler:
         new_scope = Scope(name, self._current_scope)
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
-
-        # advance the iterator onwards
         next(self._iterator)
 
     def exit_cur_scope(self):
