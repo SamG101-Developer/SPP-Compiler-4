@@ -1,0 +1,8 @@
+mod std.sub
+
+
+cls Sub { }
+
+sup Sub {
+    fun sub(self, other: Sub) -> Sub { }
+}

@@ -1,0 +1,8 @@
+mod std.ops.add
+
+
+cls Add {}
+
+sup Add {
+    fun add(self, rhs: Self) -> Self { }
+}

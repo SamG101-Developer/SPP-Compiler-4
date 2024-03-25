@@ -17,6 +17,14 @@ cls P {
 }
 
 
+cls AClass { }
+sup AClass {
+    fun test() -> std.Void { }
+}
+
+sup std.Str on AClass { }
+
+
 fun union_test(x: std.Str | std.BigNum) -> std.Void {
     case x then
         is "hello" { "world" }
@@ -39,20 +47,10 @@ fun main(velocity: Velocity) -> std.Void {
         == (4, 5, 6) { "world" }
     else { "other" }
 
-    # let Velocity(direction, speed) = velocity
-    # let Vec3D(x, y, ..) = direction
-
-    union_test(123)
-
-
-    ##
-    comment
-    hello
-    world
-    123
-    ##
+    let x = 1 + 2
 }
 
+##
 fun my_coroutine(x: &std.BigNum) -> std.GenRef[Yield=std.BigNum, Return=std.BigNum, Send=std.Void] {
     let number = 123
 
@@ -62,5 +60,5 @@ fun my_coroutine(x: &std.BigNum) -> std.GenRef[Yield=std.BigNum, Return=std.BigN
 
     ret 4
 }
-
+##
 
