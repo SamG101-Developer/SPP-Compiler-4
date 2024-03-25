@@ -106,11 +106,13 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             self.return_type.substitute_generics(CommonTypes.self(), context.identifier)
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
-        # for the first class nature of functions. The mock object for "fun function" will be "MOCK_function".
-        mock_class_name = IdentifierAst(-1, f"MOCK_{self.identifier.value}")
-        mock_class_name = TypeSingleAst(-1, [GenericIdentifierAst(-1, mock_class_name.value, None)])
+        # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
+        # todo: error is here
+        mock_class_name = IdentifierAst(self.pos, f"MOCK_{self.identifier.value}")
+        mock_class_name = TypeSingleAst(self.pos, [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
 
-        # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or "FunMov/call_mov"
+        # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or
+        # "FunMov/call_mov".
         function_class_type = self._deduce_function_class_type(context)
         function_call_name  = self._deduce_function_call_name(function_class_type)
 
@@ -121,14 +123,14 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             # Create the mock class prototype.
             # cls MOCK_function {}
             mock_class_ast = ClassPrototypeAst(
-                pos=-1,
+                pos=self.pos,
                 annotations=[],
                 class_token=TokenAst.dummy(TokenType.KwCls),
                 identifier=mock_class_name,
                 generic_parameters=None,
                 where_block=None,
                 body=InnerScopeAst(
-                    pos=-1,
+                    pos=self.pos,
                     brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
                     members=[],
                     brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
@@ -136,19 +138,19 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             # Create the let statement, which brings an instance of this class into scope.
             # let function = MOCK_function()
             mock_let_statement = LetStatementInitializedAst(
-                pos=-1,
+                pos=self.pos,
                 let_keyword=TokenAst.dummy(TokenType.KwLet),
                 assign_to=LocalVariableSingleAst(
-                    pos=-1,
+                    pos=self.pos,
                     is_mutable=None,
                     unpack_token=None,
                     identifier=copy.deepcopy(self.identifier)),
                 assign_token=TokenAst.dummy(TokenType.TkAssign),
                 value=ObjectInitializerAst(
-                    pos=-1,
+                    pos=self.pos,
                     class_type=copy.deepcopy(mock_class_name),
                     arguments=ObjectInitializerArgumentGroupAst(
-                        pos=-1,
+                        pos=self.pos,
                         paren_l_token=TokenAst.dummy(TokenType.TkParenL),
                         arguments=[],
                         paren_r_token=TokenAst.dummy(TokenType.TkParenR))),
@@ -178,7 +180,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         # Create the superimposition block over the class type, which includes the "call_ref" function as a member. This
         # will allow for the type to now be callable with the parameter types and return type specified.
         sup_block_ast = SupPrototypeInheritanceAst(
-            pos=-1,
+            pos=self.pos,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
             generic_parameters=self.generic_parameters,
             super_class=copy.deepcopy(function_class_type),
@@ -186,7 +188,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             identifier=mock_class_name,
             where_block=self.where_block,
             body=InnerScopeAst(
-                pos=-1,
+                pos=self.pos,
                 brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
                 members=[call_method_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
