@@ -1,6 +1,7 @@
 Generics:
 -- All things generic constraints (functions, classes, sup-blocks, member access).
 -- Replace sup-scopes on generic classes with generic conversion fallthrough (into sup-methods etc.)
+-- Function specialization.
 
 Binary expressions:
 -- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
@@ -17,9 +18,7 @@ Sup classes
 -- Allow specialisation of sup-class methods in the `sup` block.
 
 Object initialization
--- Default class attribute values?
 -- Sup initialization
--- What happens with giving > 1 value per attribute?
 
 Placeholders
 -- Placeholders in `let` and `patterns` (use the `_` character)
@@ -31,14 +30,15 @@ Patterns:
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
-Other
+Tuples
 -- Tuple operations (unpacking, folding, etc.)
+-- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
+-- Check memory rules apply to multiple values inside tuples
+
+Other
 -- The `Self` type needs to change for parameter types.
 -- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
 -- Allow global constants (can't be (partially-)moved, can be copied or "&" though)
 -- Static methods not callable from class type (parsing issue)
--- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
--- Some namespaced types don't analyse as namespaced
 -- Suggest similar namespaces for undefined namespaces
 -- Special `Copy` type that doesn't "move" the value
--- Type errors in "sup class on XXX" ("XXX")
