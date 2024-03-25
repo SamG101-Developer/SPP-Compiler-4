@@ -49,12 +49,10 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         target_return_type = kwargs["target-return-type"]
         # todo
         if kwargs["fn-proto"]._is_coro:
-            print([str(x.identifier) for x in target_return_type.parts[-1].generic_arguments.arguments])
             target_return_type = target_return_type.parts[-1].generic_arguments["Return"]
             if not target_return_type:  # get default:
                 function_return_type = scope_handler.current_scope.get_symbol(kwargs["target-return-type"])
                 function_return_type_return_type_generic_parameter = function_return_type.associated_scope.get_symbol(TypeAst(-1, [GenericIdentifierAst(-1, "Return", None)])).type
-            print(f"COR RET TY: {target_return_type}")
 
         return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
