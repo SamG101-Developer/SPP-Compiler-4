@@ -1,20 +1,20 @@
 Generics:
 -- All things generic constraints (functions, classes, sup-blocks, member access).
--- Replace sup-scopes on genericized classes with generic conversion fallthrough (into sup-methods etc)
+-- Replace sup-scopes on generic classes with generic conversion fallthrough (into sup-methods etc.)
 
 Binary expressions:
 -- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
 
 Coroutines:
--- Law of Exclusivity of yielded values (inside tuples)
--- Check the type of sent objects against the `Send` generic parameter.
+-- Apply the Law of Exclusivity to yielded values (inside tuples)
+-- Check the sent objects' type against the `Send` generic parameter.
 
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
 Sup classes
 -- Ensure overridden methods exist on the `sup` class.
--- Allow specialization of sup-class methods in the `sup` block.
+-- Allow specialisation of sup-class methods in the `sup` block.
 
 Object initialization
 -- Default class attribute values?
@@ -26,13 +26,13 @@ Placeholders
 -- Use to shorthand partial functions? => convert into lambdas?
 
 Patterns:
--- Don't mark destructure variables as "moved" until entire "case" expression is done (could be destructured on multiple branches)
+-- Don't mark destructure variables as "moved" until the entire "case" expression is done (could be destructured on multiple branches)
 -- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
 Other
--- Tuple operations (unpacking, folding etc)
+-- Tuple operations (unpacking, folding, etc.)
 -- The `Self` type needs to change for parameter types.
 -- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
 -- Allow global constants (can't be (partially-)moved, can be copied or "&" though)
@@ -41,3 +41,4 @@ Other
 -- Some namespaced types don't analyse as namespaced
 -- Suggest similar namespaces for undefined namespaces
 -- Special `Copy` type that doesn't "move" the value
+-- Type errors in "sup class on XXX" ("XXX")
