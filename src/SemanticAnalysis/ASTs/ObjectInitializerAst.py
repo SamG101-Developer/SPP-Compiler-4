@@ -97,9 +97,9 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Check that the default value is of the correct type:
         if default_value_given:
             default_value_given_type = default_value_given[0].value.infer_type(scope_handler, **kwargs)
-            if ConventionMovAst == default_value_given_type[0] and self.class_type.symbolic_eq(default_value_given_type[1], scope_handler.current_scope):
+            if default_value_given_type[0] != ConventionMovAst or not self.class_type.symbolic_eq(default_value_given_type[1], scope_handler.current_scope):
                 exception = SemanticError(f"Invalid type default value type:")
-                exception.add_traceback(type_sym.type.identifier.pos, f"Object initializer declared here with type '{self.class_type}'.")
+                exception.add_traceback(self.class_type.pos, f"Class '{self.class_type}' declared here.")
                 exception.add_traceback_minimal(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0]}{default_value_given_type[1]}'.")
                 raise exception
 
@@ -120,6 +120,14 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
             exception = SemanticError(f"Missing attribute(s) in object initializer for type '{self.class_type}':")
             exception.add_traceback(type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attribute_names}'.")
             exception.add_traceback(self.pos, f"Object initializer missing attributes '{unfilled_required_attributes.map(str).join(", ")}'.")
+            raise exception
+
+        # Check that no attributes are given a value more than once:
+        if duplicate_attributes := arguments.map(lambda a: a.identifier).non_unique_items():
+            duplicate_attributes = duplicate_attributes[0]
+            exception = SemanticError(f"Duplicate attribute '{duplicate_attributes[0]}' given in object initializer:")
+            exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' first given here.")
+            exception.add_traceback_minimal(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' given here again.")
             raise exception
 
         inferred_generic_arguments = AstUtils.infer_generic_argument_values(
