@@ -5,15 +5,12 @@ from llvmlite import ir as llvm_ir
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from src.SemanticAnalysis.ASTMixins.LLVMGeneration import LLVMGeneration
-
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
 from src.SemanticAnalysis.ASTs.AnnotationAst import AnnotationAst
 from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from src.SemanticAnalysis.ASTs.ModuleIdentifierAst import ModuleIdentifierAst
 from src.SemanticAnalysis.ASTs.ModuleImplementationAst import ModuleImplementationAst
-
 from src.Utils.Sequence import Seq
 
 
