@@ -64,7 +64,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
                 exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
                 raise exception
 
-            if not lhs_type_scope.has_symbol(self.identifier):
+            if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
                 exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
                 exception.add_traceback(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
