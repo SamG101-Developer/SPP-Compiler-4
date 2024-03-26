@@ -48,6 +48,12 @@ fun main(velocity: Velocity) -> std.Void {
     else { "other" }
 
     let x = 1 + 2
+
+    let vec1 = Vec3D(x=P(where_=1), y=P(where_=2), z=P(where_=3))
+    let vec2 = Vec3D(x=P(where_=4), y=P(where_=5), z=P(where_=6))
+
+    let t1 = (false, false, true)
+    let sum = .. + t1
 }
 
 ##

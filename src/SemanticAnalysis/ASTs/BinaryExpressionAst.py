@@ -5,6 +5,8 @@ from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser, BIN_OP_FUNCS, OP_PREC
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -56,6 +58,41 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         #   1. Re-arrange the arguments in the binary expression. To mitigate left-hand parsing issues, right hand parsing was used.
         #   2. Chain any comparison operators together, so that "a < b < c" becomes "a < b && b < c".
         #   3. Transform the binary expression to a function call.
+
+        binary_folding = False
+
+        # Handle ".. + tuple_variable" tuple binary folding.
+        if isinstance(self.lhs, TokenAst):
+            assert self.lhs.token.token_type == TokenType.TkVariadic
+            binary_folding = True
+
+            # Ensure the RHS is a tuple type.
+            rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+            if rhs_type[0] != ConventionMovAst or not rhs_type[1].without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+                exception = SemanticError("Can only binary-fold a tuple type")
+                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
+                raise exception
+
+            # Ensure tuple's items' types are all the same.
+            tuple_item_types = rhs_type[1].parts[-1].generic_arguments.arguments
+            if different_type := next((t.type for t in tuple_item_types if not tuple_item_types[0].type.symbolic_eq(t.type, scope_handler.current_scope)), None):
+                exception = SemanticError("Can only binary-fold a tuple type with all the same types")
+                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
+                exception.add_traceback_minimal(tuple_item_types[0].type.pos, f"First item type in tuple inferred as '{tuple_item_types[0]}'")
+                exception.add_traceback_minimal(different_type.pos, f"Different item type in tuple inferred as '{different_type}'")
+                raise exception
+
+            # Ensure the tuple has at least 2 items.
+            if len(tuple_item_types) < 2:
+                exception = SemanticError("Can only binary-fold a tuple type with at least 2 items")
+                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
+                raise exception
+
+            # Alter the LHS and RHS for type-based analysis.
+            from src.LexicalAnalysis.Lexer import Lexer
+            from src.SyntacticAnalysis.Parser import Parser
+            self.lhs = Parser(Lexer(f"{self.rhs}.0").lex(), "temp").parse_expression().parse_once()
+            self.rhs = Parser(Lexer(f"{self.rhs}.1").lex(), "temp").parse_expression().parse_once()
 
         ast = BinaryExpressionAstUtils.fix_associativity(self)
         ast = BinaryExpressionAstUtils.combine_comparison_operators(ast)
