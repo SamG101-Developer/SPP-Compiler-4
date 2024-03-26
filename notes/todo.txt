@@ -31,8 +31,8 @@ Patterns:
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
 Tuples
--- Tuple rhs binary folding (`1 + ..`); copy the LHS folding and alter lhs/rhs for analysis.
 -- Tuple function folding (`function(tup)..`); just take the first tuple argument & copy some binary folding checks.
+-- Tuple unpacking into parameters ie `function_call(..tuple)`
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Check memory rules apply to multiple values inside tuples
 
@@ -43,3 +43,5 @@ Other
 -- Static methods not callable from class type (parsing issue)
 -- Suggest similar namespaces for undefined namespaces
 -- Special `Copy` type that doesn't "move" the value
+-- Convert all manual AST creations to use the Lexer/Parser classes + pos shift
+-- Potential shorthand for the function type: `param: (&, Str, Str) -> Bool` => `param: FunRef[Bool, (Str, Str)]`

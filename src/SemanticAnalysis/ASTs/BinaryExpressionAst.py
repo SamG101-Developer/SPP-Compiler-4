@@ -59,12 +59,19 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         #   2. Chain any comparison operators together, so that "a < b < c" becomes "a < b && b < c".
         #   3. Transform the binary expression to a function call.
 
-        binary_folding = False
+        binary_l_folding = False
+        binary_r_folding = False
 
-        # Handle ".. + tuple_variable" tuple binary folding.
+        # Handle "tuple_variable + .." tuple binary right-folding.
+        if isinstance(self.rhs, TokenAst):
+            assert self.rhs.token.token_type == TokenType.TkVariadic
+            self.lhs, self.rhs = self.rhs, self.lhs
+            binary_r_folding = True
+
+        # Handle ".. + tuple_variable" tuple binary left-folding.
         if isinstance(self.lhs, TokenAst):
             assert self.lhs.token.token_type == TokenType.TkVariadic
-            binary_folding = True
+            binary_l_folding = True
 
             # Ensure the RHS is a tuple type.
             rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
@@ -93,6 +100,9 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             from src.SyntacticAnalysis.Parser import Parser
             self.lhs = Parser(Lexer(f"{self.rhs}.0").lex(), "temp").parse_expression().parse_once()
             self.rhs = Parser(Lexer(f"{self.rhs}.1").lex(), "temp").parse_expression().parse_once()
+
+        if binary_r_folding:
+            self.lhs, self.rhs = self.rhs, self.lhs
 
         ast = BinaryExpressionAstUtils.fix_associativity(self)
         ast = BinaryExpressionAstUtils.combine_comparison_operators(ast)
