@@ -6,7 +6,7 @@ from src.LexicalAnalysis.Tokens import TokenType
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser, BIN_OP_FUNCS, OP_PREC
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -85,8 +85,8 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             if different_type := next((t.type for t in tuple_item_types if not tuple_item_types[0].type.symbolic_eq(t.type, scope_handler.current_scope)), None):
                 exception = SemanticError("Can only binary-fold a tuple type with all the same types")
                 exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
-                exception.add_traceback_minimal(tuple_item_types[0].type.pos, f"First item type in tuple inferred as '{tuple_item_types[0]}'")
-                exception.add_traceback_minimal(different_type.pos, f"Different item type in tuple inferred as '{different_type}'")
+                exception.add_traceback(tuple_item_types[0].type.pos, f"First item type in tuple inferred as '{tuple_item_types[0]}'", SemanticErrorStringFormatType.MINIMAL)
+                exception.add_traceback(different_type.pos, f"Different item type in tuple inferred as '{different_type}'", SemanticErrorStringFormatType.MINIMAL)
                 raise exception
 
             # Ensure the tuple has at least 2 items.

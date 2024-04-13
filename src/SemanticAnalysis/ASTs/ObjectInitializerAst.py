@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Type
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
@@ -87,7 +87,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         if default_value_given.length > 1:
             exception = SemanticError(f"Multiple default values given in object initializer:")
             exception.add_traceback(default_value_given[0].pos, f"1st default value given here.")
-            exception.add_traceback_minimal(default_value_given[1].pos, f"2nd default value given here.")
+            exception.add_traceback(default_value_given[1].pos, f"2nd default value given here.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Check that the default value's memory status is correct:
@@ -100,7 +100,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
             if default_value_given_type[0] != ConventionMovAst or not self.class_type.symbolic_eq(default_value_given_type[1], scope_handler.current_scope):
                 exception = SemanticError(f"Invalid type default value type:")
                 exception.add_traceback(self.class_type.pos, f"Class '{self.class_type}' declared here.")
-                exception.add_traceback_minimal(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0]}{default_value_given_type[1]}'.")
+                exception.add_traceback(default_value_given[0].value.pos, f"Object initializer given value here with type '{default_value_given_type[0]}{default_value_given_type[1]}'.", SemanticErrorStringFormatType.MINIMAL)
                 raise exception
 
         # Mark the symbol for the default value as consumed:
@@ -112,7 +112,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         if invalid_argument_names := arguments.map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in attribute_names):
             exception = SemanticError(f"Invalid argument names given to function call:")
             exception.add_traceback(type_sym.type.identifier.pos, f"Class {self.class_type} declared here with attributes: {attribute_names}")
-            exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.")
+            exception.add_traceback(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Check that all required attributes have been given a value:
@@ -127,7 +127,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
             duplicate_attributes = duplicate_attributes[0]
             exception = SemanticError(f"Duplicate attribute '{duplicate_attributes[0]}' given in object initializer:")
             exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' first given here.")
-            exception.add_traceback_minimal(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' given here again.")
+            exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' given here again.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         inferred_generic_arguments = AstUtils.infer_generic_argument_values(

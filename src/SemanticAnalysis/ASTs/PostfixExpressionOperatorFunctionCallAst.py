@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
@@ -105,6 +105,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             available_parameter_names = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
             arguments = Seq(copy.deepcopy(self.arguments.arguments))
 
+            # If the function call is a function fold, like "function_call(tuple)..", then ensure the argument is a
+            # tuple, all the tuple items are the same type
+            # todo
+
             # If the function is an instance method (the first parameter is a "self" parameter), then the lhs as the
             # "self" argument, as this is the instance the method is being applied over.
             if self_param := function_overload.parameters.get_self():
@@ -117,10 +121,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check if there are any named arguments with names that don't match any parameter names.
             if invalid_argument_names := Seq(self.arguments.arguments).filter(lambda a: isinstance(a, FunctionArgumentNamedAst)).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_parameter_names):
-                exception = SemanticError(f"Invalid argument names given to function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {available_parameter_names.map(str).join(", ")}")
-                exception.add_traceback_minimal(invalid_argument_names[0].pos, f"Argument <{invalid_argument_names[0]}> found here.")
-                function_overload_errors.append(exception)
+                exception_message = f"Invalid argument names given to function call: {invalid_argument_names.map(str).join(", ")}"
+                function_overload_errors.append((function_overload, exception_message))
                 continue
 
             # Remove all named arguments from the available parameter names list.
@@ -129,10 +131,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check there aren't too many arguments provided for this overload
             if arguments.length > len(function_overload.parameters.parameters):
-                exception = SemanticError(f"Too many arguments given to function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {Seq(function_overload.parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
-                exception.add_traceback_minimal(arguments[available_parameter_names.length].pos, f"{arguments.length - len(function_overload.parameters.parameters)} extra arguments found here.")
-                function_overload_errors.append(exception)
+                exception_message = f"Too many arguments given to function call: {arguments.length - len(function_overload.parameters.parameters)}"
+                function_overload_errors.append((function_overload, exception_message))
                 continue
 
             # Convert each normal argument to a named argument with the next available parameter name.
@@ -142,10 +142,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check that all required parameters have been given an argument.
             if unfilled_required_parameters := Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier).contains_any(available_parameter_names):
-                exception = SemanticError(f"Missing arguments in function call:")
-                exception.add_traceback(function_overload.pos, f"Function overload declared here with required parameters: {available_parameter_names.map(str).join(", ")}")
-                exception.add_traceback_minimal(self.pos, f"Missing arguments: {unfilled_required_parameters.map(str).join(", ")}")
-                function_overload_errors.append(exception)
+                exception_message = f"Missing arguments in function call: {unfilled_required_parameters.map(str).join(", ")}"
+                function_overload_errors.append((function_overload, exception_message))
                 continue
 
             # If there are generic arguments, then create a new function overload with the generic arguments filled in.
@@ -239,10 +237,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     argument_type = (type(corresponding_parameter.convention), argument_type[1])
 
                 if not argument_type[1].symbolic_eq(corresponding_parameter.type_declaration, function_overload_scope) or argument_type[0] != type(corresponding_parameter.convention):
-                    exception = SemanticError(f"Invalid argument type given to function call:")
-                    exception.add_traceback(function_overload.pos, f"Function overload declared here with parameters: {Seq(function_overload.parameters.parameters).map(lambda p: p.identifier).map(str).join(", ")}")
-                    exception.add_traceback_minimal(argument.pos, f"Argument <{argument}> found here with type '{argument_type[0]}{argument_type[1]}', instead of '{corresponding_parameter.convention}{corresponding_parameter.type_declaration}'.")
-                    function_overload_errors.append(exception)
+                    exception_message = f"Invalid argument type given to function call: '{argument_type[0]}{argument_type[1]}' instead of '{corresponding_parameter.convention}{corresponding_parameter.type_declaration}'"
+                    function_overload_errors.append((function_overload, exception_message))
                     type_error = True
                     break
 
@@ -256,10 +252,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # If there were no valid overloads, display each overload and why it couldn't be selected. Raise the error here
         # so no valid overload is attempted to be pulled from an empty list.
         if not valid_overloads:
-            error = SemanticError("Invalid function call")
-            error.add_traceback(self.pos, f"Function call {self} found here.")
-            error.next_exceptions = function_overload_errors
-            raise error
+            exception = SemanticError(f"No valid overload found for function call:")
+            exception.add_traceback(self.pos, f"Function call for '{function_name}' found here. Supported signatures:")
+            for function_overload, exception_message in function_overload_errors:
+                function_overload_string = f"{function_overload}"
+                function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index('('):]}"
+                exception.add_traceback(function_overload.pos, f"\n- {function_overload_string} ({exception_message})", SemanticErrorStringFormatType.NO_FORMAT)
+            raise exception
 
         # TODO: Select the most precise match: this is the overload with the least amount of parameters that have generic types.
         # TODO: This can lead to ambiguities: func(a: Str, b: Vec[T) and func(a: T, b: Arr[I8]) for func("hello", [1, 2, 3])

@@ -13,7 +13,9 @@ class ErrorFormatter:
         self._tokens = tokens
         self._file_path = file_path
 
-    def error(self, start_pos: int, end_pos: int = -1, message: str = "", minimal: bool = False) -> str:
+    def error(self, start_pos: int, end_pos: int = -1, message: str = "", minimal: bool = False, no_format: bool = False) -> str:
+        if no_format:
+            return message
         while self._tokens[start_pos].token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
             start_pos += 1
 

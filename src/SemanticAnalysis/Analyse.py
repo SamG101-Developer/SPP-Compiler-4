@@ -2,7 +2,7 @@ import os.path
 from typing import NoReturn
 
 from src.LexicalAnalysis.Tokens import Token
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTs import ProgramAst
 from src.Utils.ErrorFormatter import ErrorFormatter
@@ -109,9 +109,17 @@ class Analyser:
 def handle_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> NoReturn:
     final_error = str(exception)
     for error in exception.additional_info:
-        final_error += err_fmt.error(error[0], message=error[1], minimal=error[2])
+        final_error += err_fmt.error(
+            error[0], message=error[1],
+            minimal=error[2] == SemanticErrorStringFormatType.MINIMAL,
+            no_format = error[2] == SemanticErrorStringFormatType.NO_FORMAT)
+
     for error in exception.next_exceptions:
         final_error += f"\n\n{error}"
         for inner_error in error.additional_info:
-            final_error += err_fmt.error(inner_error[0], message=inner_error[1], minimal=inner_error[2])
+            final_error += err_fmt.error(
+                inner_error[0],
+                message=inner_error[1],
+                minimal=inner_error[2] == SemanticErrorStringFormatType.MINIMAL,
+                no_format = inner_error[2] == SemanticErrorStringFormatType.NO_FORMAT)
     raise SystemExit(final_error) from None

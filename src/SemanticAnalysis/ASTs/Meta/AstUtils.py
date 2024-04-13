@@ -2,7 +2,7 @@ from __future__ import annotations
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.Utils.Sequence import Seq
@@ -77,18 +77,18 @@ class AstUtils:
             if generic_parameters:
                 exception = SemanticError(f"Generic arguments have already been inferred:")
                 exception.add_traceback(generic_parameters[0].pos, f"Inferrable generic parameter '{generic_parameters[0]}' declared here.")
-                exception.add_traceback_minimal(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.")
+                exception.add_traceback(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.", SemanticErrorStringFormatType.MINIMAL)
             else:
                 exception = SemanticError(f"Generic arguments have already been inferred:")
                 exception.add_traceback(obj_definition.pos, f"No generic parameters declared here.")
-                exception.add_traceback_minimal(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.")
+                exception.add_traceback(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Check if there are any named generic arguments with names that don't match any generic parameter names:
         if invalid_generic_argument_names := generic_arguments.filter_to_type(GenericArgumentNamedAst).map(lambda a: a.identifier).filter(lambda arg_name: arg_name not in available_generic_parameter_names):
             exception = SemanticError(f"Invalid generic argument names given:")
             exception.add_traceback(obj_definition.pos, f"{what} declared here with generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
-            exception.add_traceback_minimal(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.")
+            exception.add_traceback(invalid_generic_argument_names[0].pos, f"Generic argument <{invalid_generic_argument_names[0]}> found here.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Remove all named generic arguments from the available generic parameter names list:
@@ -99,7 +99,7 @@ class AstUtils:
         if generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
             exception = SemanticError(f"Too many generic arguments given:")
             exception.add_traceback(obj_definition.pos, f"{what} declared here with generic parameters: {generic_parameters.map(lambda p: p.identifier).map(str).join(", ")}")
-            exception.add_traceback_minimal(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - generic_parameters.length} extra generic arguments found here.")
+            exception.add_traceback(generic_arguments[available_generic_parameter_names.length].pos, f"{generic_arguments.length - generic_parameters.length} extra generic arguments found here.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Convert each normal generic argument to a named generic argument with the next available generic parameter name:
@@ -141,7 +141,7 @@ class AstUtils:
         if unfilled_required_generic_parameters := required_generic_parameters.map(lambda p: p.identifier).contains_any(available_generic_parameter_names):
             exception = SemanticError(f"Missing generic arguments in function call:")
             exception.add_traceback(obj_definition.pos, f"{what} declared here with required generic parameters: {available_generic_parameter_names.map(str).join(", ")}")
-            exception.add_traceback_minimal(usage.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}")
+            exception.add_traceback(usage.pos, f"Missing generic arguments: {unfilled_required_generic_parameters.map(str).join(", ")}", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # Combine the inferred generic arguments with the rest of the generic arguments.
@@ -186,7 +186,7 @@ class AstUtils:
                 if duplicate_inferred_parameter and not duplicate_inferred_parameter.type.symbolic_eq(argument_t, scope_handler.current_scope):
                     exception = SemanticError(f"Generic argument has already been inferred:")
                     exception.add_traceback(obj_definition.pos, f"")
-                    exception.add_traceback_minimal(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.")
+                    exception.add_traceback(argument_t.pos, f"Generic argument of type '{argument_t}' has already been inferred as '{duplicate_inferred_parameter.type}'.", SemanticErrorStringFormatType.MINIMAL)
                     raise exception
 
                 argument_t_namespace = Seq(list(iter(argument_t))).filter(lambda p: isinstance(p, IdentifierAst)).value

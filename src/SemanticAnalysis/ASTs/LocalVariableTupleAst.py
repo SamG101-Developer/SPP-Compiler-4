@@ -48,7 +48,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
                 if has_skipped_args:
                     exception = SemanticError(f"Multiple '..' given to pattern:")
                     exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
-                    exception.add_traceback_minimal(argument.variadic_token.pos, f"2nd variadic argument given here.")
+                    exception.add_traceback(argument.variadic_token.pos, f"2nd variadic argument given here.", SemanticErrorStringFormatType.MINIMAL)
                     raise exception
                 has_skipped_args = argument
                 continue

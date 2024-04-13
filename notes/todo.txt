@@ -13,14 +13,14 @@ Coroutines:
 Namespaced types:
 -- Allowing `use` to link new type names to namespaced types' class prototypes.
 
-Sup classes
+Sup classes:
 -- Ensure overridden methods exist on the `sup` class.
 -- Allow specialization of sup-class methods in the `sup` block.
 
-Object initialization
+Object initialization:
 -- Sup initialization
 
-Placeholders
+Placeholders:
 -- Placeholders in `let` and `patterns` (use the `_` character)
 -- Use to shorthand partial functions? => convert into lambdas?
 
@@ -30,13 +30,14 @@ Patterns:
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
-Tuples
--- Tuple function folding (`function(tup)..`); just take the first tuple argument & copy some binary folding checks.
+Tuples:
+-- Change binary folding to create a chain of binary calls, not just first 2 ops => `1.add(2).add(3)` etc)
+-- Tuple function folding: foldable tuples need to be marked as so, then the function fold only folds those tuples.
 -- Tuple unpacking into parameters ie `function_call(..tuple)`
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Check memory rules apply to multiple values inside tuples
 
-Other
+Other:
 -- The `Self` type needs to change for parameter types.
 -- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
 -- Allow global constants (can't be (partially-)moved, can be copied or "&" though)
@@ -45,3 +46,7 @@ Other
 -- Special `Copy` type that doesn't "move" the value
 -- Convert all manual AST creations to use the Lexer/Parser classes + pos shift
 -- Potential shorthand for the function type: `param: (&, Str, Str) -> Bool` => `param: FunRef[Bool, (Str, Str)]`
+
+Errors:
+-- 1. Redo all error messages and formatting
+-- 2. Add fixed error codes, and call the instead of the error message

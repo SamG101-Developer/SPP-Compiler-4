@@ -35,8 +35,9 @@ class WhereBlockAst(Ast, Default, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the WhereBlockAst.
         s = ""
-        s += f"{self.where_keyword.print(printer)} "
-        s += f"{self.constraint_group.print(printer)}"
+        if self.constraint_group.constraints:
+            s += f"{self.where_keyword.print(printer)} "
+            s += f"{self.constraint_group.print(printer)}"
         return s
 
     @staticmethod

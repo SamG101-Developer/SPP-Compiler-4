@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -77,7 +77,7 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
         if not expected_yield_type.symbolic_eq(given_yield_type, scope_handler.current_scope) or not isinstance(expected_convention, given_convention):
             exception = SemanticError(f"Invalid yield type from coroutine:")
             exception.add_traceback(expected_yield_type.pos, f"Coroutine yield type specified here as '{expected_convention}{expected_yield_type}'.")
-            exception.add_traceback_minimal(self.expression.pos, f"Yield expression found here with type: '{given_convention}{given_yield_type}'.")
+            exception.add_traceback(self.expression.pos, f"Yield expression found here with type: '{given_convention}{given_yield_type}'.", SemanticErrorStringFormatType.MINIMAL)
             raise exception
 
         # TODO:
