@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.Symbols import VariableSymbol
@@ -51,8 +51,13 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
 
             # Raise an error if the identifier does not exist in the current scope, including the closest match if one
             # was found.
-            exception = SemanticError(f"Undefined identifier '{self.value}':")
-            exception.add_traceback(self.pos, f"Identifier '{self.value}' used here.{closest_match}")
+            exception = SemanticError()
+            exception.add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Undefined identifier '{self.value}'",
+                tag_message=f"Identifier '{self.value}' used here.{closest_match}",
+                tip=f"Define '{self.value}'.{closest_match}")
             raise exception
 
         # Do semantic analysis on the identifiers type. TODO: why?

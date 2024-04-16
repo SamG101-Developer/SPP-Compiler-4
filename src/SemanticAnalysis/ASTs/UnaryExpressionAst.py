@@ -42,7 +42,7 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Check that the rhs is a function call (only unary is async)
         if not (isinstance(self.rhs, PostfixExpressionAst) and isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst)):
             exception = SemanticError(f"Invalid 'async' usage:")
-            exception.add_traceback(self.pos, f"'{self}' is not a function call.")
+            exception.add_error(self.pos, f"'{self}' is not a function call.")
             raise exception
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:

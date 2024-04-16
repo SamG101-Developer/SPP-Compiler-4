@@ -1,89 +1,32 @@
 mod main
 
 
-cls Vec3D {
-    x: P
-    y: P
-    z: P
+cls Pos {
+    x: std.BigNum
+    y: std.BigNum
+    z: std.BigNum
 }
 
-cls Velocity {
-    direction: Vec3D
-    speed: std.BigNum
+cls Dir {
+    a: std.BigNum
 }
 
-cls P {
-    where_: std.BigNum
-}
-
-
-cls AClass { }
-sup AClass {
-    fun test() -> std.Void { }
-}
-
-sup std.Str on AClass { }
-
-
-fun union_test(x: std.Str | std.BigNum) -> std.Void {
-    case x then
-        is "hello" { "world" }
-        is 123 { "world" }
-    else { "other" }
+cls Vec {
+    pos: Pos
+    dir: Dir
 }
 
 
-fun tup_fun(a: std.Str) -> std.Str {
-    ret "hello world!"
+cls Type[T] {
+    a: T
+    b: T
 }
 
 
-fun my_function(a: std.Str) -> std.Void { }
-fun my_function(a: std.Str, b: std.BigNum) -> std.Void { }
-fun my_function(a: std.Str, b: std.BigNum, c: std.BigNum) -> std.Void { }
-fun my_function(a: std.Bool) -> std.Void { }
-fun my_function(a: std.Bool, b: std.Bool) -> std.Void { }
+fun function[T, U](a: T, b: T) -> U { }
 
 
-fun main(velocity: Velocity) -> std.Void {
-    case velocity then
-        == Velocity(direction=Vec3D(x=P(where_=1), ..), speed) { "hello" }
-    else { "other" }
-
-    let mut a = (1, "hello world", false)
-    case a then
-        == (x, y, z) { "hello"
-            let mut variable = x
-            variable = 1
-        }
-        == (4, 5, 6) { "world" }
-    else { "other" }
-
-    let x = 1 + 2
-
-    let vec1 = Vec3D(x=P(where_=1), y=P(where_=2), z=P(where_=3))
-    let vec2 = Vec3D(x=P(where_=4), y=P(where_=5), z=P(where_=6))
-
-    ##
-    let t1 = (1, 2, 3)
-    let sum = t1 + ..
-
-    let t2 = ("a", "b", "c")
-    tup_fun(t2)..
-    ##
-
-    my_function(123)
+fun main(v: Vec, w: Vec) -> std.Void {
+    let t = (0, 1, 2, 3)
+    let x = t.6
 }
-
-##
-fun my_coroutine(x: &std.BigNum) -> std.GenRef[Yield=std.BigNum, Return=std.BigNum, Send=std.Void] {
-    let number = 123
-
-    gen x
-    gen x
-    gen &number
-
-    ret 4
-}
-##
-

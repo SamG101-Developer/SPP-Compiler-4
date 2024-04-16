@@ -57,8 +57,8 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
             exception = SemanticError(f"Returning variable of incorrect type:")
-            exception.add_traceback(target_return_type.pos, f"Function has return type '{target_return_type}'.")
-            exception.add_traceback(self.pos, f"Variable '{self.expression}' returned here is type '{return_type[0]}{return_type[1]}'.")
+            exception.add_error(target_return_type.pos, f"Function has return type '{target_return_type}'.")
+            exception.add_error(self.pos, f"Variable '{self.expression}' returned here is type '{return_type[0]}{return_type[1]}'.")
             raise exception
 
 

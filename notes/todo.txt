@@ -48,5 +48,12 @@ Other:
 -- Potential shorthand for the function type: `param: (&, Str, Str) -> Bool` => `param: FunRef[Bool, (Str, Str)]`
 
 Errors:
--- 1. Redo all error messages and formatting
--- 2. Add fixed error codes, and call the instead of the error message
+-- Redo all error messages and formatting
+-- Add fixed error codes, and call the instead of the error message
+
+How to write error messages:
+-- What the error code is
+-- What the error is
+-- Why it's an error
+-- How to fix it
+-- Use the active voice

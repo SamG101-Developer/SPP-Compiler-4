@@ -77,7 +77,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                     name=self.assign_to.identifier,
                     type=None,
                     is_mutable=self.assign_to.is_mutable is not None,
-                    memory_info=MemoryStatus(ast_initialized=self.assign_to.identifier))
+                    memory_info=MemoryStatus(ast_initialized=self))  # .assign_to.identifier))
 
                 # Add the new variable symbol to the current scope.
                 scope_handler.current_scope.add_symbol(sym)
@@ -99,15 +99,6 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                 kwargs.pop("assignment")
 
             case LocalVariableTupleAst():
-                # Check there are the same number of elements on the LHS as the RHS
-                # TODO: move into LocalVariableTupleAst
-                # rhs_tuple_type_elements = self.value.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
-                # if len(self.assign_to.items) != len(rhs_tuple_type_elements):
-                #     exception = SemanticError(f"Invalid tuple assignment:")
-                #     exception.add_traceback(self.assign_to.pos, f"Assignment target tuple contains {len(self.assign_to.items)} elements.")
-                #     exception.add_traceback(self.value.pos, f"Assignment value tuple contains {len(rhs_tuple_type_elements)} elements.")
-                #     raise exception
-
                 self.assign_to.do_semantic_analysis(scope_handler, other_tuple=self.value, **kwargs)
 
                 # Form new let statements based off the variables the RHS is being destructured into.
@@ -116,7 +107,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
                     # Skip over the ".." and "_" skip arguments (if there are any).
                     if isinstance(current_let_statement, LocalVariableSkipArgumentAst):
-                        pass
+                        continue
 
                     # The new RHS for each argument is a numeric postfix member access of the original RHS.
                     new_rhs = PostfixExpressionAst(
@@ -178,6 +169,16 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
                 # Analyse all the new "let" statements.
                 for new_let_statement in new_let_statements:
                     new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
+
+            case LocalVariableAssignmentAst:
+                new_let_statement = LetStatementInitializedAst(
+                    pos=self.pos,
+                    let_keyword=self.let_keyword,
+                    assign_to=self.assign_to.value,
+                    assign_token=self.assign_token,
+                    value=self.value,
+                    _sup_let_type=self._sup_let_type)
+                new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["LetStatementInitializedAst"]

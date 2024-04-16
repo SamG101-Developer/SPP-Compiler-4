@@ -11,9 +11,20 @@ class ErrorFormatter:
 
     def __init__(self, tokens: List[Token], file_path: str) -> None:
         self._tokens = tokens
-        self._file_path = file_path
+        self._file_path = file_path[file_path.rfind("src\\") + 4:]
 
-    def error(self, start_pos: int, end_pos: int = -1, message: str = "", minimal: bool = False, no_format: bool = False) -> str:
+    # def error_ast(self, ast, **kwargs) -> str:
+    #     from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+    #
+    #     while True:
+    #         end_ast = list(ast.__dict__.values())[-1]
+    #         if isinstance(end_ast, TokenAst): break
+    #
+    #     start_pos = ast.pos
+    #     end_pos = end_ast.pos + len(end_ast.token.token_metadata)
+    #     return self.error(start_pos=start_pos, end_pos=end_pos, **kwargs)
+
+    def error(self, start_pos: int, end_pos: int = -1, message: str = "", tag_message: str = "", minimal: bool = False, no_format: bool = False) -> str:
         if no_format:
             return message
         while self._tokens[start_pos].token_type in [TokenType.TkNewLine, TokenType.TkWhitespace]:
@@ -29,30 +40,40 @@ class ErrorFormatter:
         error_line_number = len([x for x in self._tokens[:start_pos] if x.token_type == TokenType.TkNewLine])
 
         # The number of "^" is the length of the token data where the error is.
-        carets = "^" * len(self._tokens[start_pos].token_metadata)
-        carets_line_as_string = f"{carets} <- "
+        if end_pos == -1:
+            carets = "^" * len(self._tokens[start_pos].token_metadata)
+        else:
+            carets = "^" * (end_pos - start_pos)
+        carets_line_as_string = f"{carets}"
         carets_line_as_string = " " * sum([len(str(token)) for token in self._tokens[error_line_start_pos : start_pos]]) + carets_line_as_string
 
         # todo: comment the rest because I FORGOT HOW IT WORKS
 
-        formatted_message = ""
-        current_line = ""
-        current_line_length = 0
-        for word in message.split(" "):
-            if current_line_length + len(word) > 120:
-                formatted_message += f"{current_line}\n"
-                current_line = " " * (len(carets_line_as_string) + len(" <- "))
-                current_line_length = 0
-            current_line += f"{word} "
-            current_line_length += len(word) + 1
-        formatted_message += f"{current_line}\n"
+        # formatted_message = ""
+        # current_line = ""
+        # current_line_length = 0
+        # for word in message.split(" "):
+        #     if current_line_length + len(word) > 120:
+        #         formatted_message += f"{current_line}\n"
+        #         current_line = " " * (len(carets_line_as_string) + len(" <- "))
+        #         current_line_length = 0
+        #     current_line += f"{word} "
+        #     current_line_length += len(word) + 1
+        # formatted_message += f"{current_line}\n"
+
+        # print number of preceding spaces before the error line
+        l1 = len(error_line_as_string)
+        error_line_as_string = error_line_as_string.replace("  ", "")
+        carets_line_as_string = carets_line_as_string[l1 - len(error_line_as_string):] + f"{Fore.LIGHTWHITE_EX}{Style.BRIGHT} <- {tag_message}"
 
         left_padding = " " * len(str(error_line_number))
         final_error_message = "\n".join([
-            f"\n\n{Fore.WHITE}{Style.BRIGHT}Error in file {self._file_path} on line {error_line_number}:" * (not minimal),
-            f"{left_padding} |",
-            f"{Fore.RED}{error_line_number} | {error_line_as_string}",
-            f"{left_padding} | {Style.RESET_ALL}{carets_line_as_string}{formatted_message}"
+            f"{Fore.LIGHTWHITE_EX}{Style.BRIGHT}",
+            f"Error in file '{self._file_path}', on line {error_line_number}:" if not minimal else f"Info from file '{self._file_path}', on line {error_line_number}:",
+            f"{Fore.LIGHTWHITE_EX}{left_padding} |",
+            f"{Fore.LIGHTRED_EX if not minimal else Fore.LIGHTGREEN_EX}{error_line_number} | {error_line_as_string}",
+            f"{Fore.LIGHTWHITE_EX}{left_padding} | {Style.NORMAL}{Fore.LIGHTRED_EX if not minimal else Fore.LIGHTGREEN_EX}{carets_line_as_string}\n",
+            f"{Style.RESET_ALL}{Fore.LIGHTRED_EX}{message}" * (not minimal),
         ])
 
         return final_error_message

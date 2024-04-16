@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Callable, Iterator, Optional, Iterable
+from ordered_set import OrderedSet
 
 
 class Seq[T]:
@@ -45,7 +46,7 @@ class Seq[T]:
         return len(self._value) != 0
 
     def unique_items(self) -> Seq[T]:
-        return Seq(list(set(self._value)))  # TODO : use an ordered set to maintain the order of the items every time
+        return Seq(list(OrderedSet(self._value)))  # TODO : use an ordered set to maintain the order of the items every time
 
     def non_unique_items(self) -> Seq[List[T]]:
         items = []

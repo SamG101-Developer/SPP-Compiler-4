@@ -1,10 +1,11 @@
+import copy
 from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -78,9 +79,12 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                     lhs_symbols.append(sym)
 
                 case _:
-                    exception = SemanticError(f"Invalid assignment target (must be an identifier):")
-                    exception.add_traceback(lhs.pos, f"Assignment target '{lhs}' invalid.")
-                    raise exception
+                    raise SemanticError().add_error(
+                        pos=lhs.pos,
+                        error_type=SemanticErrorType.VALUE_ERROR,
+                        message=f"Invalid assignment target (must be an identifier).",
+                        tag_message=f"Assignment target '{lhs}' is a '{lhs.__class__.__name__}'",
+                        tip="Ensure the assignment target is a variable or attribute.")
 
         # Regular assignment with the "=" operator. Compound assignment, ie "+=" is not supported for semantic analysis
         # yet.
@@ -99,13 +103,12 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                         or isinstance(self.lhs[i], PostfixExpressionAst) and lhs_symbol.memory_info.is_borrow_ref
                         or isinstance(self.lhs[i], PostfixExpressionAst) and not lhs_symbol.is_mutable and not lhs_symbol.memory_info.is_borrow_mut):
 
-                    exception = SemanticError(f"Cannot assign to an immutable variable:")
-                    exception.add_traceback(lhs_symbol.memory_info.ast_initialized.pos, f"Variable '{lhs_symbol.name}' declared here immutably.")
-
-                    match self.lhs[i]:
-                        case IdentifierAst(): exception.add_traceback(self.lhs[i].pos, f"Variable '{lhs_symbol.name}' assigned to here.")
-                        case PostfixExpressionAst(): exception.add_traceback(self.op.pos, f"Attribute '{self.lhs[i]}' assigned to here.")
-                    raise exception
+                    raise SemanticError().add_error(
+                        pos=self.pos,
+                        error_type=SemanticErrorType.VALUE_ERROR,
+                        message="Cannot assign to an immutable variable.",
+                        tag_message=f"Object {lhs_symbol.name} declared as: '{lhs_symbol.memory_info.ast_initialized}'",
+                        tip=f"Try declaring '{lhs_symbol.name}' with the 'mut' keyword.")
 
                 # Resolve any (partial-) moves from the memory status information in the symbols acquired earlier. For
                 # identifiers, mark the symbol as initialized and not consumed. For attributes, remove the attribute
@@ -131,10 +134,12 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
 
                 # Otherwise, there is a type mismatch, so raise an exception.
                 else:
-                    exception = SemanticError(f"Type mismatch in assignment:")
-                    exception.add_traceback(lhs_symbols[0].memory_info.ast_initialized.pos, f"Assignment target '{self.lhs[0]}' declared here with type '{lhs_type[0]}{lhs_type[1]}'.")  # TODO : should be symbol's initialization AST
-                    exception.add_traceback(self.rhs.pos, f"Assignment value '{self.rhs}' inferred here with type '{rhs_type[0]}{rhs_type[1]}'.")
-                    raise exception
+                    raise SemanticError().add_error(
+                        pos=self.rhs.pos,
+                        error_type=SemanticErrorType.TYPE_ERROR,
+                        message=f"Type mismatch in assignment",
+                        tag_message=f"Value inferred as '{rhs_type[1]}' (!= '{lhs_type[1]}')",
+                        tip=f"Ensure the RHS is a '{lhs_type[1]}' object")
 
             else:
                 raise NotImplementedError()

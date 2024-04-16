@@ -5,7 +5,7 @@ from typing import List
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
 
@@ -61,9 +61,16 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
         # Check no parameters have the same name
         if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
-            exception = SemanticError(f"Duplicate parameters '{duplicate_parameters[0]}' found in function prototype:")
-            exception.add_traceback(duplicate_parameters[0].pos, f"Parameter '{duplicate_parameters[0]}' declared here.")
-            exception.add_traceback(duplicate_parameters[1].pos, f"Parameter '{duplicate_parameters[1]}' re-declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=duplicate_parameters[0].pos,
+                tag_message=f"Generic parameter '{duplicate_parameters[0]}' declared here")
+            exception.add_error(
+                pos=duplicate_parameters[1].pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Cannot have duplicate generic parameters in function prototype",
+                tag_message=f"Generic parameter '{duplicate_parameters[1]}' re-declared here",
+                tip="Change the name of one of the generic parameters to be unique")
             raise exception
 
         # Add each parameter to the scope. TODO: remove from here + test (its in generate stage) or remove from generate stage
@@ -76,9 +83,16 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
         sorted_classifications = current_classifications.sort(key=lambda t: list(ordering.keys()).index(t[0]))
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
-            exception = SemanticError(f"Invalid generic parameter order:")
-            exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} generic parameter '{difference[-2][1]}' declared here.")
-            exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} generic parameter '{difference[-1][1]}' declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=difference[-2][1].identifier.pos,
+                tag_message=f"{ordering[difference[-2][0]]} generic parameter '{difference[-2][1].identifier}' declared here")
+            exception.add_error(
+                pos=difference[-1][1].identifier.pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Invalid generic parameter order in function prototype",
+                tag_message=f"{ordering[difference[-1][0]]} generic parameter '{difference[-1][1].identifier}' declared here",
+                tip="Make sure generic parameter order is Required -> Optional -> Variadic")
             raise exception
 
         # Do semantic analysis on each parameter

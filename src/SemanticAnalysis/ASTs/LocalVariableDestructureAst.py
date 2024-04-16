@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
@@ -42,30 +42,47 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             # Check the ".." skip argument is not used more than once.
             if isinstance(argument, LocalVariableSkipArgumentAst):
                 if has_skipped_args:
-                    exception = SemanticError(f"Multiple '..' given to pattern:")
-                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
-                    exception.add_traceback(argument.variadic_token.pos, f"2nd variadic argument given here.", SemanticErrorStringFormatType.MINIMAL)
+                    exception = SemanticError()
+                    exception.add_info(
+                        pos=has_skipped_args.pos,
+                        tag_message=f"1st argument skip here")
+                    exception.add_error(
+                        pos=argument.variadic_token.pos,
+                        error_type=SemanticErrorType.ORDER_ERROR,
+                        message=f"Cannot have multiple skip arguments '..' in a destructure pattern",
+                        tag_message=f"2nd argument skip here",
+                        tip="Remove the additional skip argument")
                     raise exception
                 has_skipped_args = argument
                 continue
 
             # Don't allow the "..x" unpacking token in a class destructure pattern.
+            # todo: what does this do? (it works fine for 1 ".." to be used)
             unpack = argument.unpack_token if isinstance(argument, LocalVariableSingleAst) else None
             if unpack:
-                exception = SemanticError(f"Cannot use the unpack token '..' in a destructure pattern:")
-                exception.add_traceback(unpack.pos, f"Unpack token '..' found here.")
-                raise exception
+                raise SemanticError().add_error(
+                    pos=unpack.pos,
+                    error_type=SemanticErrorType.ORDER_ERROR,
+                    message="Cannot use the unpack token '..' in a destructure pattern",
+                    tag_message="Unpack token '..' found here",
+                    tip="Remove the unpack token '..' from the destructure pattern")
 
             # Check the target variable exists as an attribute on the class type.
             if not attributes.map(lambda a: a.identifier).contains(argument.identifier):
-                exception = SemanticError(f"Invalid destructure assignment:")
-                exception.add_traceback(self.class_type.pos, f"Class '{self.class_type}' declared here with attributes: {attributes}")
-                exception.add_traceback(argument.pos, f"Attribute '{argument.identifier}' not found on class '{self.class_type}'")
+                exception = SemanticError()
+                exception.add_info(
+                    pos=class_type_sym.type.identifier.pos,
+                    tag_message=f"Class '{self.class_type}' declared here with attributes: {attributes.map(lambda a: a.identifier).map(str).join(', ')}")
+                exception.add_error(
+                    pos=argument.identifier.pos,
+                    error_type=SemanticErrorType.ORDER_ERROR,
+                    message=f"Attribute '{argument.identifier}' not found on class '{self.class_type}'",
+                    tag_message=f"Attribute '{argument.identifier}' not found on class '{self.class_type}'",
+                    tip="Check the class type and attribute names")
                 raise exception
 
-            # Special case for binding to an attribute with a pre-assigned value.
+            # Special case for binding to an attribute with a pre-assigned value, for example let p = Vec(pos=Point(x, y)).
             if isinstance(argument, LocalVariableAssignmentAst):
-
                 # Analyse the value
                 value = argument.value
                 value.do_semantic_analysis(scope_handler, **kwargs)
@@ -74,17 +91,32 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser, TypeInfer):
                 corresponding_attribute = attributes.find(lambda attribute: attribute.identifier == argument.identifier)
                 value_type = value.infer_type(scope_handler, **kwargs)
                 if value_type[0] != ConventionMovAst or not value_type[1].symbolic_eq(corresponding_attribute.type_declaration, scope_handler.current_scope):
-                    exception = SemanticError(f"Invalid type '{value_type[0]}{value_type[1]}' given to attribute '{argument.identifier}':")
-                    exception.add_traceback(corresponding_attribute.identifier.pos, f"Attribute '{corresponding_attribute.identifier}' declared here with type '{corresponding_attribute.type_declaration}'.")
-                    exception.add_traceback(value.pos, f"Attribute '{argument.identifier}' given value here with type '{value_type[0]}{value_type[1]}'.")
+                    exception = SemanticError()
+                    exception.add_info(
+                        pos=corresponding_attribute.identifier.pos,
+                        tag_message=f"Attribute '{argument.identifier}' declared here with type '{corresponding_attribute.type_declaration}'.")
+                    exception.add_error(
+                        pos=argument.identifier.pos,
+                        error_type=SemanticErrorType.TYPE_ERROR,
+                        message=f"Type mismatch between attribute '{argument.identifier}' and value",
+                        tag_message=f"Attribute '{argument.identifier}' given value here with type '{value_type[0]}{value_type[1]}'.",
+                        tip="Check the type of the value being assigned to the attribute")
                     raise exception
 
         # Make sure all attributes have been bound to, unless the ".." skip argument is used.
         attributes_assigned_to = Seq(self.items).filter(lambda a: not isinstance(a, LocalVariableSkipArgumentAst))
         if attributes_assigned_to.length < attributes.length and not has_skipped_args:
-            exception = SemanticError(f"Missing attribute(s) in pattern for type '{self.class_type}':")
-            exception.add_traceback(class_type_sym.type.identifier.pos, f"Class '{self.class_type}' declared here with attributes '{attributes}'.")
-            exception.add_traceback(self.pos, f"Initialization missing attributes '{attributes.map(lambda a: a.identifier) - attributes_assigned_to.map(lambda v: v.identifier)}'. Consider adding a '..' to mark variables as deliberately excluded.")
+            missing_attributes = attributes.map(lambda a: a.identifier).set_subtract(attributes_assigned_to.map(lambda a: a.identifier))
+            exception = SemanticError()
+            exception.add_info(
+                pos=class_type_sym.type.identifier.pos,
+                tag_message=f"Class '{self.class_type}' declared here with attributes: {attributes.map(lambda a: a.identifier).map(str).join(', ')}")
+            exception.add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Missing attribute(s) in pattern for type '{self.class_type}'",
+                tag_message=f"Initialization missing attributes: {missing_attributes.map(str).join(', ')}",
+                tip="Consider adding a '..' to mark variables as deliberately excluded")
             raise exception
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:

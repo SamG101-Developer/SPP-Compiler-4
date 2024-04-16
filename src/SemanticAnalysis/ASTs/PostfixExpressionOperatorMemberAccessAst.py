@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -38,17 +38,31 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         # For numeric access, check the LHS is a tuple type with enough elements in it.
         if isinstance(self.identifier, TokenAst):
-            if lhs.infer_type(scope_handler, **kwargs)[1].without_generics() != CommonTypes.tuple([]):
-                exception = SemanticError(f"Numeric member access requires a tuple type:")
-                exception.add_traceback(lhs.pos, f"Type '{lhs.infer_type(scope_handler, **kwargs)}' found here.")
-                exception.add_traceback(self.identifier.pos, f"Numeric member access found here.")
+            lhs_type = lhs.infer_type(scope_handler, **kwargs)
+            if lhs_type[1].without_generics() != CommonTypes.tuple([]):
+                exception = SemanticError()
+                exception.add_info(
+                    pos=lhs.pos,
+                    tag_message=f"Type inferred as '{lhs_type[0]}{lhs_type[1]}'")
+                exception.add_error(
+                    pos=self.identifier.pos,
+                    error_type=SemanticErrorType.TYPE_ERROR,
+                    message="Numeric member access requires a tuple type",
+                    tag_message=f"Numeric member access found here",
+                    tip="Use a tuple type for numeric member access")
                 raise exception
 
             if int(self.identifier.token.token_metadata) >= len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments):
-                lhs_type = lhs.infer_type(scope_handler, **kwargs)
-                exception = SemanticError(f"Numeric member access out of bounds:")
-                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' found here, with {len(lhs.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments)} elements.")
-                exception.add_traceback(self.identifier.pos, f"Numeric member access found here to element {self.identifier.token.token_metadata}.")
+                exception = SemanticError()
+                exception.add_info(
+                    pos=lhs.pos,
+                    tag_message=f"Type inferred as '{lhs_type[0]}{lhs_type[1]}' ({len(lhs_type[1].parts[-1].generic_arguments.arguments)} elements)")
+                exception.add_error(
+                    pos=self.identifier.pos,
+                    error_type=SemanticErrorType.TYPE_ERROR,
+                    message="Numeric member access out of bounds",
+                    tag_message=f"Numeric member access found here to element {self.identifier.token.token_metadata}",
+                    tip=f"Use a valid index for numeric member access (< {len(lhs_type[1].parts[-1].generic_arguments.arguments)})")
                 raise exception
 
         # For attribute access, check the attribute exists on the type being accessed.
@@ -60,15 +74,15 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
             if not lhs_type_scope:
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
                 exception = SemanticError(f"Cannot access attributes on unconstrained generic types:")
-                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
-                exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                exception.add_error(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
+                exception.add_error(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
                 raise exception
 
             if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
                 exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
-                exception.add_traceback(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
-                exception.add_traceback(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                exception.add_error(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
+                exception.add_error(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
                 raise exception
 
         else:

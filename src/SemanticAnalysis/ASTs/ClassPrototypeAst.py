@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
@@ -98,10 +98,12 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
         # Check that no attributes have the same name as each other. Raise an exception if they do.
         if Seq(self.body.members).map(lambda m: m.identifier).contains_duplicates():
             duplicate_attributes = Seq(self.body.members).map(lambda m: m.identifier).non_unique_items()[0]
-            exception = SemanticError(f"Duplicate attributes '{duplicate_attributes[0]}' found on type '{self.identifier}':")
-            exception.add_traceback(duplicate_attributes[0].pos, f"Attribute '{duplicate_attributes[0]}' declared here.")
-            exception.add_traceback(duplicate_attributes[1].pos, f"Attribute '{duplicate_attributes[1]}' re-declared here.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=duplicate_attributes[1].pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Cannot have duplicate attributes in a class",
+                tag_message=f"Attribute '{duplicate_attributes[0]}' re-declared here",
+                tip=f"Change the name of the attribute to something unique")
 
         # Move back into the parent scope.
         scope_handler.exit_cur_scope()

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
@@ -50,9 +50,16 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
         return_encountered = None
         for member in self.members:
             if return_encountered:
-                exception = SemanticError(f"Unreachable code:")
-                exception.add_traceback(return_encountered.pos, f"Return statement found here.")
-                exception.add_traceback(member.pos, f"Unreachable code found here.")
+                exception = SemanticError()
+                exception.add_info(
+                    pos=return_encountered.pos,
+                    tag_message=f"Return statement found here.")
+                exception.add_error(
+                    pos=member.pos,
+                    error_type=SemanticErrorType.ORDER_ERROR,
+                    message="Unreachable code",
+                    tag_message=f"Unreachable code found here.",
+                    tip="Remove the unreachable code, or move the return statement to the end of the scope.")
                 raise exception
             if isinstance(member, ReturnStatementAst):
                 return_encountered = member

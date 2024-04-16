@@ -262,8 +262,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
                 and self.body.members
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
             exception = SemanticError(f"Missing return statement in non-Void function:")
-            exception.add_traceback(self.pos, f"Function '{self.identifier}' declared here.")
-            exception.add_traceback(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
+            exception.add_error(self.pos, f"Function '{self.identifier}' declared here.")
+            exception.add_error(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
             raise exception
 
         # Check if the function is a coroutine (contains 1 yield statement, can be nested in some inner scope too)

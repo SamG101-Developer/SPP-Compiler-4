@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -66,9 +66,12 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
         # Check the convention of the parameter is by-mov, because default values will always be "owned", so the type
         # must use the "move" convention.
         if not isinstance(self.convention, ConventionMovAst):
-            exception = SemanticError(f"Optional parameters must use the by-val convention:")
-            exception.add_traceback(self.convention.pos, f"Convention '{self.convention}' used here.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=self.convention.pos,
+                error_type=SemanticErrorType.MEMORY_ERROR,
+                message="Optional parameters must use the by-mov convention",
+                tag_message=f"Convention '{self.convention}' used here.",
+                tip=f"Remove the '{self.convention}' convention from the parameter declaration")
 
         # Analyse the default value to ensure it is valid. This happens before the type-check against the parameter#
         # type, as otherwise there would be an error in detecting the type of an invalid expression.
@@ -76,9 +79,16 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
 
         # Check the default value's type matches the parameter's type.
         if not self.type_declaration.symbolic_eq((default_value_type := self.default_value.infer_type(scope_handler, **kwargs))[1], scope_handler.current_scope):
-            exception = SemanticError(f"Optional parameter type does not match default value type:")
-            exception.add_traceback(self.type_declaration.pos, f"Parameter type '{self.type_declaration}' declared here.")
-            exception.add_traceback(self.default_value.pos, f"Default value type '{default_value_type[1]}' inferred here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=self.type_declaration.pos,
+                tag_message=f"Parameter type '{self.type_declaration}' declared here")
+            exception.add_error(
+                pos=self.default_value.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message="Optional parameter type does not match default value type",
+                tag_message=f"Default value '{self.default_value}' inferred here as '{default_value_type[1]}'",
+                tip="Change the default value to match the parameter type")
             raise exception
 
     def __eq__(self, other):

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -46,9 +46,16 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         # Check no parameters have the same name.
         if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
-            exception = SemanticError(f"Duplicate parameters '{duplicate_parameters[0]}' found in function prototype:")
-            exception.add_traceback(duplicate_parameters[0].pos, f"Parameter '{duplicate_parameters[0]}' declared here.")
-            exception.add_traceback(duplicate_parameters[1].pos, f"Parameter '{duplicate_parameters[1]}' re-declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=duplicate_parameters[0].pos,
+                tag_message=f"Parameter '{duplicate_parameters[0]}' declared here")
+            exception.add_error(
+                pos=duplicate_parameters[1].pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Cannot have duplicate parameters in function prototype",
+                tag_message=f"Parameter '{duplicate_parameters[1]}' re-declared here",
+                tip="Change the name of one of the parameters to be unique")
             raise exception
 
         # Check parameter order is Self -> Required -> Optional -> Variadic.
@@ -57,23 +64,40 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         sorted_classifications = current_classifications.sort(key=lambda t: list(ordering.keys()).index(t[0]))
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
-            exception = SemanticError(f"Invalid parameter order in function prototype:")
-            exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} parameter '{difference[-2][1]}' declared here.")
-            exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} parameter '{difference[-1][1]}' declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=difference[-2][1].identifier.pos,
+                tag_message=f"{ordering[difference[-2][0]]} parameter '{difference[-2][1].identifier}' declared here")
+            exception.add_error(
+                pos=difference[-1][1].identifier.pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Invalid parameter order in function prototype",
+                tag_message=f"{ordering[difference[-1][0]]} parameter '{difference[-1][1].identifier}' declared here",
+                tip="Make sure parameter order is Self -> Required -> Optional -> Variadic")
             raise exception
 
         # Check that the function is class method, not in the module global space, if there is a "self" parameter.
         if self.parameters and isinstance(self.parameters[0], FunctionParameterSelfAst) and scope_handler.at_global_scope(parent_level=2):
-            exception = SemanticError(f"Can only use the 'self' parameter within a class:")
-            exception.add_traceback(self.parameters[0].pos, f"Parameter '{self.parameters[0]}' declared here.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=self.parameters[0].identifier.pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Cannot use a 'self' parameter in module global space",
+                tag_message=f"Parameter '{self.parameters[0].identifier}' declared here",
+                tip="Move the function into a 'sup' block")
 
         # Check that there is a maximum of 1 variadic parameter.
         variadic_parameters = Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst))
         if variadic_parameters.length > 1:
-            exception = SemanticError(f"Invalid parameter order in function prototype:")
-            exception.add_traceback(variadic_parameters[0].pos, f"1st variadic parameter '{variadic_parameters[0]}' declared here.")
-            exception.add_traceback(variadic_parameters[1].pos, f"2nd variadic parameter '{variadic_parameters[1]}' declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=variadic_parameters[0].identifier.pos,
+                tag_message=f"1st variadic parameter '{variadic_parameters[0].identifier}' declared here")
+            exception.add_error(
+                pos=variadic_parameters[1].identifier.pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Cannot have more than 1 variadic parameter in function prototype",
+                tag_message=f"2nd variadic parameter '{variadic_parameters[1].identifier}' declared here",
+                tip="Remove the extra variadic parameter, or make it non-variadic")
             raise exception
 
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
@@ -95,4 +119,4 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst)).first(None)
 
 
-__all__ = ['FunctionParameterGroupAst']
+__all__ = ["FunctionParameterGroupAst"]

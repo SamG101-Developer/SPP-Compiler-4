@@ -6,7 +6,7 @@ from src.LexicalAnalysis.Tokens import TokenType
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser, BIN_OP_FUNCS, OP_PREC
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -20,6 +20,8 @@ from src.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
 from src.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
 from src.SemanticAnalysis.ASTs.PostfixExpressionOperatorFunctionCallAst import PostfixExpressionOperatorFunctionCallAst
 from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+
+from src.Utils.Misc import ordinal
 
 
 @dataclass
@@ -76,23 +78,33 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             # Ensure the RHS is a tuple type.
             rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
             if rhs_type[0] != ConventionMovAst or not rhs_type[1].without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
-                exception = SemanticError("Can only binary-fold a tuple type")
-                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
-                raise exception
+                raise SemanticError().add_error(
+                    pos=self.rhs.pos,
+                    error_type=SemanticErrorType.VALUE_ERROR,
+                    message=f"Can only binary-fold a tuple type",
+                    tag_message=f"Inferred as '{rhs_type[0]}{rhs_type[1]}'",
+                    tip=f"Ensure the RHS type is a tuple type")
 
             # Ensure tuple's items' types are all the same.
             tuple_item_types = rhs_type[1].parts[-1].generic_arguments.arguments
             if different_type := next((t.type for t in tuple_item_types if not tuple_item_types[0].type.symbolic_eq(t.type, scope_handler.current_scope)), None):
-                exception = SemanticError("Can only binary-fold a tuple type with all the same types")
-                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
-                exception.add_traceback(tuple_item_types[0].type.pos, f"First item type in tuple inferred as '{tuple_item_types[0]}'", SemanticErrorStringFormatType.MINIMAL)
-                exception.add_traceback(different_type.pos, f"Different item type in tuple inferred as '{different_type}'", SemanticErrorStringFormatType.MINIMAL)
-                raise exception
+                invalid_type_index = next(i for i, t in enumerate(tuple_item_types) if not tuple_item_types[0].type.symbolic_eq(t.type, scope_handler.current_scope))
+                raise SemanticError().add_error(
+                    pos=different_type.pos,
+                    error_type=SemanticErrorType.VALUE_ERROR,
+                    message=f"Can only binary-fold a tuple type with all the same types",
+                    tip=f"Ensure all types in the tuple are the same")
+
+                # exception = SemanticError("Can only binary-fold a tuple type with all the same types")
+                # exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
+                # exception.add_traceback(tuple_item_types[0].type.pos, f"First item type in tuple inferred as '{tuple_item_types[0]}'", SemanticErrorStringFormatType.MINIMAL)
+                # exception.add_traceback(different_type.pos, f"Different item type in tuple inferred as '{different_type}'", SemanticErrorStringFormatType.MINIMAL)
+                # raise exception
 
             # Ensure the tuple has at least 2 items.
             if len(tuple_item_types) < 2:
                 exception = SemanticError("Can only binary-fold a tuple type with at least 2 items")
-                exception.add_traceback(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
+                exception.add_error(rhs_type[1].pos, f"Inferred RHS type as '{rhs_type[0]}{rhs_type[1]}'")
                 raise exception
 
             # Alter the LHS and RHS for type-based analysis.

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -46,19 +46,33 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
         for argument in self.items:
             if isinstance(argument, LocalVariableSkipArgumentAst):
                 if has_skipped_args:
-                    exception = SemanticError(f"Multiple '..' given to pattern:")
-                    exception.add_traceback(has_skipped_args.pos, f"1st variadic argument given here.")
-                    exception.add_traceback(argument.variadic_token.pos, f"2nd variadic argument given here.", SemanticErrorStringFormatType.MINIMAL)
+                    exception = SemanticError()
+                    exception.add_info(
+                        pos=has_skipped_args.pos,
+                        tag_message=f"1st argument skip here")
+                    exception.add_error(
+                        pos=argument.variadic_token.pos,
+                        error_type=SemanticErrorType.ORDER_ERROR,
+                        message=f"Cannot have multiple skip arguments '..' in a destructure pattern",
+                        tag_message=f"2nd argument skip here",
+                        tip="Remove the additional skip argument")
                     raise exception
                 has_skipped_args = argument
                 continue
 
-        lhs_tuple_type_elements = other_tuple.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
-        rhs_tuple_type_elements = self.items
+        rhs_tuple_type_elements = other_tuple.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+        lhs_tuple_type_elements = self.items
         if len(lhs_tuple_type_elements) != len(rhs_tuple_type_elements) and not has_skipped_args:
-            exception = SemanticError(f"Invalid tuple assignment:")
-            exception.add_traceback(self.pos, f"Assignment target tuple contains {len(rhs_tuple_type_elements)} elements.")
-            exception.add_traceback(other_tuple.pos, f"Assignment value tuple contains {len(lhs_tuple_type_elements)} elements.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=self.pos,
+                tag_message=f"Assignment target tuple contains {len(lhs_tuple_type_elements)} elements")
+            exception.add_error(
+                pos=other_tuple.pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Cannot destructure tuples into a different number of elements",
+                tag_message=f"Assignment value tuple contains {len(rhs_tuple_type_elements)} elements",
+                tip=f"Ensure the assignment target tuple contains {len(rhs_tuple_type_elements)} elements.")
             raise exception
 
 

@@ -5,7 +5,7 @@ from typing import List, Optional
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
@@ -59,9 +59,16 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         named_arguments = Seq(self.arguments).filter(lambda a: isinstance(a, GenericArgumentNamedAst)).map(lambda a: a.identifier)
         if named_arguments.contains_duplicates():
             duplicate_named_arguments = named_arguments.non_unique_items()[0]
-            exception = SemanticError(f"Duplicate generic argument names '{duplicate_named_arguments[0]}' found:")
-            exception.add_traceback(duplicate_named_arguments[0].pos, f"Argument <{duplicate_named_arguments[0]}> declared here.")
-            exception.add_traceback(duplicate_named_arguments[1].pos, f"Argument <{duplicate_named_arguments[1]}> re-declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=duplicate_named_arguments[0].pos,
+                tag_message=f"Argument '{duplicate_named_arguments[0]}' declared here")
+            exception.add_error(
+                pos=duplicate_named_arguments[1].pos,
+                error_type=SemanticErrorType.NAME_ERROR,
+                message=f"Cannot have duplicate named arguments in generic argument group",
+                tag_message=f"Argument '{duplicate_named_arguments[1]}' re-declared here",
+                tip="Change the name of one of the arguments to be unique")
             raise exception
 
         # Check argument order is Normal -> Named
@@ -70,9 +77,16 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         sorted_classifications = current_classifications.sort(key=lambda t: list(ordering.keys()).index(t[0]))
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
-            exception = SemanticError(f"Invalid generic argument order:")
-            exception.add_traceback(difference[-2][1].pos, f"{ordering[difference[-2][0]]} argument '{difference[-2][1]}' declared here.")
-            exception.add_traceback(difference[-1][1].pos, f"{ordering[difference[-1][0]]} argument '{difference[-1][1]}' declared here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=difference[-2][1].pos,
+                tag_message=f"{ordering[difference[-2][0]]} generic argument '{difference[-2][1]}' declared here")
+            exception.add_error(
+                pos=difference[-1][1].pos,
+                error_type=SemanticErrorType.ORDER_ERROR,
+                message=f"Invalid generic argument order in function call",
+                tag_message=f"{ordering[difference[-1][0]]} generic argument '{difference[-1][1]}' found here",
+                tip=f"Make sure argument order is Unnamed -> Named")
             raise exception
 
         # Analyse each argument.

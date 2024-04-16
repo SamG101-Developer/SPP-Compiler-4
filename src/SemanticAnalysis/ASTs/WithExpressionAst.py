@@ -51,7 +51,7 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         object_type_sup_types = scope_handler.current_scope.get_symbol(object_type).associated_scope.sup_scopes
         if CommonTypes.ctx() not in object_type_sup_types:
             exception = SemanticError(f"Type '{object_type}' does not superimpose Ctx:")
-            exception.add_traceback(self.expression.pos, f"Expression '{self.expression}' has type '{object_type}'.")
+            exception.add_error(self.expression.pos, f"Expression '{self.expression}' has type '{object_type}'.")
             raise exception
 
         # Create the symbol for the alias.

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
@@ -15,6 +15,8 @@ from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from src.SemanticAnalysis.ASTs.Meta.AstUtils import AstUtils
 
 from src.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+from src.SemanticAnalysis.ASTs.ConventionNonInitAst import ConventionNonInitAst
+from src.SemanticAnalysis.ASTs.ConventionPartInitAst import ConventionPartInitAst
 from src.SemanticAnalysis.ASTs.FunctionArgumentNamedAst import FunctionArgumentNamedAst
 from src.SemanticAnalysis.ASTs.FunctionArgumentNormalAst import FunctionArgumentNormalAst
 from src.SemanticAnalysis.ASTs.GenericArgumentGroupAst import GenericArgumentGroupAst
@@ -64,8 +66,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             case IdentifierAst():
                 function_name_rhs_part_scope = scope_handler.current_scope.get_symbol(function_name.infer_type(scope_handler, **kwargs)[1]).associated_scope
             case _:
-                exception = SemanticError(f"Invalid function call:")
-                exception.add_traceback(function_name.pos, f"Function call '{function_name}' found here. Can only call identifiers.")
+                exception = SemanticError()
+                exception.add_error(
+                    pos=function_name.pos,
+                    error_type=SemanticErrorType.TYPE_ERROR,
+                    message=f"Uncallable object",
+                    tag_message=f"Object '{function_name}' is not callable.",
+                    tip="Only identifiers can be called.")
                 raise exception
 
         # The only classes possibly superimposed over a MOCK_ class are the Fun classes.
@@ -98,7 +105,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     **kwargs)
 
             except SemanticError as e:
-                function_overload_errors.append(e)
+                function_overload_errors.append((function_overload, e.additional_info[1][2]))
                 continue
 
             function_overload_scope = mock_function_object_sup_scopes[i][0]._children_scopes[0]
@@ -236,7 +243,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 if argument.identifier.value == "self":
                     argument_type = (type(corresponding_parameter.convention), argument_type[1])
 
-                if not argument_type[1].symbolic_eq(corresponding_parameter.type_declaration, function_overload_scope) or argument_type[0] != type(corresponding_parameter.convention):
+                # For type checking, allow "NonInit"/"PartInit" to pass (errors handled in the argument checker)
+                convention_match = type(corresponding_parameter.convention) == argument_type[0]
+                convention_match = convention_match or argument_type[0] in [ConventionNonInitAst, ConventionPartInitAst]
+                if not argument_type[1].symbolic_eq(corresponding_parameter.type_declaration, function_overload_scope) or not convention_match:
                     exception_message = f"Invalid argument type given to function call: '{argument_type[0]}{argument_type[1]}' instead of '{corresponding_parameter.convention}{corresponding_parameter.type_declaration}'"
                     function_overload_errors.append((function_overload, exception_message))
                     type_error = True
@@ -252,13 +262,19 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # If there were no valid overloads, display each overload and why it couldn't be selected. Raise the error here
         # so no valid overload is attempted to be pulled from an empty list.
         if not valid_overloads:
-            exception = SemanticError(f"No valid overload found for function call:")
-            exception.add_traceback(self.pos, f"Function call for '{function_name}' found here. Supported signatures:")
+            signatures = ""
             for function_overload, exception_message in function_overload_errors:
                 function_overload_string = f"{function_overload}"
-                function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index('('):]}"
-                exception.add_traceback(function_overload.pos, f"\n- {function_overload_string} ({exception_message})", SemanticErrorStringFormatType.NO_FORMAT)
-            raise exception
+                function_overload_string = function_overload_string[:function_overload_string.index("{") - 1]
+                function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index("("):]}"
+                signatures += f"\n\t{function_overload_string} ({exception_message})"
+
+            raise SemanticError().add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,  # todo: change
+                message=f"No valid overload found for function call",
+                tag_message=f"Function call for '{function_name}' found here",
+                tip=f"Supported signatures:{signatures}")
 
         # TODO: Select the most precise match: this is the overload with the least amount of parameters that have generic types.
         # TODO: This can lead to ambiguities: func(a: Str, b: Vec[T) and func(a: T, b: Arr[I8]) for func("hello", [1, 2, 3])
@@ -266,6 +282,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
+        self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
         _, _, self_arg = self.__get_matching_overload(scope_handler, lhs, **kwargs)
         Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
 

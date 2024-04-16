@@ -8,9 +8,9 @@ from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
 from src.Utils.Sequence import Seq
 
 
+# TODO: semantic analysis to ensure the module identifier matches the directory structure from "src".
 @dataclass
 class ModuleIdentifierAst(Ast):
-    # TODO: semantic analysis to ensure the module identifier matches the directory structure from "src".
     """
     The ModuleIdentifierAst node is used to represent the module identifier of a ".spp" file. This is a sequence of
     IdentifierAsts, separated by dots.

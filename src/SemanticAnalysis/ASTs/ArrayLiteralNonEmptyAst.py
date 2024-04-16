@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -48,10 +48,12 @@ class ArrayLiteralNonEmptyAst(Ast, SemanticAnalyser, TypeInfer):
         # Check if all the elements have the same type (should only be 1 unique type).
         non_matching_types = Seq(self.elements).map(lambda i: i.infer_type(scope_handler, **kwargs)).unique_items()
         if non_matching_types.length > 1:
-            exception = SemanticError(f"Array items must have the same type:")
-            exception.add_traceback(non_matching_types[0][1].pos, f"Item '{non_matching_types[0][0]}{non_matching_types[0][1]}' found here.")
-            exception.add_traceback(non_matching_types[1][1].pos, f"Item '{non_matching_types[1][0]}{non_matching_types[1][1]}' has a different type.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=non_matching_types[1][1].pos,
+                error_type=SemanticErrorType.LITERAL_ERROR,
+                message=f"Array elements must be of the same type",
+                tag_message=f"Value inferred as '{non_matching_types[1][1]}' (!= '{non_matching_types[0][1]}')",
+                tip="Ensure all array elements are of the same type, or use a tuple instead")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         # The array's type is `std.Arr[T]`, where `T` is the elements' inferred type.

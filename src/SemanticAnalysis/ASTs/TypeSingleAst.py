@@ -79,7 +79,7 @@ class TypeSingleAst(Ast, SemanticAnalyser):
         type_namespace_string = Seq(type_namespace).map(lambda p: p.value).join(".")
         if not (namespace_scope := scope_handler.get_namespaced_scope(type_namespace)):
             exception = SemanticError(f"Namespace '{type_namespace_string}' is not defined:")
-            exception.add_traceback(self.pos, f"Namespace '{type_namespace_string}' used here.")
+            exception.add_error(self.pos, f"Namespace '{type_namespace_string}' used here.")
             raise exception
 
         if not base_type_exists:
@@ -90,7 +90,7 @@ class TypeSingleAst(Ast, SemanticAnalyser):
             closest_match = f" Did you mean '{type_namespace_string}.{closest_match[0]}'?" if closest_match else ""
 
             exception = SemanticError(f"Type '{self}' is not defined:")
-            exception.add_traceback(self.pos, f"Type '{self}' used here.{closest_match}")
+            exception.add_error(self.pos, f"Type '{self}' used here.{closest_match}")
             raise exception
 
         elif not this_type_exists and self.parts[-1].generic_arguments.arguments:
@@ -100,6 +100,7 @@ class TypeSingleAst(Ast, SemanticAnalyser):
             type_scope = type_sym.associated_scope
 
             # For each generic parameter, set its type to the corresponding generic argument.
+            self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
             all_generic_arguments = AstUtils.verify_generic_arguments(
                 generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
                 inferred_generic_arguments=Seq([]),

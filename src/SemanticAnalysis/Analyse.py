@@ -107,19 +107,12 @@ class Analyser:
 
 
 def handle_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> NoReturn:
-    final_error = str(exception)
+    final_error = ""
     for error in exception.additional_info:
         final_error += err_fmt.error(
             error[0], message=error[1],
-            minimal=error[2] == SemanticErrorStringFormatType.MINIMAL,
-            no_format = error[2] == SemanticErrorStringFormatType.NO_FORMAT)
+            tag_message=error[2],
+            minimal=error[3] == SemanticErrorStringFormatType.MINIMAL,
+            no_format=error[3] == SemanticErrorStringFormatType.NO_FORMAT)
 
-    for error in exception.next_exceptions:
-        final_error += f"\n\n{error}"
-        for inner_error in error.additional_info:
-            final_error += err_fmt.error(
-                inner_error[0],
-                message=inner_error[1],
-                minimal=inner_error[2] == SemanticErrorStringFormatType.MINIMAL,
-                no_format = inner_error[2] == SemanticErrorStringFormatType.NO_FORMAT)
     raise SystemExit(final_error) from None
