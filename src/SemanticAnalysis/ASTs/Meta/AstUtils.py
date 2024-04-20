@@ -1,4 +1,6 @@
 from __future__ import annotations
+import copy
+
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -179,11 +181,17 @@ class AstUtils:
         # Load the missing optional generic parameters with their default values.
         for optional_generic_parameter in generic_parameters.filter_to_type(GenericParameterOptionalAst):
             if not all_generic_arguments.find(lambda a: a.identifier == optional_generic_parameter.identifier):
+                default_type = copy.deepcopy(optional_generic_parameter.default_value)
+
+                # Fully qualify the default type with its namespace.
+                type_scope_namespace = scope_handler.current_scope.get_symbol(usage.without_generics()).associated_scope.scopes_as_namespace
+                default_type.parts[:-1] = type_scope_namespace
+
                 all_generic_arguments.append(GenericArgumentNamedAst(
                     pos=optional_generic_parameter.pos,
                     raw_identifier=IdentifierAst(optional_generic_parameter.identifier.pos, optional_generic_parameter.identifier.parts[-1].value),
                     assignment_token=TokenAst.dummy(TokenType.TkAssign),
-                    type=optional_generic_parameter.default_value))
+                    type=default_type))
 
         return all_generic_arguments
 
