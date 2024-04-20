@@ -36,6 +36,7 @@ class RegexLiteralAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, **kwargs) -> None:
         # No semantic analysis is required for a string literal.
+        # TODO: Check regex is valid?
         assert self.value.token.token_type == TokenType.LxRegex
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:

@@ -25,6 +25,9 @@ class Seq[T]:
     def filter_to_type(self, *types: type) -> Seq[T]:
         return Seq([v for v in self._value if type(v) in types])
 
+    def filter_not_type(self, *types: type) -> Seq[T]:
+        return Seq([v for v in self._value if type(v) not in types])
+
     def join(self, separator: str = "") -> str:
         return separator.join(self._value)
 

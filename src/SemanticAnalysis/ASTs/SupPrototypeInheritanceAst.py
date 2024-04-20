@@ -66,7 +66,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         scope_handler.move_to_next_scope()
 
         # Analyse the generic parameters, the where block, the body, and the superclass.
-        self.identifier.do_semantic_analysis(scope_handler, **kwargs)  # todo: not this? because .without_generics() is called later
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.where_block.do_semantic_analysis(scope_handler, **kwargs)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)

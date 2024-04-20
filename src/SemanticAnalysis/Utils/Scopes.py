@@ -123,6 +123,15 @@ class Scope:
     def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
         return self._sup_scopes
 
+    @property
+    def scopes_as_namespace(self) -> List[IdentifierAst]:
+        scope = self._parent_scope
+        namespace = []
+        while scope._parent_scope:
+            namespace.insert(0, scope._scope_name)
+            scope = scope._parent_scope
+        return namespace
+
 
 class ScopeIterator:
     _iterator: Iterator[Scope]

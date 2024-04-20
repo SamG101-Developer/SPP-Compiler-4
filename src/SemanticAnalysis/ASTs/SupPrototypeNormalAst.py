@@ -56,7 +56,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         from src.SemanticAnalysis.ASTs.FunctionPrototypeAst import FunctionPrototypeAst
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
-        self.body.members = Seq(self.body.members).filter(lambda m: not isinstance(m, FunctionPrototypeAst)).value
+        self.body.members = Seq(self.body.members).filter_not_type(FunctionPrototypeAst).value
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
