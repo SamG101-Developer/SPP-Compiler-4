@@ -6,3 +6,13 @@ cls GenMov[Yield, Return=Void, Send=Void] { }
 cls GenRef[Yield, Return=Void, Send=Void] { }
 
 cls GenMut[Yield, Return=Void, Send=Void] { }
+
+
+# sup [Yield, Return=Void, Send=Void] GenMov[Yield, Return, Send] on GenRef[Yield, Return, Send] { }
+# sup [Yield, Return=Void, Send=Void] GenRef[Yield, Return, Send] on GenMut[Yield, Return, Send] { }
+
+##
+sup [Yield, Return=Void, Send=Void] GenMov[Yield, Return, Send] {
+    fun next(&self, send_value: Send) -> Yield | Return { }
+}
+##

@@ -17,16 +17,24 @@ cls Vec {
 }
 
 
+sup std.CtxRef on Vec { }
+
+
 cls Type[T] {
     a: T
     b: T
 }
 
 
-fun function[T, U](a: T, b: T) -> U { }
+fun function[T](a: T, b: T) -> std.Void { }
+
+fun generator() -> std.GenRef[Yield=std.Str] {
+    let x = "h"
+    gen &x
+}
 
 
-fun main(v: Vec, w: Vec) -> std.Void {
-    let t = (0, 1, 2, 3)
-    let x = t.6
+fun main(v: Vec, w: Vec) -> std.Str {
+    let x = "hello"
+    ret x
 }
