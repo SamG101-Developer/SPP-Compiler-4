@@ -35,9 +35,14 @@ class CommonTypes:
         return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "Rgx", None)])
 
     @staticmethod
-    def ctx(pos: int = -1):
+    def ctx_ref(pos: int = -1):
         from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst
-        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "Ctx", None)])
+        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "CtxRef", None)])
+
+    @staticmethod
+    def ctx_mut(pos: int = -1):
+        from src.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst, GenericIdentifierAst
+        return TypeSingleAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "CtxMut", None)])
 
     @staticmethod
     def fut(inner_type, pos: int = -1):
