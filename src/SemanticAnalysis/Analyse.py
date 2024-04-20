@@ -55,7 +55,6 @@ class Analyser:
         # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
             self._ast.do_semantic_analysis(scope_handler)
-
         except SemanticError as e:
             handle_semantic_error(err_fmt, e)
 
