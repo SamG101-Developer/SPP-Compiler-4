@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -56,9 +56,16 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
 
         return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else (ConventionMovAst, CommonTypes.void())
         if return_type[0] != ConventionMovAst or not target_return_type.symbolic_eq(return_type[1], scope_handler.current_scope):
-            exception = SemanticError(f"Returning variable of incorrect type:")
-            exception.add_error(target_return_type.pos, f"Function has return type '{target_return_type}'.")
-            exception.add_error(self.pos, f"Variable '{self.expression}' returned here is type '{return_type[0]}{return_type[1]}'.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=target_return_type.pos,
+                tag_message=f"Function has return type '{target_return_type}'")
+            exception.add_error(
+                pos=(self.expression or self.return_keyword).pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message="Returning variable of incorrect type",
+                tag_message=f"Type inferred as '{return_type[0]}{return_type[1]}'",
+                tip=f"Return a {target_return_type} object instead")
             raise exception
 
 

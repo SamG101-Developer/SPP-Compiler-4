@@ -7,7 +7,7 @@ from typing import List, Optional
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from src.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -75,23 +75,31 @@ class TypeSingleAst(Ast, SemanticAnalyser):
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments)
 
         # Check namespace exists
-        type_namespace = Seq(self.parts).filter(lambda p: isinstance(p, IdentifierAst)).value
+        # todo: add a "did you mean...?" copy from IdentifierAst or TypeAst (type part)
+        type_namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
         type_namespace_string = Seq(type_namespace).map(lambda p: p.value).join(".")
         if not (namespace_scope := scope_handler.get_namespaced_scope(type_namespace)):
-            exception = SemanticError(f"Namespace '{type_namespace_string}' is not defined:")
-            exception.add_error(self.pos, f"Namespace '{type_namespace_string}' used here.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message=f"Undefined namespace",
+                tag_message=f"Namespace '{type_namespace_string}' is not defined.",
+                tip="Check the namespace is defined in the current scope.")
 
         if not base_type_exists:
             scope = namespace_scope if type_namespace else scope_handler.current_scope
+            type_namespace_string += "." if type_namespace_string else ""
 
             all_symbols = Seq(scope.all_symbols()).filter(lambda s: isinstance(s, TypeSymbol))
             closest_match = difflib.get_close_matches(str(self), all_symbols.map(lambda s: str(s.name)).value, n=1)
-            closest_match = f" Did you mean '{type_namespace_string}.{closest_match[0]}'?" if closest_match else ""
+            closest_match = f" Did you mean '{type_namespace_string}{closest_match[0]}'?" if closest_match else ""
 
-            exception = SemanticError(f"Type '{self}' is not defined:")
-            exception.add_error(self.pos, f"Type '{self}' used here.{closest_match}")
-            raise exception
+            raise SemanticError().add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message=f"Undefined type",
+                tag_message=f"Type '{self}' is not defined.",
+                tip=f"Check the type is defined in the current scope.{closest_match}")
 
         elif not this_type_exists and self.parts[-1].generic_arguments.arguments:
             # Get the symbol for the base type without any generic arguments, and get its associated scope. The parent

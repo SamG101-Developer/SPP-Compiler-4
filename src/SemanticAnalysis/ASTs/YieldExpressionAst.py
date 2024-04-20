@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -55,9 +55,16 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
 
         # Ensure that the return type is a Generator type. TODO: change to std. ...
         if coroutine_return_type.parts[-1].value not in ["GenMov", "GenRef", "GenMut"]:
-            exception = SemanticError(f"Gen expressions can only occur inside a function that returns a Generator")
-            exception.add_error(self.pos, f"Gen expression found here.")
-            exception.add_error(coroutine_return_type.pos, f"Function returns type '{coroutine_return_type}'.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=coroutine_return_type.pos,
+                tag_message=f"Function type defined as '{coroutine_return_type}'")
+            exception.add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message="Gen expressions can only occur inside a generator",
+                tag_message=f"Gen expression found here",
+                tip="Ensure the function returns a 'GenMov', 'GenRef' or 'GenMut' type.")
             raise exception
 
         # Determine the given yield type and convention (if the expression is a parameter variable it could have an
@@ -75,9 +82,16 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
 
         # Check the convention-type pairs match.
         if not expected_yield_type.symbolic_eq(given_yield_type, scope_handler.current_scope) or not isinstance(expected_convention, given_convention):
-            exception = SemanticError(f"Invalid yield type from coroutine:")
-            exception.add_error(expected_yield_type.pos, f"Coroutine yield type specified here as '{expected_convention}{expected_yield_type}'.")
-            exception.add_error(self.expression.pos, f"Yield expression found here with type: '{given_convention}{given_yield_type}'.", SemanticErrorStringFormatType.MINIMAL)
+            exception = SemanticError()
+            exception.add_info(
+                pos=expected_yield_type.pos,
+                tag_message=f"Coroutine yield type defined as '{expected_yield_type}'")
+            exception.add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message="Yield expression does not match the coroutine's yield type",
+                tag_message=f"Yield expression inferred as '{given_convention}{given_yield_type}'",
+                tip="Ensure the yield expression matches the coroutine's yield type.")
             raise exception
 
         # TODO:

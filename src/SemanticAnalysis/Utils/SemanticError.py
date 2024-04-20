@@ -20,6 +20,7 @@ class SemanticErrorType(Enum):
     NAME_ERROR = 3
     ORDER_ERROR = 4
     MEMORY_ERROR = 5
+    ASYNC_ERROR = 6
 
 
 class SemanticError(Exception):

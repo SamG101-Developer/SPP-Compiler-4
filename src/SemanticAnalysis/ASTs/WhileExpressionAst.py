@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 
 from src.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from src.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -41,8 +42,18 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        # Analyse the condition and body.
+        # Analyse the condition and ensure it is a Boolean condition.
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
+        condition_type = self.condition.infer_type(scope_handler, **kwargs)
+        if not condition_type[1].symbolic_eq(CommonTypes.bool(), scope_handler.current_scope):
+            raise SemanticError().add_error(
+                pos=self.condition.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message=f"Guard expression must be of type 'Bool':",
+                tag_message=f"Type inferred as '{condition_type[0]}{condition_type[1]}'.",
+                tip="Use a boolean expression for the guard.")
+
+        # Analyse the body
         self.body.do_semantic_analysis(scope_handler, **kwargs)
 
         # Analyse the else block is it exists.

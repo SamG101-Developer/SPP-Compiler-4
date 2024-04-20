@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
@@ -47,12 +47,15 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Check that the type of object used in the "with" expression superimposes Ctx.
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
-        object_type = self.expression.infer_type(scope_handler, **kwargs)
+        object_type = self.expression.infer_type(scope_handler, **kwargs)[1]
         object_type_sup_types = scope_handler.current_scope.get_symbol(object_type).associated_scope.sup_scopes
-        if CommonTypes.ctx() not in object_type_sup_types:
-            exception = SemanticError(f"Type '{object_type}' does not superimpose Ctx:")
-            exception.add_error(self.expression.pos, f"Expression '{self.expression}' has type '{object_type}'.")
-            raise exception
+        if not any(context_type not in object_type_sup_types for context_type in [CommonTypes.ctx_ref(), CommonTypes.ctx_mut()]):
+            raise SemanticError().add_error(
+                pos=self.expression.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message=f"Type does not superimpose 'CtxRef' or 'CtxMut'",
+                tag_message=f"Type inferred as '{object_type}'",
+                tip=f"Superimpose 'CtxRef' or 'CtxMut' over the '{object_type}'.")
 
         # Create the symbol for the alias.
         if self.alias:

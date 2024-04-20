@@ -70,19 +70,34 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser):
             lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
 
             # Generic type
-            # todo: allowed based on contraints
+            # todo: allowed based on constraints
             if not lhs_type_scope:
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
-                exception = SemanticError(f"Cannot access attributes on unconstrained generic types:")
-                exception.add_error(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
-                exception.add_error(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                exception = SemanticError()
+                exception.add_info(
+                    pos=lhs.pos,
+                    tag_message=f"Type inferred as '{lhs_type[0]}{lhs_type[1]}' (generic)")
+                exception.add_error(
+                    pos=self.identifier.pos,
+                    error_type=SemanticErrorType.TYPE_ERROR,
+                    message="Cannot access attributes on unconstrained generic types",
+                    tag_message=f"Attribute '{self.identifier.value}' accessed here",
+                    tip="Constrain the generic type to allow attribute access")
                 raise exception
 
             if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
+                # todo: add a "did you mean ...?" feature (IdentifierAst has this -> copy)
                 lhs_type = lhs.infer_type(scope_handler, **kwargs)
-                exception = SemanticError(f"Undefined attribute '{self.identifier.value}' on type '{lhs_type[1]}':")
-                exception.add_error(lhs.pos, f"Type '{lhs_type[0]}{lhs_type[1]}' inferred here.")
-                exception.add_error(self.identifier.pos, f"Attribute '{self.identifier.value}' accessed here.")
+                exception = SemanticError()
+                exception.add_info(
+                    pos=lhs.pos,
+                    tag_message=f"Type inferred as '{lhs_type[0]}{lhs_type[1]}'")
+                exception.add_error(
+                    pos=self.identifier.pos,
+                    error_type=SemanticErrorType.TYPE_ERROR,
+                    message="Undefined attribute",
+                    tag_message=f"Attribute '{self.identifier.value}' accessed here",
+                    tip="Check for typos or define the attribute")
                 raise exception
 
         else:

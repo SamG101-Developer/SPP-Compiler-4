@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Tuple, Type
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from src.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -41,9 +41,12 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Check that the rhs is a function call (only unary is async)
         if not (isinstance(self.rhs, PostfixExpressionAst) and isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst)):
-            exception = SemanticError(f"Invalid 'async' usage:")
-            exception.add_error(self.pos, f"'{self}' is not a function call.")
-            raise exception
+            raise SemanticError().add_error(
+                pos=self.pos,
+                error_type=SemanticErrorType.ASYNC_ERROR,
+                message="Invalid 'async' usage",
+                tag_message=f"'{self.rhs}' is not a function call.",
+                tip="Make sure that the 'async' keyword is used before a function call.")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         # The type is a Fut[T] where T is the return type of the function call.
