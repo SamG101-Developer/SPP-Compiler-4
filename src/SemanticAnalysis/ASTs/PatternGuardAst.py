@@ -40,16 +40,14 @@ class PatternGuardAst(Ast, SemanticAnalyser):
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure the guard expression is of type "std.Bool".
-        expression_type = self.expression.infer_type(scope_handler, **kwargs)[1]
-        if not expression_type.symbolic_eq(CommonTypes.bool(), scope_handler.current_scope):
-            exception = SemanticError()
-            exception.add_error(
+        expression_type = self.expression.infer_type(scope_handler, **kwargs)
+        if not expression_type[1].symbolic_eq(CommonTypes.bool(), scope_handler.current_scope):
+            raise SemanticError().add_error(
                 pos=self.expression.pos,
                 error_type=SemanticErrorType.TYPE_ERROR,
                 message=f"Guard expression must be of type 'Bool':",
-                tag_message=f"Type inferred as '{expression_type}'.",
+                tag_message=f"Type inferred as '{expression_type[0]}{expression_type[1]}'.",
                 tip="Use a boolean expression for the guard.")
-            raise exception
 
 
 __all__ = ["PatternGuardAst"]
