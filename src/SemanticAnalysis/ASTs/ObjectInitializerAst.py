@@ -71,6 +71,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
                 tip="Only instantiate classes that have been defined")
             raise exception
 
+        pre_generic_mapped_attributes = Seq(scope_handler.current_scope.get_symbol(self.class_type.without_generics()).type.body.members)
         attributes = Seq(type_sym.type.body.members)
         attribute_names = attributes.map(lambda s: s.identifier)
         sup_classes = type_scope.exclusive_sup_scopes
@@ -177,7 +178,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         inferred_generic_arguments = AstUtils.infer_generic_argument_values(
             scope_handler=scope_handler,
             generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
-            infer_from=attributes.map(lambda p: p.type_declaration),
+            infer_from=pre_generic_mapped_attributes.map(lambda p: p.type_declaration),
             replace_with=Seq(self.arguments.arguments).map(lambda a: a.value.infer_type(scope_handler, **kwargs)[1]),
             obj_definition=type_sym.type)
 

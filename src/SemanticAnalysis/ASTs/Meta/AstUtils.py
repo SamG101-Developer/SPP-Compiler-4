@@ -78,23 +78,31 @@ class AstUtils:
         # todo
 
         # Check that inferred generics haven't been given explicitly:
-        if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length and not isinstance(generic_parameters[-1], GenericParameterVariadicAst):
+        if inferred_generic_arguments.length + generic_arguments.length > generic_parameters.length and (not generic_parameters or not isinstance(generic_parameters[-1], GenericParameterVariadicAst)):
+            # todo: the use of [0] will probably get incorrect generic identifiers in some cases
             if generic_parameters:
                 exception = SemanticError()
                 exception.add_info(
-                    pos=obj_definition.generic_parameters.pos,
-                    tag_message=f"Generic parameters declared here")
-                exception.add_error(
                     pos=inferred_generic_arguments[0].pos,
+                    tag_message=f"Generic parameter '{inferred_generic_arguments[0].identifier}' inferred here")
+                exception.add_error(
+                    pos=generic_arguments[0].pos,
                     error_type=SemanticErrorType.NAME_ERROR,
-                    message=f"?",
-                    tag_message=f"Too many explicit generic arguments have been given - inferrable: {inferred_generic_arguments.map(lambda g: g.identifier).map(str).join(', ')})",
-                    tip=f"Generic arguments have already been inferred")
+                    message=f"Do not provide inferrable generic parameters with explicit generic arguments",
+                    tag_message=f"Generic argument for generic parameter '{generic_parameters[0]}' provided explicitly here",
+                    tip=f"Remove explicit generic arguments for inferrable generic parameters")
 
             else:
-                exception = SemanticError(f"Generic arguments have already been inferred:")
-                exception.add_error(obj_definition.pos, f"No generic parameters declared here.")
-                exception.add_error(generic_arguments[0].pos, f"Generic argument '{generic_arguments[0]}' given here.", SemanticErrorStringFormatType.MINIMAL)
+                exception = SemanticError()
+                exception.add_info(
+                    pos=obj_definition.identifier.pos,
+                    tag_message=f"No generic parameters declared here.")
+                exception.add_error(
+                    pos=generic_arguments[0].pos,
+                    error_type=SemanticErrorType.NAME_ERROR,
+                    message=f"Too many generic arguments given",
+                    tag_message=f"Generic argument '{generic_arguments[0]}' given here",
+                    tip=f"Remove generic arguments")
             raise exception
 
         # Check if there are any named generic arguments with names that don't match any generic parameter names:
@@ -217,7 +225,7 @@ class AstUtils:
                 if generic_parameter.identifier not in parameter_type_parts:
                     continue
 
-                # Check if the generic argument has already been inferred.
+                # Check if the generic argument has already been inferred with a different type.
                 duplicate_inferred_parameter = inferred_generic_parameters.find(lambda p: p.identifier == generic_parameter.identifier)
                 if duplicate_inferred_parameter and not duplicate_inferred_parameter.type.symbolic_eq(argument_t, scope_handler.current_scope):
                     exception = SemanticError()
@@ -227,7 +235,7 @@ class AstUtils:
                     exception.add_error(
                         pos=argument_t.pos,
                         error_type=SemanticErrorType.TYPE_ERROR,
-                        message=f"Generic argument inferred again as a different type",
+                        message=f"Generic parameter given conflicting types",
                         tag_message=f"Generic argument '{generic_parameter.identifier}' inferred here as '{argument_t}'",
                         tip=f"Make sure all instances of '{generic_parameter.identifier}' are inferred as the same type")
                     raise exception
@@ -235,6 +243,7 @@ class AstUtils:
                 argument_t_namespace = Seq(list(iter(argument_t))).filter(lambda p: isinstance(p, IdentifierAst)).value
                 if not duplicate_inferred_parameter:
                     for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
+                        print(f"\t{generic_parameter.identifier}", p_1, p_2)
 
                         if generic_parameter.identifier == p_1:
                             inferred_generic_parameters.append(GenericArgumentNamedAst(
