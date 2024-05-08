@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -85,13 +85,13 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
             exception = SemanticError()
             exception.add_info(
                 pos=expected_yield_type.pos,
-                tag_message=f"Coroutine yield type defined as '{expected_yield_type}'")
+                tag_message=f"Coroutine yield type defined as '{expected_convention}{expected_yield_type}'")
             exception.add_error(
-                pos=self.pos,
+                pos=self.expression.pos,
                 error_type=SemanticErrorType.TYPE_ERROR,
                 message="Yield expression does not match the coroutine's yield type",
                 tag_message=f"Yield expression inferred as '{given_convention}{given_yield_type}'",
-                tip="Ensure the yield expression matches the coroutine's yield type.")
+                tip="Ensure the yield expression matches the coroutine's yield type and convention.")
             raise exception
 
         # TODO:
