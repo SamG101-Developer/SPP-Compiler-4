@@ -7,7 +7,6 @@ Binary expressions:
 -- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
 
 Coroutines:
--- Apply the Law of Exclusivity to yielded values (inside tuples)
 -- Check the sent objects' type against the `Send` generic parameter.
 
 Namespaced types:
@@ -48,12 +47,4 @@ Other:
 -- Potential shorthand for the function type: `param: (&, Str, Str) -> Bool` => `param: FunRef[Bool, (Str, Str)]`
 
 Errors:
--- Redo all error messages and formatting
 -- Add fixed error codes, and call the instead of the error message
-
-How to write error messages:
--- What the error code is
--- What the error is
--- Why it's an error
--- How to fix it
--- Use the active voice

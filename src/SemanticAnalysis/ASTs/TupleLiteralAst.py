@@ -40,8 +40,16 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
+
         # Analyse the items of the tuple.
         Seq(self.items).for_each(lambda i: i.do_semantic_analysis(scope_handler, **kwargs))
+
+        # Check all items are owned
+        # for item in self.items:
+        #     if isinstance(item, IdentifierAst):
+        #         symbol = scope_handler.current_scope.get_symbol(item.value)
+        #         if symbol.memory_info.is_borrow:
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
         # The tuple's type is `std.Tup[...Ts]` where `Ts` is the collection of types in the tuple.

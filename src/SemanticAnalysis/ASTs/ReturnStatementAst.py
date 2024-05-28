@@ -59,7 +59,7 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
             exception = SemanticError()
             exception.add_info(
                 pos=target_return_type.pos,
-                tag_message=f"Function has return type '{target_return_type}'")
+                tag_message=f"Function return type defined as '{target_return_type}'")
             exception.add_error(
                 pos=(self.expression or self.return_keyword).pos,
                 error_type=SemanticErrorType.TYPE_ERROR,

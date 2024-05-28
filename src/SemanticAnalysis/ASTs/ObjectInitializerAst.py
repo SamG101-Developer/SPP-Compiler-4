@@ -50,7 +50,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse the class type to make sure it exists.
-        self.class_type.do_semantic_analysis(scope_handler, **kwargs)
+        self.class_type.do_semantic_analysis(scope_handler, verify_generics=False, **kwargs)
 
         # Get the type symbols and scopes for the class type.
         # TODO: move most of this into the ObjectInitializerArgumentGroupAst

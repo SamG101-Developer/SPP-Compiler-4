@@ -1,3 +1,4 @@
+import hashlib
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -53,3 +54,6 @@ class GenericParameterOptionalAst(Ast, SemanticAnalyser):
         # Because this is a type-oriented AST, the generating stage of function/class/superimposition blocks will have
         # registered these generic types into the scope.
         ...
+
+    def __hash__(self):
+        return int.from_bytes(hashlib.md5(str(self).encode()).digest(), byteorder="big")

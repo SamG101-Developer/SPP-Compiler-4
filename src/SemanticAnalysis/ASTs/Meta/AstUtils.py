@@ -214,12 +214,15 @@ class AstUtils:
         from src.SemanticAnalysis.ASTs.GenericArgumentNamedAst import GenericArgumentNamedAst
         from src.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
         from src.SemanticAnalysis.ASTs.TokenAst import TokenAst
+        print("#" * 100)
+        print(generic_parameters, infer_from, replace_with, obj_definition)
 
         # Infer any generic type arguments that can be inferred (from parameter types etc)
         # Return a list of non-inferred generic argument types.
         inferred_generic_parameters = Seq([])
         for generic_parameter in generic_parameters:
             for parameter_t, argument_t in infer_from.zip(replace_with):
+                print(parameter_t, argument_t)
                 # Check if the parameter type or any of its nested generic argument names matches the generic parameter.
                 parameter_type_parts = Seq(list(iter(parameter_t)))
                 if generic_parameter.identifier not in parameter_type_parts:
@@ -243,8 +246,6 @@ class AstUtils:
                 argument_t_namespace = Seq(list(iter(argument_t))).filter(lambda p: isinstance(p, IdentifierAst)).value
                 if not duplicate_inferred_parameter:
                     for p_1, p_2 in zip(iter(parameter_t), iter(argument_t)):
-                        print(f"\t{generic_parameter.identifier}", p_1, p_2)
-
                         if generic_parameter.identifier == p_1:
                             inferred_generic_parameters.append(GenericArgumentNamedAst(
                                 pos=p_2.pos,

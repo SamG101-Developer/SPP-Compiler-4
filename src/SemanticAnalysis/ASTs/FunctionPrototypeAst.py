@@ -7,7 +7,7 @@ from typing import List, Optional
 from src.LexicalAnalysis.Tokens import TokenType
 
 from src.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from src.SemanticAnalysis.Utils.SemanticError import SemanticError
+from src.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from src.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from src.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from src.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -261,9 +261,16 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
                 and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
                 and self.body.members
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
-            exception = SemanticError(f"Missing return statement in non-Void function:")
-            exception.add_error(self.pos, f"Function '{self.identifier}' declared here.")
-            exception.add_error(self.body.members[-1].pos, f"Last statement '{self.body.members[-1]}' found here.")
+            exception = SemanticError()
+            exception.add_info(
+                pos=self.return_type.pos,
+                tag_message=f"Function return type defined as '{self.return_type}'")
+            exception.add_error(
+                pos=self.body.brace_r_token.pos,
+                error_type=SemanticErrorType.TYPE_ERROR,
+                message="Missing return statement in non-Void function",
+                tag_message=f"Return statement expected here",
+                tip="Ensure a return statement is present at the end of the function.")
             raise exception
 
         # Check if the function is a coroutine (contains 1 yield statement, can be nested in some inner scope too)

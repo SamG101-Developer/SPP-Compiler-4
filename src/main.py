@@ -3,6 +3,8 @@ import colorama
 
 from src.Compiler.Compiler import Compiler
 
+import cProfile
+
 
 def main():
     colorama.init()
@@ -11,4 +13,8 @@ def main():
 
 
 if __name__ == "__main__":
+    p = cProfile.Profile()
+    p.enable()
     main()
+    p.disable()
+    p.print_stats(sort='tottime')

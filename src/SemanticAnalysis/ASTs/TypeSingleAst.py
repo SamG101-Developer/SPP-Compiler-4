@@ -69,7 +69,7 @@ class TypeSingleAst(Ast, SemanticAnalyser):
         # Return the modified type (self).
         return self
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
         this_type_exists = scope_handler.current_scope.has_symbol(self)
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments)
@@ -109,14 +109,24 @@ class TypeSingleAst(Ast, SemanticAnalyser):
 
             # For each generic parameter, set its type to the corresponding generic argument.
             self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+
+            type_attributes = Seq(type_sym.type.body.members)
+            inferred_generic_arguments = AstUtils.infer_generic_argument_values(
+                scope_handler=scope_handler,
+                generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
+                infer_from=type_attributes.map(lambda a: a.type_declaration).unique_items(),
+                replace_with=generic_arguments.map(lambda g: g.type),
+                obj_definition=self)
+
             all_generic_arguments = AstUtils.verify_generic_arguments(
                 generic_parameters=Seq(type_sym.type.generic_parameters.parameters),
-                inferred_generic_arguments=Seq([]),
+                inferred_generic_arguments=inferred_generic_arguments,
                 generic_arguments=generic_arguments,
                 obj_definition=type_sym.type,
                 usage=self,
                 scope_handler=scope_handler,
                 **kwargs) if self.without_generics() != CommonTypes.tuple([]) else Seq(self.parts[-1].generic_arguments.arguments)
+            print("B", all_generic_arguments)
 
             # If the type is a tuple, then its generic arguments are a tuple (variadic) etc etc, so jump into the
             # arguments already
