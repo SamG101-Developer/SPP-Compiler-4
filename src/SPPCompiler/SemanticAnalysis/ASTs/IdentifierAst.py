@@ -1,0 +1,91 @@
+from __future__ import annotations
+import difflib, hashlib
+from dataclasses import dataclass
+from typing import Tuple, Type
+
+from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
+
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+
+from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
+from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+from SPPCompiler.SemanticAnalysis.ASTs.ConventionPartInitAst import ConventionPartInitAst
+from SPPCompiler.SemanticAnalysis.ASTs.ConventionNonInitAst import ConventionNonInitAst
+
+from SPPCompiler.Utils.Sequence import Seq
+
+
+@dataclass
+class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
+    """
+    The IdentifierAst node represents an identifier. This is an identifier for variable, parameters, etc., and will
+    start with a lowercase letter.
+
+    Attributes:
+        - value: The value of the generic identifier.
+    """
+
+    value: str
+
+    def print(self, printer: AstPrinter) -> str:
+        # Print the IdentifierAst.
+        s = ""
+        s += f"{self.value}"
+        return s
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        ...
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        # Ge the symbol for the identifier.
+        sym = scope_handler.current_scope.get_symbol(self)
+
+        # Determine the convention of the identifier based on the MemoryStatus object tied to the identifier.
+        if sym.memory_info.ast_consumed:
+            convention = ConventionNonInitAst
+        elif sym.memory_info.ast_partial_moves:
+            convention = ConventionPartInitAst
+        elif sym.memory_info.is_borrow_mut:
+            convention = ConventionMutAst
+        elif sym.memory_info.is_borrow_ref:
+            convention = ConventionRefAst
+        else:
+            convention = ConventionMovAst
+
+        # Return the convention and the type of the identifier.
+        return convention, sym.type
+
+    def __eq__(self, other):
+        # Check both ASTs are the same type and have the same value.
+        return isinstance(other, IdentifierAst) and self.value == other.value
+
+    def __hash__(self):
+        # The hash must be fixed, so that the same identifiers in different IdentifierAst objects have the same hash.
+        return int.from_bytes(hashlib.md5(self.value.encode()).digest())
+
+    def __radd__(self, other):
+        # Simplify prepending strings to an identifier.
+        if isinstance(other, str):
+            return IdentifierAst(pos=self.pos, value=other + self.value)
+        elif isinstance(other, IdentifierAst):
+            return IdentifierAst(pos=self.pos, value=other.value + self.value)
+
+    def __add__(self, other):
+        # Simplify appending strings to an identifier.
+        if isinstance(other, str):
+            return IdentifierAst(pos=self.pos, value=self.value + other)
+        elif isinstance(other, IdentifierAst):
+            return IdentifierAst(pos=self.pos, value=self.value + other.value)
+
+    def __json__(self) -> str:
+        # Return the value of the identifier.
+        return self.value
+
+
+__all__ = ["IdentifierAst"]

@@ -1,23 +1,6 @@
 mod main
 
-
-cls Pos[T, U] {
-    x: T
-    y: T
-    z: T
-}
-
-cls Dir {
-    a: std.BigNum
-}
-
-cls Vec {
-    pos: Pos
-    dir: Dir
-}
+let max_width = 1024
 
 
-fun main(v: Vec, w: Vec) -> std.Str {
-    let p = Pos[U=std.Bool](x="2", y="3", z="4")
-    ret "0"
-}
+fun func(x: ?std.Str) -> std.Void { }
