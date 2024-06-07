@@ -1,15 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 
 @dataclass
@@ -20,10 +17,10 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalyser, TypeInfer):
     argument being given to the function. The argument has an identifier, assignment token, and the type.
 
     Attributes:
-        - identifier: The identifier of the argument.
-        - assignment_token: The token that represents the assignment of the argument.
-        - convention: The convention of the argument.
-        - value: The value of the argument.
+        identifier: The identifier of the argument.
+        assignment_token: The token representing the assignment of the argument.
+        convention: The convention of the argument.
+        value: The value of the argument.
     """
 
     identifier: "IdentifierAst"
@@ -42,11 +39,15 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the value of the argument.
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+
         # The convention of an argument is either the given convention, or the convention of the value.
         match self.convention, self.value.infer_type(scope_handler, **kwargs)[0]:
             case ConventionMovAst(), that_convention: convention = that_convention
             case self_convention, _: convention = type(self_convention)
-        return convention, self.value.infer_type(scope_handler, **kwargs)[1]
+
+        return InferredType(convention=convention, type=self.value.infer_type(scope_handler, **kwargs).type)

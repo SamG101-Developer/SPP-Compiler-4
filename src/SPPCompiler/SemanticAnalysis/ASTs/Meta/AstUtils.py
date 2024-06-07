@@ -15,7 +15,6 @@ class AstUtils:
     def ensure_memory_integrity_of_expression(
             expression: ExpressionAst,
             scope_handler: ScopeHandler,
-            keep_consume: bool = False,
             **kwargs) -> None:
 
         ...

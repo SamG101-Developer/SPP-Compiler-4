@@ -1,22 +1,15 @@
 from __future__ import annotations
 import difflib, hashlib
 from dataclasses import dataclass
-from typing import Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionPartInitAst import ConventionPartInitAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionNonInitAst import ConventionNonInitAst
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -40,26 +33,40 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Check that the identifier exists in the current or parent scopes.
+        if not scope_handler.current_scope.has_symbol(self):
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        # Ge the symbol for the identifier.
+            # Create a list of "similar" symbols, from the list of variable symbols in the current and parent scopes,
+            # and determine the closest match to the identifier.
+            all_symbols_in_scope = Seq(scope_handler.current_scope.all_symbols()).filter_to_type(VariableSymbol)
+            closest_match = difflib.get_close_matches(self.value, all_symbols_in_scope.map(lambda s: s.name.value).value, n=1, cutoff=0)
+            closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
+
+            # Raise an exception if the identifier does not exist in the current or parent scopes, and include the
+            # closest match if one exists.
+            exception = SemanticError()
+            exception.add_error(
+                pos=self.pos, error_type=SemanticErrorType.NAME_ERROR,
+                tag_message=f"Identifier '{self.value}' does not exist in the current or parent scopes.{closest_match}",
+                message="Undefined identifier.",
+                tip="Ensure the identifier is defined in the current or parent scopes.")
+            raise exception
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+
+        # Get the symbol for the identifier.
         sym = scope_handler.current_scope.get_symbol(self)
 
         # Determine the convention of the identifier based on the MemoryStatus object tied to the identifier.
-        if sym.memory_info.ast_consumed:
-            convention = ConventionNonInitAst
-        elif sym.memory_info.ast_partial_moves:
-            convention = ConventionPartInitAst
-        elif sym.memory_info.is_borrow_mut:
-            convention = ConventionMutAst
-        elif sym.memory_info.is_borrow_ref:
-            convention = ConventionRefAst
-        else:
-            convention = ConventionMovAst
+        if sym.memory_info.is_borrow_mut: convention = ConventionMutAst
+        elif sym.memory_info.is_borrow_ref: convention = ConventionRefAst
+        else: convention = ConventionMovAst
 
         # Return the convention and the type of the identifier.
-        return convention, sym.type
+        return InferredType(convention=convention, type=sym.type)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value.

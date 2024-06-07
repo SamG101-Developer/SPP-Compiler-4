@@ -1,25 +1,15 @@
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser, BIN_OP_FUNCS, OP_PREC
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType, SemanticErrorType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionArgumentGroupAst import FunctionArgumentGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionArgumentNormalAst import FunctionArgumentNormalAst
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorFunctionCallAst import PostfixExpressionOperatorFunctionCallAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -29,17 +19,24 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     expression has a left-hand-side, a right-hand-side, and an operator.
 
     Attributes:
-        - lhs: The left-hand-side of the binary expression.
-        - op: The operator of the binary expression.
-        - rhs: The right-hand-side of the binary expression.
+        lhs: The left-hand-side of the binary expression.
+        op: The operator of the binary expression.
+        rhs: The right-hand-side of the binary expression.
 
-        - _as_func: The function transformation of the binary expression (a + b => a.add(b)).
+        _as_func: The function transformation of the binary expression (a + b => a.add(b)).
     """
 
     lhs: "ExpressionAst"
     op: "TokenAst"
     rhs: "ExpressionAst"
     _as_func: Optional["PostfixExpressionAst"] = field(default=None, init=False)
+    _bin_fold: bool = field(default=False, init=False)
+
+    def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+        self._bin_fold = any([
+            isinstance(self.lhs, TokenAst) and self.lhs.token.token_type == TokenType.TkVariadic,
+            isinstance(self.rhs, TokenAst) and self.rhs.token.token_type == TokenType.TkVariadic])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -51,10 +48,55 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
-    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
-        # TODO : special case for ".." as an operand
+        is_binary_foldl = False
+        is_binary_foldr = False
+
+        # Handle "tuple + .." binary right-folding.
+        if isinstance(self.rhs, TokenAst):
+            assert self.rhs.token.token_type == TokenType.TkVariadic
+            self.lhs, self.rhs = self.rhs, self.lhs
+            is_binary_foldr = True
+
+        # Handle ".. + tuple" binary left-folding.
+        if isinstance(self.lhs, TokenAst):
+            assert self.lhs.token.token_type == TokenType.TkVariadic
+            is_binary_foldl = True
+
+            # Ensure the RHS is an owned tuple-type.
+            rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+            is_tuple_type = rhs_type.type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope)
+            if rhs_type.convention != ConventionMovAst or not is_tuple_type:
+                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_TYPE(self.rhs, rhs_type)
+
+            # Ensure the RHS tuple elements are all the same type.
+            tuple_element_types = Seq(rhs_type.type.parts[-1].generic_arguments.arguments)
+            if not tuple_element_types.all(lambda t: t.type.symbolic_eq(tuple_element_types[0].type, scope_handler.current_scope)):
+                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_ELEMENT_TYPE(self.rhs, rhs_type)
+
+            # Ensure the tuple has at least 2 elements.
+            if tuple_element_types.length < 2:
+                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_ELEMENT_COUNT(self.rhs, tuple_element_types.length)
+
+            # The LHS and RHS are altered for type-checking (elements of the tuple).
+            self.lhs = Parser(Lexer(f"{self.rhs}.0").lex(), "").parse_expression(scope_handler).parse_once()
+            self.rhs = Parser(Lexer(f"{self.rhs}.1").lex(), "").parse_expression(scope_handler).parse_once()
+
+        if is_binary_foldr:
+            self.lhs, self.rhs = self.rhs, self.lhs
+
+        # Convert the binary expression to a function call. "1 + 2" becomes "1.add(2)".
+        ast = BinaryExpressionAstUtils.fix_associativity(self)
+        ast = BinaryExpressionAstUtils.combine_comparison_operators(ast)
+        ast = BinaryExpressionAstUtils.convert_all_to_function(ast)
+        self._as_func = ast
+        self._as_func.do_semantic_analysis(scope_handler, **kwargs)
+        return self._as_func
+
+    def infer_type(self, scope_handler, **kwargs) -> InferredType:
         return self._as_func.infer_type(scope_handler, **kwargs)
 
 
@@ -81,6 +123,8 @@ class BinaryExpressionAstUtils:
 
     @staticmethod
     def combine_comparison_operators(ast: BinaryExpressionAst) -> BinaryExpressionAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+
         # A Python-borrowed feature is the combination of comparison operators, such as "a < b < c". This function
         # recursively combines comparison operators into a single binary expression, so that "a < b < c" becomes
         # "a < b && b < c".
@@ -104,41 +148,14 @@ class BinaryExpressionAstUtils:
         return ast
 
     @staticmethod
-    def convert_to_function(ast: BinaryExpressionAst) -> PostfixExpressionAst:
-        # Transform the binary expression to a function call. This doesn't have to go in pre-processing, because the
-        # transformation is only temporary, and doesn't affect the tree at all. The original binary expression is
-        # still used for the rest of the semantic analysis.
+    def convert_to_function(ast: BinaryExpressionAst) -> "PostfixExpressionAst":
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
 
-        # For "a + b", this would be "a.add"
-        mock_function = PostfixExpressionAst(
-            pos=ast.pos,
-            lhs=ast.lhs,
-            op=PostfixExpressionOperatorMemberAccessAst(
-                pos=ast.op.pos,
-                dot_token=TokenAst.dummy(TokenType.TkDot),
-                identifier=IdentifierAst(ast.op.pos, BIN_OP_FUNCS[ast.op.token.token_type])))
-
-        # For "a + b", this would be "b"
-        mock_function_call_argument = FunctionArgumentNormalAst(
-            pos=ast.op.pos,
-            convention=ConventionMovAst(ast.rhs.pos),
-            unpack_token=None,
-            value=ast.rhs)
-
-        # For "a + b", this would be "a.add(b)"
-        mock_function_call = PostfixExpressionAst(
-            pos=ast.pos,
-            lhs=mock_function,
-            op=PostfixExpressionOperatorFunctionCallAst(
-                pos=ast.op.pos,
-                arguments=FunctionArgumentGroupAst(
-                    pos=ast.op.pos,
-                    paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                    arguments=[mock_function_call_argument],
-                    paren_r_token=TokenAst.dummy(TokenType.TkParenR)),
-                generic_arguments=None,
-                fold_token=None))
-
+        # Transform the binary expression to a function call.
+        func_name = BIN_OP_FUNCS[ast.op.token.token_type]
+        code = f"{ast.lhs}.{func_name}({ast.rhs})"
+        mock_function_call = Parser(Lexer(code).lex(), "").parse_expression().parse_once()
         return mock_function_call
 
     @staticmethod

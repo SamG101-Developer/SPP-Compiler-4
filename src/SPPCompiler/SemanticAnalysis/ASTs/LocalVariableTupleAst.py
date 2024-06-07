@@ -42,7 +42,63 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, other_tuple: "ExpressionAst" = None, **kwargs) -> None:
-        ...
+        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import LocalVariableSkipArgumentAst
+        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
+        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
+        from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
+        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+
+        # Only allow 1 multi-skip inside a tuple.
+        skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentAst)
+        if skips.length > 1:
+            exception = SemanticError()
+            exception.add_info(
+                pos=skips[1].pos, tag_message="Multiple skip arguments found.")
+            exception.add_error(
+                pos=skips[1].pos, error_type=SemanticErrorType.ORDER_ERROR,
+                tag_message="Multiple skip arguments in a tuple.",
+                message="Only one skip argument is allowed in a tuple.",
+                tip="Remove the additional skip argument.")
+            raise exception
+
+        # Ensure that the tuple has the same number of items as the other tuple.
+        lhs_tuple_elements = self.items
+        rhs_tuple_elements = other_tuple.infer_type(scope_handler, **kwargs)[1].parts[-1].generic_arguments.arguments
+        if len(lhs_tuple_elements) != len(rhs_tuple_elements):
+            exception = SemanticError()
+            exception.add_info(
+                pos=self.pos, tag_message=f"Assignment tuple contains {len(lhs_tuple_elements)} items.")
+            exception.add_error(
+                pos=self.pos, error_type=SemanticErrorType.TYPE_ERROR,
+                tag_message=f"Assignment value contains {len(rhs_tuple_elements)} items.",
+                message="The length of the tuple does not match the length of the other tuple.",
+                tip="Ensure that the tuple has the same number of items as the other tuple.")
+            raise exception
+
+        # Create new "let" statements for each element of the tuple.
+        new_let_statements = []
+        cur_let_statements = Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst)
+        for i, current_local_variable in cur_let_statements.enumerate():
+            ast_0 = PostfixExpressionOperatorMemberAccessAst(
+                pos=self.pos,
+                dot_token=TokenAst.dummy(TokenType.TkDot),
+                identifier=TokenAst.dummy(TokenType.LxDecDigits, info=f"{i}"))
+
+            ast_1 = PostfixExpressionAst(
+                pos=self.pos,
+                lhs=kwargs["value"],
+                op=ast_0)
+
+            ast_2 = LetStatementInitializedAst(
+                pos=self.pos,
+                let_keyword=TokenAst.dummy(TokenType.KwLet),
+                assign_to=current_local_variable,
+                assign_token=TokenAst.dummy(TokenType.TkAssign, pos=self.pos),
+                value=ast_1)
+
+        # Analyse the new "let" statements, which may contain nested tuples/types themselves.
+        for new_let_statement in new_let_statements:
+            new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["LocalVariableTupleAst"]

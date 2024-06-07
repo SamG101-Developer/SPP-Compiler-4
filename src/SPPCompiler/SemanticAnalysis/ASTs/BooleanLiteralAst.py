@@ -1,17 +1,11 @@
 from dataclasses import dataclass
-from typing import Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
-
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 
 @dataclass
@@ -20,7 +14,7 @@ class BooleanLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     The BooleanLiteralAst node represents a boolean value, which can be either `true` or `false`.
 
     Attributes:
-        - boolean: The boolean value.
+        boolean: The boolean value.
     """
 
     boolean: bool
@@ -33,11 +27,12 @@ class BooleanLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        assert isinstance(self.boolean, bool)
+        assert self.boolean in [True, False]
 
-    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        # A boolean is always of type `std.Bool`.
-        return ConventionMovAst, CommonTypes.bool(self.pos)
+    def infer_type(self, scope_handler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.bool(self.pos))
 
 
 __all__ = ["BooleanLiteralAst"]

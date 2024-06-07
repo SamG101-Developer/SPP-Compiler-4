@@ -1,15 +1,13 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Type
+from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -42,11 +40,13 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+
         # The tuple's type is `std.Tup[...Ts]` where `Ts` is the collection of types in the tuple.
         tuple_type = CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs)[1]).value, pos=self.pos)
         tuple_type.do_semantic_analysis(scope_handler, **kwargs)
-        return ConventionMovAst, tuple_type
+        return InferredType(convention=ConventionMovAst, type=tuple_type)
 
 
 __all__ = ["TupleLiteralAst"]

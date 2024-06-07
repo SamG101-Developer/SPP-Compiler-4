@@ -1,19 +1,17 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
 from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
 from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleAst import LocalVariableSingleAst
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
@@ -54,5 +52,6 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
         conversion = self.convert_to_variable()
         # todo
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
-        ...
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+        return InferredType(convention=ConventionMovAst, type=if_condition.infer_type(scope_handler, **kwargs).type)

@@ -18,7 +18,7 @@ class ConventionRefAst(Ast, metaclass=ConventionRefAstMeta):
     parameter for a function call. It is also used to yield an immutable borrow out of a coroutine.
 
     Attributes:
-        - ampersand_token: The ampersand token.
+        ampersand_token: The ampersand token.
     """
 
     ampersand_token: TokenAst

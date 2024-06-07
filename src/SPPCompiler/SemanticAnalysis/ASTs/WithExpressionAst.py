@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -44,8 +43,8 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # Return the type of the final expression, or "Void" for an empty body.
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler, **kwargs)
-        return ConventionMovAst, CommonTypes.void(pos=self.pos)
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))

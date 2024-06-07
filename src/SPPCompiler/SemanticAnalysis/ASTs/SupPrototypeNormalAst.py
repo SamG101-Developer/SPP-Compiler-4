@@ -61,11 +61,13 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
         scope_handler.into_new_scope(self.identifier.parts[-1].value + "#SUP-functions")
-        scope_handler.current_scope.add_symbol(TypeSymbol(CommonTypes.self(), scope_handler.current_scope.get_symbol(self.identifier.without_generics()).type))
+        scope_handler.current_scope.add_symbol(TypeSymbol(
+            name=CommonTypes.self(),
+            type=scope_handler.current_scope.get_symbol(self.identifier.without_generics()).type))
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
@@ -75,7 +77,19 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        ...
+        scope_handler.move_to_next_scope()
+
+        # Analyse the generic type parameters and where block. This will load the generics into the current scope, and
+        # ensure all their constraints are valid.
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
+        self.where_block.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Make sure the identifier (the type being superimposed over), exists. If it does, analyse each member of the
+        # body.
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+        self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
+
+        scope_handler.exit_cur_scope()
 
 
 __all__ = ["SupPrototypeNormalAst"]

@@ -1,17 +1,12 @@
 from dataclasses import dataclass
-from typing import Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
-from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.LiteralAst import LiteralAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
@@ -24,7 +19,7 @@ class PatternVariantLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         - literal: The literal being compared to.
     """
 
-    literal: LiteralAst
+    literal: "LiteralAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -33,14 +28,14 @@ class PatternVariantLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{self.literal.print(printer)}"
         return s
 
-    def convert_to_variable(self) -> LiteralAst:
+    def convert_to_variable(self) -> "LiteralAst":
         # Return the literal.
         return self.literal
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
         # Analyse the literal.
         self.literal.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: ExpressionAst = None, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
         # The pattern's type is the literal's type.
         return self.literal.infer_type(scope_handler, **kwargs)

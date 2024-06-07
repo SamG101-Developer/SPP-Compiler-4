@@ -1,17 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
 
@@ -33,6 +29,8 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     type: Optional["TypeAst"] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
+
         if self.raw_type:
             corrected_raw_type = GenericIdentifierAst(self.raw_type.pos, self.raw_type.value.title(), None)
             std_namespace = IdentifierAst(self.raw_type.pos, "std")
@@ -49,15 +47,17 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler, **kwargs) -> InferredType:
+        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+
         # The string literal's type is either `std.BigNum` or `std.BigDec` if no explicit type is given, otherwise it is
         # the explicit type.
-
         if self.type:
-            return ConventionMovAst, self.type
+            return InferredType(convention=ConventionMovAst, type=self.type)
         if self.value.token.token_type == TokenType.LxDecFloat:
-            return ConventionMovAst, CommonTypes.big_dec(self.pos)
-        return ConventionMovAst, CommonTypes.big_num(self.pos)
+            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_dec(self.pos))
+        else:
+            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_num(self.pos))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same type.

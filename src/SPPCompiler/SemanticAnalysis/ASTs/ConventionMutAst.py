@@ -18,8 +18,8 @@ class ConventionMutAst(Ast, metaclass=ConventionMutAstMeta):
     for a function call. It is also used to yield a mutable borrow out of a coroutine.
 
     Attributes:
-        - ampersand_token: The ampersand token.
-        - mut_token: The mut token.
+        ampersand_token: The ampersand token.
+        mut_token: The mut token.
     """
 
     ampersand_token: TokenAst

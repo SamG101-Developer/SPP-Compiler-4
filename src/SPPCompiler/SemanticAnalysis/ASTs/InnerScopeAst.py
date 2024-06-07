@@ -2,18 +2,16 @@ from dataclasses import dataclass
 from typing import List, Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -43,12 +41,34 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
         s += f"{self.brace_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler, inline_block: bool = False, **kwargs) -> None:
-        ...
+    def do_semantic_analysis(self, scope_handler, inline: bool = False, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
 
-    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> Tuple[Type[ConventionAst], TypeAst]:
+        # Ensure code doesn't come after a return statement at the current level.
+        statement_types = Seq(self.members).map(type)
+        if ReturnStatementAst in statement_types:
+            index = statement_types.index(ReturnStatementAst)
+            if index != -1:
+                exception = SemanticError()
+                exception.add_info(
+                    pos=self.members[index].pos, tag_message="Return statement found.")
+                exception.add_error(
+                    pos=self.brace_r_token.pos, error_type=SemanticErrorType.ORDER_ERROR,
+                    tag_message="Unreachable code detected.",
+                    message="Code after a return statement is unreachable.",
+                    tip="Ensure that no code comes after a return statement.")
+                raise exception
+
+        # Create a new scope and add the members to it.
+        if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
+        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
+        if not inline: scope_handler.exit_cur_scope()
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The returning type of a scope is the final expression in the "self.members" list.
-        return self.members[-1].infer_type(scope_handler, **kwargs) if self.members else (ConventionMovAst, CommonTypes.void())
+        if self.members:
+            return self.members[-1].infer_type(scope_handler, **kwargs)
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
 
 
 __all__ = ["InnerScopeAst"]

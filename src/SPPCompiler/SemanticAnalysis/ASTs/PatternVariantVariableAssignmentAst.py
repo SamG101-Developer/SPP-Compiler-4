@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from typing import Tuple, Type
-
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -64,10 +62,10 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
         # The pattern's type is "Void", as all let statements return void.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return ConventionMovAst, CommonTypes.void(self.pos)
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
 
 
 __all__ = ["PatternVariantVariableAssignmentAst"]

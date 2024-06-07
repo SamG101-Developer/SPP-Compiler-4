@@ -43,6 +43,20 @@ class Scope:
         scope._symbol_table.add(symbol)
         return symbol
 
+    def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+
+        match name:
+            case IdentifierAst():
+                identifier = name
+            case PostfixExpressionAst():
+                while isinstance(name, PostfixExpressionAst): name = name.lhs
+                identifier = name
+            case _:
+                return None
+
+        return self.get_symbol(identifier) if isinstance(identifier, IdentifierAst) else None
+
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst

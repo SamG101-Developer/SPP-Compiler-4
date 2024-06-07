@@ -29,7 +29,7 @@ class Seq[T]:
         return Seq([v for v in self._value if type(v) not in types])
 
     def join(self, separator: str = "") -> str:
-        return separator.join(self._value)
+        return separator.join(self.map(str)._value)
 
     def keys[U](self) -> Seq[U]:
         return Seq([x for x, y in self._value])
@@ -97,6 +97,9 @@ class Seq[T]:
             if func(x):
                 return x
         return None
+
+    def index(self, value: T) -> int:
+        return self._value.index(value)
 
     # All/any operations
 

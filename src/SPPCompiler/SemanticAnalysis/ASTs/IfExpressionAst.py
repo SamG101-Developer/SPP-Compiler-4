@@ -1,17 +1,15 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Type
+from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantElseAst import PatternVariantElseAst
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -50,13 +48,13 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
 
-    def infer_type(self, scope_handler, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler, **kwargs) -> InferredType:
         # The IfExpressionAst's returning type is any PatternBlockAst's returning type (all blocks will have the same).
         if self.branches and self.branches[0].body.members:
             return self.branches[0].body.members[-1].infer_type(scope_handler, **kwargs)
 
         # If there are no statements then every PatternBlockAst is returning the `Void` type.
-        return ConventionMovAst, CommonTypes.void()
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
 
 
 __all__ = ["IfExpressionAst"]

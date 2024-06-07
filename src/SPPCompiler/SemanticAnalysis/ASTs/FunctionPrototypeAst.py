@@ -107,7 +107,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
-        # todo: error is here
         mock_class_name = IdentifierAst(self.pos, f"MOCK_{self.identifier.value}")
         mock_class_name = TypeSingleAst(self.pos, [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
 
@@ -229,15 +228,43 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             case "FunMov": return IdentifierAst(self.identifier.pos, "call_mov")
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
-    def generate(self, s: ScopeHandler) -> None:
+    def generate(self, scope_handler: ScopeHandler) -> None:
         # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
         # for each generic parameter. Exit the newly created function scope.
-        s.into_new_scope(f"<function:{self._orig}>")
-        Seq(self.generic_parameters.parameters).for_each(lambda p: s.current_scope.add_symbol(TypeSymbol(p.identifier, None)))
-        s.exit_cur_scope()
+        scope_handler.into_new_scope(f"<function:{self._orig}>")
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        scope_handler.exit_cur_scope()
 
-    def do_semantic_analysis(self, scope_handler, override_scope: bool = False, **kwargs) -> None:
-        ...
+    def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        scope_handler.move_to_next_scope()
+
+        # Analyse the generic type parameters, the function parameters and the return type, in this order. This allows
+        # the function parameter types and return type to use the generic type parameters.
+        self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
+        self.parameters.do_semantic_analysis(scope_handler, **kwargs)
+        self.return_type.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Add the "target-return-type" to the kwargs, so other ASTs can use the function's return type is required.
+        # Analyse the body of the function, and then pop the return type from the kwargs.
+        kwargs |= {"target-return-type": self.return_type}
+        self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
+        kwargs.pop("target-return-type")
+
+        # Check that a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
+        # return type.
+        if (not self._is_coro
+                and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
+                and self.body.members
+                and not isinstance(self.body.members[-1], ReturnStatementAst)):
+            exception = SemanticError()
+            exception.add_error(
+                pos=self.pos, error_type=SemanticErrorType.TYPE_ERROR,
+                tag_message="Return statement expected here.",
+                message="Missing return statement at the end of the function.",
+                tip="Ensure that the function returns a value.")
+            raise exception
+
+        scope_handler.exit_cur_scope()
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where block.
