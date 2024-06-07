@@ -264,3 +264,79 @@ class SemanticErrors:
             message="Undefined identifier.",
             tip="Ensure the identifier is defined in the current or parent scopes.")
         return exception
+
+    @staticmethod
+    def CONFLICTING_COMPARISON_OPERATORS(lhs: Ast, rhs: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"Condition comparison operator '{lhs}' found here.")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message=f"Subsequent comparison operator '{rhs}' found here.",
+            message=f"Cannot have a comparison operator in both the case-expression and pattern block.",
+            tip=f"Remove one of the conflicting comparison operators.")
+        return exception
+
+    @staticmethod
+    def NO_COMPARISON_OPERATOR(lhs: Ast, rhs: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"No comparison operator found here.")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message=f"Branch's pattern block declared here with no operator.",
+            message=f"No comparison operator found in case-expression or pattern block.",
+            tip=f"Add a comparison operator to either the case-expression or pattern block.")
+        return exception
+
+    @staticmethod
+    def CONFLICTING_IF_BRANCH_TYPES(t1: InferredType, t2: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=t1.type.pos,
+            tag_message=f"Type '{t1}' inferred here.")
+        exception.add_error(
+            pos=t2.type.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Type '{t2}' inferred here.",
+            message=f"Conflicting types found in if-expression being used for assignment.",
+            tip=f"Ensure all branches return the same type.")
+        return exception
+
+    @staticmethod
+    def ELSE_BRANCH_WRONG_POSITION(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Else branch found here.",
+            message="The else branch must be the final branch in an if-expression.",
+            tip="Ensure the else branch is the final branch.")
+        return exception
+
+    @staticmethod
+    def NO_ELSE_BRANCH(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Non-else branch found here.",
+            message="The final branch in an if-expression being used for assignment must be an else branch.",
+            tip="Ensure the final branch is an else branch.")
+        return exception
+
+    @staticmethod
+    def UNREACHABLE_CODE(ret: Ast, end: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ret.pos, tag_message="Return statement found.")
+        exception.add_error(
+            pos=end.pos, error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Unreachable code detected.",
+            message="Code after a return statement is unreachable.",
+            tip="Ensure that no code comes after a return statement.")
+        raise exception

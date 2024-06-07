@@ -13,9 +13,9 @@ class LocalVariableAssignmentAst(Ast, SemanticAnalyser):
     pre-assigned a value (created as a variable without "let").
 
     Attributes:
-        - identifier: The identifier of the variable.
-        - assign_token: The assignment token.
-        - value: The value being pre-assigned to the variable.
+        identifier: The identifier of the variable.
+        assign_token: The assignment token.
+        value: The value being pre-assigned to the variable.
     """
 
     identifier: "IdentifierAst"

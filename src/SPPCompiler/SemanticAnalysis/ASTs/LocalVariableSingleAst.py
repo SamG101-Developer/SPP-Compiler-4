@@ -4,10 +4,6 @@ from typing import Optional
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 
@@ -16,17 +12,17 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
     """
     The LocalVariableSingleAst node represents a single local variable. This is the most basic form of a local variable,
     and is seen mostly in the "let" statement. For example, in the statement "let mut x = 5", "mut x" is the single
-    local variable. Single variable can unpack tuples too, todo when?
+    local variable.
 
     Attributes:
-        - is_mutable: The token that represents the mutability of the variable.
-        - unpack_token: The optional unpack token.
-        - identifier: The identifier of the variable.
+        is_mutable: The token representing the mutability of the variable.
+        unpack_token: The optional unpacking token.
+        identifier: The identifier of the variable.
     """
 
-    is_mutable: Optional[TokenAst]
-    unpack_token: Optional[TokenAst]
-    identifier: IdentifierAst
+    is_mutable: Optional["TokenAst"]
+    unpack_token: Optional["TokenAst"]
+    identifier: "IdentifierAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

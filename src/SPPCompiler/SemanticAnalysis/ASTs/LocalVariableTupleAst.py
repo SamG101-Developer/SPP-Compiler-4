@@ -2,16 +2,10 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleAst import LocalVariableSingleAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import LocalVariableSkipArgumentAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -23,14 +17,14 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
     the tuple of local variables. Both "mut x" and "y" are separate single local variables.
 
     Attributes:
-        - paren_l_token: The left parenthesis token.
-        - items: The local variables in the tuple.
-        - paren_r_token: The right parenthesis token.
+        paren_l_token: The left parenthesis token.
+        items: The local variables in the tuple.
+        paren_r_token: The right parenthesis token.
     """
 
-    paren_l_token: TokenAst
-    items: List[LocalVariableSingleAst]
-    paren_r_token: TokenAst
+    paren_l_token: "TokenAst"
+    items: List["LocalVariableSingleAst"]
+    paren_r_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -42,10 +36,9 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, other_tuple: "ExpressionAst" = None, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import LocalVariableSkipArgumentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
-        from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LocalVariableSkipArgumentAst, PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, TokenAst,
+            LetStatementInitializedAst)
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
         # Only allow 1 multi-skip inside a tuple.
@@ -53,10 +46,10 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
         if skips.length > 1:
             exception = SemanticError()
             exception.add_info(
-                pos=skips[1].pos, tag_message="Multiple skip arguments found.")
+                pos=skips[0].pos, tag_message="First skip found here.")
             exception.add_error(
                 pos=skips[1].pos, error_type=SemanticErrorType.ORDER_ERROR,
-                tag_message="Multiple skip arguments in a tuple.",
+                tag_message="Second skip found here.",
                 message="Only one skip argument is allowed in a tuple.",
                 tip="Remove the additional skip argument.")
             raise exception

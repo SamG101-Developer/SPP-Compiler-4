@@ -24,12 +24,12 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     could be a single variable, a tuple or a destructure. Recursive destructuring is supported.
 
     Attributes:
-        - let_keyword: The `let` keyword token.
-        - assign_to: The variable being assigned to.
-        - assign_token: The assignment token.
-        - value: The value being assigned to the variable.
+        let_keyword: The `let` keyword token.
+        assign_to: The variable being assigned to.
+        assign_token: The assignment token.
+        value: The value being assigned to the variable.
 
-        - _sup_let_type: For function preprocessing.
+        _sup_let_type: For function preprocessing.
     """
 
     let_keyword: TokenAst

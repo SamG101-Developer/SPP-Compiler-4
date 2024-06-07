@@ -19,7 +19,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
     start with a lowercase letter.
 
     Attributes:
-        - value: The value of the generic identifier.
+        value: The value of the generic identifier.
     """
 
     value: str

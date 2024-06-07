@@ -17,7 +17,7 @@ class ModuleImplementationAst(Ast, SemanticAnalyser, LLVMGeneration):
     This includes "cls", "sup", "fun", and "use" blocks/statements.
 
     Attributes:
-        - members: The members of the module.
+        members: The members of the module.
     """
 
     members: List["ModuleMemberAst"]

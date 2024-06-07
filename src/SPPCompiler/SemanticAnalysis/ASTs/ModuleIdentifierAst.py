@@ -4,7 +4,6 @@ from typing import List
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -14,6 +13,9 @@ class ModuleIdentifierAst(Ast):
     """
     The ModuleIdentifierAst node is used to represent the module identifier of a ".spp" file. This is a sequence of
     IdentifierAsts, separated by dots.
+
+    Attributes:
+        parts: The parts of the module identifier.
     """
 
     parts: List[IdentifierAst]

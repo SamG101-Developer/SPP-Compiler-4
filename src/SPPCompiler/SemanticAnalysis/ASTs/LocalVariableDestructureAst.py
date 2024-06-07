@@ -2,19 +2,28 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from SPPCompiler.Utils.Sequence import Seq
-
-# todo: docs & comment
 
 
 @dataclass
 class LocalVariableDestructureAst(Ast, SemanticAnalyser, SemanticAnalyser):
+    """
+    The LocalVariableDestructureAst node represents a type-destructure of local variables. This is an advanced form of a
+    local variable, and is seen mostly in the "let" statement. For example, in the statement
+    "let Point(mut x, y) = point", "mut x" and "y" are attributes and local variables. Both "mut x" and "y" are separate
+    single local variables.
+
+    Attributes:
+        class_type: The type being destructured.
+        bracket_l_token: The left bracket token.
+        items: The local variables in the destructure.
+        bracket_r_token: The right bracket token.
+    """
+
     class_type: "TypeAst"
     bracket_l_token: "TokenAst"
     items: List["LocalVariableSingleAst"]

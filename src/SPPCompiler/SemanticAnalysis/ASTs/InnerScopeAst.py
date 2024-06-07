@@ -3,7 +3,7 @@ from typing import List, Tuple, Type
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -23,9 +23,9 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
     `T`.
 
     Attributes:
-        - brace_l_token: The left brace token.
-        - members: The list of members in the scope.
-        - brace_r_token: The right brace token.
+        brace_l_token: The left brace token.
+        members: The list of members in the scope.
+        brace_r_token: The right brace token.
     """
 
     brace_l_token: TokenAst
@@ -45,19 +45,9 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
 
         # Ensure code doesn't come after a return statement at the current level.
-        statement_types = Seq(self.members).map(type)
-        if ReturnStatementAst in statement_types:
-            index = statement_types.index(ReturnStatementAst)
-            if index != -1:
-                exception = SemanticError()
-                exception.add_info(
-                    pos=self.members[index].pos, tag_message="Return statement found.")
-                exception.add_error(
-                    pos=self.brace_r_token.pos, error_type=SemanticErrorType.ORDER_ERROR,
-                    tag_message="Unreachable code detected.",
-                    message="Code after a return statement is unreachable.",
-                    tip="Ensure that no code comes after a return statement.")
-                raise exception
+        for i, member in Seq(self.members).enumerate():
+            if isinstance(member, ReturnStatementAst) and member is not self.members[-1]:
+                raise SemanticErrors.UNREACHABLE_CODE(member, self.members[i + 1])
 
         # Create a new scope and add the members to it.
         if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")

@@ -21,10 +21,10 @@ class ModulePrototypeAst(Ast, SemanticAnalyser, LLVMGeneration):
     Annotations can also be attached.
 
     Attributes:
-        - annotations: The annotations attached to the module.
-        - module_keyword: The "mod" keyword token.
-        - identifier: The module identifier.
-        - body: The module implementation.
+        annotations: The annotations attached to the module.
+        module_keyword: The "mod" keyword token.
+        identifier: The module identifier.
+        body: The module implementation.
     """
 
     annotations: List[AnnotationAst]

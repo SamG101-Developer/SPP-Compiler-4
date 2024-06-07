@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
 
 @dataclass
 class LocalVariableSkipArgumentAst(Ast):
@@ -14,10 +12,10 @@ class LocalVariableSkipArgumentAst(Ast):
     skipping all other fields in the Point class.
 
     Attributes:
-        - variadic_token: The ".." token.
+        variadic_token: The ".." token.
     """
 
-    variadic_token: TokenAst
+    variadic_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
