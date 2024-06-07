@@ -15,7 +15,7 @@ class GenericArgumentNormalAst(Ast, SemanticAnalyser):
     being given to the function.
 
     Attributes:
-        - type: The type that the generic argument contains.
+        type: The type that the generic argument contains.
     """
 
     type: "TypeAst"
@@ -28,7 +28,8 @@ class GenericArgumentNormalAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the type of the argument.
+        self.type.do_semantic_analysis(scope_handler, **kwargs)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same type.

@@ -2,24 +2,23 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
 class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     """
-    The FunctionArgumentNamedAst node represents a named argument being given to a parameter of a function. This looks
-    like `function_call(x=123)`, where `x=123` is the argument being given to the function. The argument has an
-    identifier, convention (no symbol => mov), and the value of the argument.
+    The GenericArgumentNamedAst node represents a named generic argument being given to a generic parameter of a
+    function/class/superimposition block. This looks like `function_call[T=Str](x=123)`, where `T=123` is the argument
+    being given to the function.
 
     Attributes:
-        - identifier: The identifier of the argument.
-        - assignment_token: The token that represents the assignment of the argument.
-        - convention: The convention of the argument.
-        - value: The value of the argument.
+        identifier: The identifier of the argument.
+        assignment_token: The token that represents the assignment of the argument.
+        type: The type of the argument.
+        identifier: The identifier of the argument.
     """
 
     raw_identifier: "IdentifierAst"
@@ -42,8 +41,12 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the type of the argument.
+        self.type.do_semantic_analysis(scope_handler, **kwargs)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier and type.
         return isinstance(other, GenericArgumentNamedAst) and self.identifier == other.identifier and self.type == other.type
+
+
+__all__ = ["GenericArgumentNamedAst"]

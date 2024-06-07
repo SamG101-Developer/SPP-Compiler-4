@@ -19,8 +19,8 @@ class GenericIdentifierAst(Ast):
     identifier `Vec` with a single generic argument `T`. It will start with an uppercase letter.
 
     Attributes:
-        - value: The value of the generic identifier.
-        - generic_arguments: The generic arguments of the generic identifier.
+        value: The value of the generic identifier.
+        generic_arguments: The generic arguments of the generic identifier.
     """
 
     value: str

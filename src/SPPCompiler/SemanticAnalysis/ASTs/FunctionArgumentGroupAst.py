@@ -45,7 +45,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         named_arguments = Seq(self.arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
         if named_arguments.contains_duplicates():
             duplicate_named_argument_identifiers = named_arguments.non_unique_items()[0]
-            raise SemanticErrors.DUPLICATE_ITEM(duplicate_named_argument_identifiers, "named-argument")
+            raise SemanticErrors.DUPLICATE_ITEM(duplicate_named_argument_identifiers, "named function argument")
 
         # Ensure the ordering of arguments in this group is correct (Normal => Named).
         classification_ordering = {FunctionArgumentNormalAst: "Anonymous", FunctionArgumentNamedAst: "Named"}
@@ -53,7 +53,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         sorted_classifications  = current_classifications.sort(key=lambda c: list(classification_ordering.keys()).index(c[0]))
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
-            raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "argument")
+            raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "function argument")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (

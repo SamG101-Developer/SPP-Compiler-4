@@ -5,17 +5,10 @@ from typing import List, Optional
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.GenericArgumentAst import GenericArgumentAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericArgumentNamedAst import GenericArgumentNamedAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericArgumentNormalAst import GenericArgumentNormalAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -26,9 +19,9 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
     NOT the generic parameters of a function/class/superimposition prototype (see GenericParameterGroupAst).
 
     Attributes:
-        - bracket_l_token: The left bracket token.
-        - arguments: The generic arguments.
-        - bracket_r_token: The right bracket token.
+        bracket_l_token: The left bracket token.
+        arguments: The generic arguments.
+        bracket_r_token: The right bracket token.
     """
 
     bracket_l_token: TokenAst
@@ -47,6 +40,8 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
 
     @staticmethod
     def default() -> GenericArgumentGroupAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+
         # Create a default GenericArgumentGroupAst.
         return GenericArgumentGroupAst(
             pos=-1,
@@ -55,16 +50,27 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
             bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # This method sometimes needs to be called to ensure certain checks, but the rest of the semantic analysis also
+        # handles the symbols' memory state, which isn't desired here.
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNormalAst, GenericArgumentNamedAst
 
-    def __getitem__(self, item: str) -> Optional["TypeAst"]:
-        from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
+        # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
+        named_arguments = Seq(self.arguments).filter_to_type(GenericArgumentNamedAst).map(lambda a: a.identifier)
+        if named_arguments.contains_duplicates():
+            duplicate_named_argument_identifiers = named_arguments.non_unique_items()[0]
+            raise SemanticErrors.DUPLICATE_ITEM(duplicate_named_argument_identifiers, "named generic argument")
 
-        mock_identifier = IdentifierAst(-1, item)
-        for argument in self.arguments:
-            if isinstance(argument, GenericArgumentNamedAst) and argument.identifier.parts[-1].value == mock_identifier.value:
-                return argument.type
+        # Ensure the ordering of arguments in this group is correct (Normal => Named).
+        classification_ordering = {GenericArgumentNormalAst: "Anonymous", GenericArgumentNamedAst: "Named"}
+        current_classifications = Seq(self.arguments).map(type).zip(Seq(self.arguments))
+        sorted_classifications  = current_classifications.sort(key=lambda c: list(classification_ordering.keys()).index(c[0]))
+        if current_classifications != sorted_classifications:
+            difference = sorted_classifications.ordered_difference(current_classifications)
+            raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "generic argument")
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
         return isinstance(other, GenericArgumentGroupAst) and self.arguments == other.arguments
+
+
+__all__ = ["GenericArgumentGroupAst"]

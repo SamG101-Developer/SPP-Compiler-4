@@ -28,20 +28,20 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     is used to create a function in the module or sup prototype.
 
     Attributes:
-        - annotations: The annotations for the function.
-        - fun_token: The "fun" keyword token.
-        - identifier: The identifier for the function.
-        - generic_parameters: The generic parameters for the function.
-        - parameters: The parameters for the function.
-        - arrow_token: The "->" token.
-        - return_type: The return type for the function.
-        - where_block: The where block for the function.
-        - body: The body of the function.
+        annotations: The annotations for the function.
+        fun_token: The "fun" keyword token.
+        identifier: The identifier for the function.
+        generic_parameters: The generic parameters for the function.
+        parameters: The parameters for the function.
+        arrow_token: The "->" token.
+        return_type: The return type for the function.
+        where_block: The where block for the function.
+        body: The body of the function.
 
-        - _fn_type: The type of the function (Fn[Mov|Mut|Ref]).
-        - _orig: The original identifier of the function (replaced by call_[mov|mut|ref] etc).
-        - _ctx: The context of the function (module or sup prototype).
-        - _specializations: The specializations of the function (generic substitutions).
+        _fn_type: The type of the function (Fn[Mov|Mut|Ref]).
+        _orig: The original identifier of the function (replaced by call_[mov|mut|ref] etc).
+        _ctx: The context of the function (module or sup prototype).
+        _specializations: The specializations of the function (generic substitutions).
     """
 
     annotations: List["AnnotationAst"]
