@@ -3,17 +3,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterInlineConstraintAst import GenericParameterInlineConstraintAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
@@ -24,20 +16,21 @@ class GenericParameterOptionalAst(Ast, SemanticAnalyser):
     object.
 
     Attributes:
-        - raw_identifier: The raw identifier of the generic parameter.
-        - inline_constraints: The inline constraints of the generic parameter.
-        - assignment_token: The assignment token.
-        - default_value: The default value of the generic parameter.
-        - identifier: The converted identifier of the generic parameter.
+        raw_identifier: The raw identifier of the generic parameter.
+        inline_constraints: The inline constraints of the generic parameter.
+        assignment_token: The assignment token.
+        default_value: The default value of the generic parameter.
+        identifier: The converted identifier of the generic parameter.
     """
 
-    raw_identifier: IdentifierAst
-    inline_constraints: Optional[GenericParameterInlineConstraintAst]
-    assignment_token: TokenAst
-    default_value: TypeAst
-    identifier: TypeAst = field(default=None, init=False)
+    raw_identifier: "IdentifierAst"
+    inline_constraints: Optional["GenericParameterInlineConstraintAst"]
+    assignment_token: "TokenAst"
+    default_value: "TypeAst"
+    identifier: "TypeAst" = field(default=None, init=False)
 
     def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TypeSingleAst
         self.identifier = TypeSingleAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
 
     @ast_printer_method
@@ -55,3 +48,6 @@ class GenericParameterOptionalAst(Ast, SemanticAnalyser):
 
     def __hash__(self):
         return int.from_bytes(hashlib.md5(str(self).encode()).digest(), byteorder="big")
+
+
+__all__ = ["GenericParameterOptionalAst"]

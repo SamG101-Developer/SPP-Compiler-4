@@ -45,6 +45,7 @@ Other:
 -- Convert all manual AST creations to use the Lexer/Parser classes + pos shift
 -- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
 -- Reject assignments with a `Void` type
+-- What about a param like: "fn func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
 
 Errors:
 -- Add fixed error codes, and call the instead of the error message

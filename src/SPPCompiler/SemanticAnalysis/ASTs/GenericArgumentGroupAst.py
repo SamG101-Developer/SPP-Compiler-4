@@ -1,9 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -24,9 +23,9 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         bracket_r_token: The right bracket token.
     """
 
-    bracket_l_token: TokenAst
-    arguments: List[GenericArgumentAst]
-    bracket_r_token: TokenAst
+    bracket_l_token: "TokenAst"
+    arguments: List["GenericArgumentAst"]
+    bracket_r_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -67,6 +66,9 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "generic argument")
+
+        # Analyse each generic argument.
+        Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.

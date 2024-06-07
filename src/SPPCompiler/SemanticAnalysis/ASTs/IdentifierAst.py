@@ -3,14 +3,12 @@ import difflib, hashlib
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -44,13 +42,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
 
             # Raise an exception if the identifier does not exist in the current or parent scopes, and include the
             # closest match if one exists.
-            exception = SemanticError()
-            exception.add_error(
-                pos=self.pos, error_type=SemanticErrorType.NAME_ERROR,
-                tag_message=f"Identifier '{self.value}' does not exist in the current or parent scopes.{closest_match}",
-                message="Undefined identifier.",
-                tip="Ensure the identifier is defined in the current or parent scopes.")
-            raise exception
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, closest_match)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst

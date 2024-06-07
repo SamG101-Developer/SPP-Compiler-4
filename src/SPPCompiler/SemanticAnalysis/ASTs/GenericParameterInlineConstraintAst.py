@@ -14,8 +14,8 @@ class GenericParameterInlineConstraintAst(Ast):
     conform to. Each generic parameter can have constraints attached.
 
     Attributes:
-        - colon_token: The colon token.
-        - constraints: The constraints of the generic parameter.
+        colon_token: The colon token.
+        constraints: The constraints of the generic parameter.
     """
 
     colon_token: "TokenAst"
@@ -28,3 +28,6 @@ class GenericParameterInlineConstraintAst(Ast):
         s += f"{self.colon_token.print(printer)} "
         s += Seq(self.constraints).print(printer, ", ")
         return s
+
+
+__all__ = ["GenericParameterInlineConstraintAst"]

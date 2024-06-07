@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass

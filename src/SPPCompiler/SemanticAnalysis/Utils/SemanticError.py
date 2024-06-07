@@ -254,3 +254,13 @@ class SemanticErrors:
             message="Missing return statement at the end of the function.",
             tip="Ensure that the function returns a value.")
         return exception
+
+    @staticmethod
+    def UNKNOWN_IDENTIFIER(ast: Ast, closest: str) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Identifier '{ast}' does not exist in the current or parent scopes.{closest}",
+            message="Undefined identifier.",
+            tip="Ensure the identifier is defined in the current or parent scopes.")
+        return exception

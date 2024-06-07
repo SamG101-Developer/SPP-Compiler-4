@@ -46,7 +46,6 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
             raise SemanticErrors.DUPLICATE_ITEM(duplicate_parameters, "attribute")
 
         # Ensure the ordering of parameters in this group is correct (Self => Required => Optional => Variadic).
-        # Ensure the ordering of arguments in this group is correct (Normal => Named).
         classification_ordering = {
             FunctionParameterSelfAst: "Self", FunctionParameterRequiredAst: "Required",
             FunctionParameterOptionalAst: "Optional", FunctionParameterVariadicAst: "Variadic"}
@@ -66,7 +65,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         if variadic_parameters.length > 1:
             raise SemanticErrors.MULTIPLE_VARIADIC_PARAMETERS(variadic_parameters[0].identifier, variadic_parameters[1].identifier)
 
-        # Analyse each parameter
+        # Analyse each parameter.
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
 
     def get_self(self) -> Optional["FunctionParameterSelfAst"]:
