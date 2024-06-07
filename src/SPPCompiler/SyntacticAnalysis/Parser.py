@@ -721,21 +721,6 @@ class Parser:
 
     @parser_rule
     def parse_assignment_statement(self) -> AssignmentStatementAst:
-        p1 = self.parse_assignment_statement_single().for_alt()
-        p2 = self.parse_assignment_statement_multi().for_alt()
-        p3 = (p1 | p2).parse_once()
-        return p3
-
-    @parser_rule
-    def parse_assignment_statement_single(self) -> AssignmentStatementAst:
-        c1 = self.current_pos()
-        p1 = self.parse_expression().parse_once()
-        p2 = self.parse_assignment_op().parse_once()
-        p3 = self.parse_expression().parse_once()
-        return AssignmentStatementAst(c1, [p1], p2, p3)
-
-    @parser_rule
-    def parse_assignment_statement_multi(self) -> AssignmentStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
@@ -906,8 +891,12 @@ class Parser:
         p2 = self.parse_token(TokenType.TkBitShiftR).for_alt()
         p3 = self.parse_token(TokenType.TkBitRotateL).for_alt()
         p4 = self.parse_token(TokenType.TkBitRotateR).for_alt()
-        p5 = (p1 | p2 | p3 | p4).parse_once()
-        return p5
+        p5 = self.parse_token(TokenType.TkBitShiftLAssign).for_alt()
+        p6 = self.parse_token(TokenType.TkBitShiftRAssign).for_alt()
+        p7 = self.parse_token(TokenType.TkBitRotateLAssign).for_alt()
+        p8 = self.parse_token(TokenType.TkBitRotateRAssign).for_alt()
+        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
+        return p9
 
     @parser_rule
     def parse_binary_op_precedence_level_6(self) -> TokenAst:
@@ -915,8 +904,12 @@ class Parser:
         p2 = self.parse_token(TokenType.TkBitXor).for_alt()
         p3 = self.parse_token(TokenType.TkAdd).for_alt()
         p4 = self.parse_token(TokenType.TkSub).for_alt()
-        p5 = (p1 | p2 | p3 | p4).parse_once()
-        return p5
+        p5 = self.parse_token(TokenType.TkBitOrAssign).for_alt()
+        p6 = self.parse_token(TokenType.TkBitXorAssign).for_alt()
+        p7 = self.parse_token(TokenType.TkAddAssign).for_alt()
+        p8 = self.parse_token(TokenType.TkSubAssign).for_alt()
+        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
+        return p9
 
     @parser_rule
     def parse_binary_op_precedence_level_7(self) -> TokenAst:
@@ -926,8 +919,14 @@ class Parser:
         p4 = self.parse_token(TokenType.TkRem).for_alt()
         p5 = self.parse_token(TokenType.TkMod).for_alt()
         p6 = self.parse_token(TokenType.TkExp).for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
-        return p7
+        p7 = self.parse_token(TokenType.TkBitAndAssign).for_alt()
+        p8 = self.parse_token(TokenType.TkMulAssign).for_alt()
+        p9 = self.parse_token(TokenType.TkDivAssign).for_alt()
+        p10 = self.parse_token(TokenType.TkRemAssign).for_alt()
+        p11 = self.parse_token(TokenType.TkModAssign).for_alt()
+        p12 = self.parse_token(TokenType.TkExpAssign).for_alt()
+        p13 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12).parse_once()
+        return p13
 
     @parser_rule
     def parse_unary_op(self) -> TokenAst:
