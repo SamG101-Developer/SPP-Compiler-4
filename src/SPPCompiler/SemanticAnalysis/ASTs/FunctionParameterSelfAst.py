@@ -4,16 +4,8 @@ from typing import Optional
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
@@ -36,7 +28,6 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
     type_declaration: TypeAst = field(default=None, init=False)
 
     def __post_init__(self):
-        # TODO: remove the "self" identifier from parser and generate it in here (cleaner parser)
         # Set the "self" symbol's type to the "Self" type.
         self.type_declaration = CommonTypes.self()
 
@@ -49,7 +40,26 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        ...
+        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LetStatementUninitializedAst, TokenAst, ConventionRefAst, ConventionMutAst, LocalVariableSingleAst)
+
+        # Convert the parameter to a "let" statement.
+        let_statement = LetStatementUninitializedAst(
+            pos=self.pos,
+            let_keyword=TokenAst.dummy(TokenType.KwLet),
+            assign_to=LocalVariableSingleAst(self.pos, self.is_mutable, None, self.identifier),
+            colon_token=TokenAst.dummy(TokenType.TkColon),
+            type_declaration=self.type_declaration)
+        let_statement.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Set the symbol's memory status depending on the convention.
+        symbol = scope_handler.current_scope.get_symbol(self.identifier)
+        symbol.memory_info = MemoryStatus(
+            is_borrow_ref=isinstance(self.convention, ConventionRefAst),
+            is_borrow_mut=isinstance(self.convention, ConventionMutAst),
+            ast_borrow=self.convention,
+            ast_initialized=self)
 
     def __eq__(self, other):
         # Check both ASTs are the same type.

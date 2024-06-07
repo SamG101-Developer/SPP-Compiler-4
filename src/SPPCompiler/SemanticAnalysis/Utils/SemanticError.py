@@ -230,3 +230,27 @@ class SemanticErrors:
             tag_message=f"2nd variadic parameter '{second}' declared here",
             tip="Remove the extra variadic parameter, or make it non-variadic")
         return exception
+
+    @staticmethod
+    def OPTIONAL_PARAM_REQUIRES_MOV_CONVENTION(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            message="Optional parameters must use the by-mov convention",
+            tag_message=f"Convention '{ast}' used here.",
+            tip=f"Remove the '{ast}' convention from the parameter declaration")
+        return exception
+
+    @staticmethod
+    def MISSING_RETURN_STATEMENT(ret: Ast, end: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ret.pos,
+            tag_message=f"Function return type defined as '{ret}'")
+        exception.add_error(
+            pos=end.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message="Return statement expected here.",
+            message="Missing return statement at the end of the function.",
+            tip="Ensure that the function returns a value.")
+        return exception

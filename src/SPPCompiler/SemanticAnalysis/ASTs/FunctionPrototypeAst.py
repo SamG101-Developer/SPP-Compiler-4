@@ -7,7 +7,7 @@ from typing import List, Optional
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -16,26 +16,6 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ClassPrototypeAst import ClassPrototypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionParameterSelfAst import FunctionParameterSelfAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterGroupAst import GenericParameterGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.InnerScopeAst import InnerScopeAst
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleAst import LocalVariableSingleAst
-from SPPCompiler.SemanticAnalysis.ASTs.ModulePrototypeAst import ModulePrototypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.ObjectInitializerAst import ObjectInitializerAst
-from SPPCompiler.SemanticAnalysis.ASTs.ObjectInitializerArgumentGroupAst import ObjectInitializerArgumentGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
-from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeInheritanceAst import SupPrototypeInheritanceAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
-from SPPCompiler.SemanticAnalysis.ASTs.WhereBlockAst import WhereBlockAst
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -81,6 +61,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     _is_coro: bool = field(default=False, init=False)
 
     def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
 
@@ -96,6 +77,13 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         return s
 
     def pre_process(self, context: "ModulePrototypeAst | SupPrototypeAst") -> None:
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            ModulePrototypeAst, ClassPrototypeAst, SupPrototypeInheritanceAst, ObjectInitializerAst,
+            ObjectInitializerArgumentGroupAst, LetStatementInitializedAst, TypeSingleAst, GenericIdentifierAst,
+            IdentifierAst, InnerScopeAst, TokenAst, LocalVariableSingleAst)
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
+
         self._ctx = context
 
         # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
@@ -119,62 +107,26 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         # function with this name seen. Therefore, the class needs to be added into the module prototype.
         if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
 
-            # Create the mock class prototype.
-            # cls MOCK_function {}
-            mock_class_ast = ClassPrototypeAst(
-                pos=self.pos,
-                annotations=[],
-                class_token=TokenAst.dummy(TokenType.KwCls),
-                identifier=mock_class_name,
-                generic_parameters=None,
-                where_block=None,
-                body=InnerScopeAst(
-                    pos=self.pos,
-                    brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
-                    members=[],
-                    brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
+            # Create the mock class prototype and the let statement to instantiate the mock class. This creates the
+            # function symbol.
+            mock_cls = f"cls MOCK_{self.identifier.value} {{}}"
+            mock_let = f"let {self.identifier.value} = MOCK_{self.identifier.value}()"
 
-            # Create the let statement, which brings an instance of this class into scope.
-            # let function = MOCK_function()
-            mock_let_statement = LetStatementInitializedAst(
-                pos=self.pos,
-                let_keyword=TokenAst.dummy(TokenType.KwLet),
-                assign_to=LocalVariableSingleAst(
-                    pos=self.pos,
-                    is_mutable=None,
-                    unpack_token=None,
-                    identifier=copy.deepcopy(self.identifier)),
-                assign_token=TokenAst.dummy(TokenType.TkAssign),
-                value=ObjectInitializerAst(
-                    pos=self.pos,
-                    class_type=copy.deepcopy(mock_class_name),
-                    arguments=ObjectInitializerArgumentGroupAst(
-                        pos=self.pos,
-                        paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                        arguments=[],
-                        paren_r_token=TokenAst.dummy(TokenType.TkParenR))),
-                _sup_let_type=function_class_type)
+            # Parse the mock class and let statement code to generate the respective ASTs.
+            mock_cls_ast = Parser(Lexer(mock_cls).lex(), "").parse_class_prototype().parse_once()
+            mock_let_ast = Parser(Lexer(mock_let).lex(), "").parse_let_statement_initialized().parse_once()
 
             # Append both of these ASTs to the module or sup prototype ("context" will be either one).
-            context.body.members.append(mock_class_ast)
-            context.body.members.append(mock_let_statement)
+            context.body.members.append(mock_cls_ast)
+            context.body.members.append(mock_let_ast)
 
         # At this point, either the class existed, or it exists now, so super-impose the "Fun___" type onto it. Create
         # the call function, like "call_ref", and carry through the generic parameters, function parameters,
         # return type, etc.
-        call_method_ast = FunctionPrototypeAst(
-            pos=self.pos,
-            annotations=[],
-            fun_token=TokenAst.dummy(TokenType.KwFun),
-            identifier=function_call_name,
-            generic_parameters=self.generic_parameters,
-            parameters=self.parameters,
-            arrow_token=TokenAst.dummy(TokenType.TkArrowR),
-            return_type=self.return_type,
-            where_block=None,
-            body=self.body,
-            _orig=self.identifier,
-            _ctx=self._ctx)
+        fun_ast = copy.deepcopy(self)
+        fun_ast.identifier = function_call_name
+        fun_ast._orig = self.identifier
+        fun_ast._ctx = context
 
         # Create the superimposition block over the class type, which includes the "call_ref" function as a member. This
         # will allow for the type to now be callable with the parameter types and return type specified.
@@ -189,7 +141,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             body=InnerScopeAst(
                 pos=self.pos,
                 brace_l_token=TokenAst.dummy(TokenType.TkBraceL),
-                members=[call_method_ast],
+                members=[fun_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
         # Append the "sup" block to the module or sup prototype ("context" will be either one).
@@ -197,6 +149,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         self._fn_type = function_class_type
 
     def _deduce_function_class_type(self, context: "ModulePrototypeAst | SupPrototypeAst") -> "TypeAst":
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            FunctionParameterSelfAst, ConventionRefAst, ConventionMutAst, ConventionMovAst, ModulePrototypeAst)
+
         # Deducing the function call type requires knowledge of the "self" parameter. If there is a "self" parameter,
         # then use the convention to determine the function class type. If there isn't, then the function is either a
         # free function (module scope), or a static class method. In either case, it will be "FunRef".
@@ -220,7 +175,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         else:
             return CommonTypes.fun_ref(return_type, parameter_types, pos=self.pos)
 
-    def _deduce_function_call_name(self, function_class_type: "TypeAst") -> IdentifierAst:
+    def _deduce_function_call_name(self, function_class_type: "TypeAst") -> "IdentifierAst":
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
         # Map the function class type to a function call name with a simple match-case statement.
         match function_class_type.parts[-1].value:
             case "FunRef": return IdentifierAst(self.identifier.pos, "call_ref")
@@ -236,6 +193,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import ReturnStatementAst
+
         scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters, the function parameters and the return type, in this order. This allows
@@ -250,25 +209,25 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
         kwargs.pop("target-return-type")
 
-        # Check that a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
+        # Check a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
         # return type.
         if (not self._is_coro
                 and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
                 and self.body.members
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
-            exception = SemanticError()
-            exception.add_error(
-                pos=self.pos, error_type=SemanticErrorType.TYPE_ERROR,
-                tag_message="Return statement expected here.",
-                message="Missing return statement at the end of the function.",
-                tip="Ensure that the function returns a value.")
-            raise exception
+            raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token.pos)
 
         scope_handler.exit_cur_scope()
 
     def __eq__(self, other):
-        # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where block.
-        return self.identifier == other.identifier and self.generic_parameters == other.generic_parameters and self.parameters == other.parameters and self.return_type == other.return_type and self.where_block == other.where_block
+        # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where
+        # block.
+        return all([
+            self.identifier == other.identifier,
+            self.generic_parameters == other.generic_parameters,
+            self.parameters == other.parameters,
+            self.return_type == other.return_type,
+            self.where_block == other.where_block])
 
 
 __all__ = ["FunctionPrototypeAst"]
