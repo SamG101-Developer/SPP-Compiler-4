@@ -38,7 +38,7 @@ Tuples:
 
 Other:
 -- The `Self` type needs to change for parameter types.
--- Global constants move semantics (not movable)
+-- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- Static methods not callable from class type (parsing issue)
 -- Suggest similar namespaces for undefined namespaces
 -- Special `Copy` type that doesn't "move" the value
