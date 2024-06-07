@@ -7,7 +7,7 @@ from typing import Optional, List
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 
 
-@dataclass
+@dataclass(kw_only=True)
 class MemoryStatus:
     is_borrow_ref: bool = dataclasses.field(default=False)
     is_borrow_mut: bool = dataclasses.field(default=False)
@@ -37,7 +37,7 @@ class Symbol:
     ...
 
 
-@dataclass
+@dataclass(kw_only=True)
 class VariableSymbol(Symbol):
     name: IdentifierAst
     type: TypeAst
@@ -57,7 +57,7 @@ class VariableSymbol(Symbol):
         }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class TypeSymbol(Symbol):
     name: TypeAst
     type: Optional[ClassPrototypeAst]  # None for generic types
