@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import difflib
+import inflection
 from colorama import Fore, Style
 from enum import Enum
 from typing import List, Tuple
-import inflection
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, TypeSymbol
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -143,7 +144,7 @@ class SemanticErrors:
             message=f"{classification_ordering[difference[-1][0]]} {what}s must follow {classification_ordering[difference[-2][0]]} {what}s.",
             tag_message=f"{classification_ordering[difference[-1][0]]} {what} declared here.",
             tip="Ensure the ordering of {what}s are correct.")
-        raise exception
+        return exception
 
     @staticmethod
     def USING_NON_INITIALIZED_VALUE(ast: Ast, symbol: VariableSymbol, a: str, b: str) -> SemanticError:
@@ -256,13 +257,16 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def UNKNOWN_IDENTIFIER(ast: Ast, closest: str) -> SemanticError:
+    def UNKNOWN_IDENTIFIER(ast: Ast, similar: list, what: str) -> SemanticError:
+        closest = difflib.get_close_matches(ast.value, similar, n=1, cutoff=0)
+        closest = f" Did you mean '{closest[0]}'?" if closest else ""
+
         exception = SemanticError()
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
-            tag_message=f"Identifier '{ast}' does not exist in the current or parent scopes.{closest}",
-            message="Undefined identifier.",
-            tip="Ensure the identifier is defined in the current or parent scopes.")
+            tag_message=f"{what.title()} '{ast}' does not exist in context.{closest}",
+            message="Undefined {what}.",
+            tip=f"Ensure the {what} is defined.")
         return exception
 
     @staticmethod
@@ -339,4 +343,16 @@ class SemanticErrors:
             tag_message="Unreachable code detected.",
             message="Code after a return statement is unreachable.",
             tip="Ensure that no code comes after a return statement.")
-        raise exception
+        return exception
+
+    @staticmethod
+    def NON_INSTANTIABLE_TYPE(ast: Ast, symbol: TypeSymbol) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=symbol.name.pos, tag_message=f"Generic type '{symbol.name}' defined here.")
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Type '{ast}' instantiated here.",
+            message="Cannot instantiate a generic type.",
+            tip="Ensure the type is not a generic type.")
+        return exception

@@ -34,15 +34,12 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         # Check that the identifier exists in the current or parent scopes.
         if not scope_handler.current_scope.has_symbol(self):
 
-            # Create a list of "similar" symbols, from the list of variable symbols in the current and parent scopes,
-            # and determine the closest match to the identifier.
-            all_symbols_in_scope = Seq(scope_handler.current_scope.all_symbols()).filter_to_type(VariableSymbol)
-            closest_match = difflib.get_close_matches(self.value, all_symbols_in_scope.map(lambda s: s.name.value).value, n=1, cutoff=0)
-            closest_match = f" Did you mean '{closest_match[0]}'?" if closest_match else ""
+            # Create a list of "similar" symbols, from the list of variable symbols in the current and parent scopes.
+            similar = Seq(scope_handler.current_scope.all_symbols()).filter_to_type(VariableSymbol).map(lambda s: s.name.value)
 
             # Raise an exception if the identifier does not exist in the current or parent scopes, and include the
             # closest match if one exists.
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, closest_match)
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, similar.value, "identifier")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst

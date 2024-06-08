@@ -3,13 +3,9 @@ from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
 
 
 @dataclass
@@ -19,9 +15,9 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     explicit number type, etc.
 
     Attributes:
-        - integer: The integer part of the number.
-        - raw_type: The number's raw type (identifier, like i64)
-        - type: The number's true type (type, like I64)
+        value: The integer part of the number.
+        raw_type: The number's raw type (identifier, like i64)
+        type: The number's true type (type, like I64)
     """
 
     value: "TokenAst"
@@ -29,7 +25,7 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     type: Optional["TypeAst"] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, IdentifierAst, TypeSingleAst
 
         if self.raw_type:
             corrected_raw_type = GenericIdentifierAst(self.raw_type.pos, self.raw_type.value.title(), None)
@@ -45,10 +41,13 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        ...
+        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+        assert isinstance(self.value.token.token_metadata, int)
+        assert self.value.token.token_type in [TokenType.LxDecFloat, TokenType.LxDecDigits]
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # The string literal's type is either `std.BigNum` or `std.BigDec` if no explicit type is given, otherwise it is
         # the explicit type.

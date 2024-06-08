@@ -12,7 +12,7 @@ class NumberLiteralBase10Ast(NumberLiteralBaseNAst):
     with no prefix. It can have an optional sign.
 
     Attributes:
-        - sign: The optional sign of the number.
+        sign: The optional sign of the number.
     """
 
     sign: Optional[TokenAst]
