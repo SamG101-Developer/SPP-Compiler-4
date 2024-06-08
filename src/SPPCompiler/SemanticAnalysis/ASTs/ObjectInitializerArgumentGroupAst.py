@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -34,7 +35,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         s += f"{self.paren_r_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_pre_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
         attribute_identifiers = kwargs.get("attributes")
 
@@ -43,10 +44,9 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
         # This method sometimes needs to be called to ensure certain checks, but the rest of the semantic analysis also
         # handles the symbols' memory state, which isn't desired here.
-        from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
 
         # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
-        named_arguments = Seq(self.arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
+        named_arguments = Seq(self.arguments).map(lambda a: a.identifier)
         if named_arguments.contains_duplicates():
             duplicate_named_argument_identifiers = named_arguments.non_unique_items()[0]
             raise SemanticErrors.DUPLICATE_ITEM(duplicate_named_argument_identifiers, "object initializer argument")
@@ -84,8 +84,31 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         if not def_argument and (missing_arguments := attribute_identifiers.set_subtract(argument_identifiers)):
             raise SemanticErrors.MISSING_OBJECT_INITLIAZER_ARGUMENT(missing_arguments[0])
 
-        # todo: onto generics
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ObjectInitializerArgumentNamedAst
 
+        class_type = kwargs.get("class_type")
+        type_symbol = scope_handler.current_scope.get_symbol(class_type)
+        attributes = type_symbol.type.body.members
+
+        # Check each argument is the correct type for the attribute.
+        for attribute in attributes:
+            # Get the argument with the same identifier as the attribute. No argument means the default argument will be
+            # used. This will definitely exist, as pre-analysis checks for this.
+            argument = Seq(self.arguments).find(lambda a: a.identifier == attribute.identifier)
+            if not argument: continue
+
+            # Extract the argument being passed into the attribute. For named args, ie Point(x=1, y=1), the arguments
+            # are the values, and for shorthand: "Point(x, y)", the arguments are the identifiers.
+            argument = argument.value if isinstance(argument, ObjectInitializerArgumentNamedAst) else argument.identifier
+            argument_type = argument.infer_type(scope_handler)
+            attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
+
+            # Compare the types of the argument and the attribute.
+            if not argument_type.symbolic_eq(attribute_type):
+                raise SemanticErrors.TYPE_MISMATCH(argument, argument_type, attribute_type)
+
+        # Todo: super-class checks
 
     def get_def_args(self) -> List["ObjectInitializerArgumentNamedAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType

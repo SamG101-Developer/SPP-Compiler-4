@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
@@ -15,7 +14,7 @@ class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalyser):
     potential superclasses, or "else" for the optional default value.
 
     Attributes:
-        - identifier: The identifier of the target field.
+        identifier: The identifier of the target field.
     """
 
     identifier: "IdentifierAst | TokenAst"
@@ -32,7 +31,8 @@ class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the value of the named argument.
+        self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["ObjectInitializerArgumentNamedAst"]

@@ -15,7 +15,7 @@ class ObjectInitializerArgumentNormalAst(Ast, SemanticAnalyser):
     when a variable matches the name of an attribute on the target type.
 
     Attributes:
-        - identifier: The identifier of the target field (and variable being moved into it).
+        identifier: The identifier of the target field (and variable being moved into it).
     """
 
     identifier: IdentifierAst
@@ -28,7 +28,8 @@ class ObjectInitializerArgumentNormalAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the identifier of the normal argument.
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["ObjectInitializerArgumentNormalAst"]
