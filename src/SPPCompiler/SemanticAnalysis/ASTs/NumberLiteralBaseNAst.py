@@ -42,7 +42,7 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-        assert isinstance(self.value.token.token_metadata, int)
+        assert isinstance(self.value.token.token_metadata, str)
         assert self.value.token.token_type in [TokenType.LxDecFloat, TokenType.LxDecDigits]
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
