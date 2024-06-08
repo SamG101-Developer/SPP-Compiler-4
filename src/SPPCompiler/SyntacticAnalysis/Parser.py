@@ -116,7 +116,7 @@ class Parser:
         p4 = self.parse_generic_parameters().parse_optional()
         p5 = self.parse_where_block().parse_optional()
         p6 = self.parse_inner_scope(self.parse_class_attribute).parse_once()
-        return ClassPrototypeAst(c1, p1, p2, TypeSingleAst(p3.pos, [GenericIdentifierAst(p3.pos, p3.value, None)]), p4, p5, p6)
+        return ClassPrototypeAst(c1, p1, p2, TypeAst(p3.pos, [GenericIdentifierAst(p3.pos, p3.value, None)]), p4, p5, p6)
 
     @parser_rule
     def parse_class_attribute(self) -> ClassAttributeAst:
@@ -1114,35 +1114,26 @@ class Parser:
         p1 = self.parse_type_optional().for_alt()
         p2 = self.parse_type_union().for_alt()
         p3 = self.parse_type_tuple().for_alt()
-        p4 = self.parse_type_array().for_alt()
-        p5 = self.parse_type_single().for_alt()
-        p5 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        p4 = self.parse_type_single().for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
         return p5
 
     @parser_rule
-    def parse_type_array(self) -> TypeSingleAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
-        p2 = self.parse_type_single().parse_once()
-        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
-        return TypeArrayAst(c1, p1, p2, p3).as_single_type()
-
-    @parser_rule
-    def parse_type_optional(self) -> TypeSingleAst:
+    def parse_type_optional(self) -> TypeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkQst).parse_once()
         p2 = self.parse_type().parse_once()
         return TypeOptionalAst(c1, p1, p2).as_single_type()
 
     @parser_rule
-    def parse_type_single(self) -> TypeSingleAst:
+    def parse_type_single(self) -> TypeAst:
         c1 = self.current_pos()
         p1 = self.parse_type_namespace().parse_optional()
         p2 = self.parse_type_parts().parse_once()
-        return TypeSingleAst(c1, (p1.items if p1 else []) + p2)
+        return TypeAst(c1, (p1.items if p1 else []) + p2)
 
     @parser_rule
-    def parse_type_tuple(self) -> TypeSingleAst:
+    def parse_type_tuple(self) -> TypeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
         p2 = self.parse_type().parse_zero_or_more(TokenType.TkComma)
@@ -1157,7 +1148,7 @@ class Parser:
         return p3
 
     @parser_rule
-    def parse_type_union(self) -> TypeSingleAst:
+    def parse_type_union(self) -> TypeAst:
         c1 = self.current_pos()
         p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkBitOr)
         return TypeUnionAst(c1, p1).as_single_type() if len(p1) > 1 else p1[0]
@@ -1224,12 +1215,11 @@ class Parser:
     def parse_literal(self) -> LiteralAst:
         p1 = self.parse_literal_number().for_alt()
         p2 = self.parse_literal_string().for_alt()
-        p3 = self.parse_literal_array().for_alt()
-        p4 = self.parse_literal_tuple().for_alt()
-        p5 = self.parse_literal_regex().for_alt()
-        p6 = self.parse_literal_boolean().for_alt()
-        p9 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
-        return p9
+        p3 = self.parse_literal_tuple().for_alt()
+        p4 = self.parse_literal_regex().for_alt()
+        p5 = self.parse_literal_boolean().for_alt()
+        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        return p6
 
     @parser_rule
     def parse_literal_number(self) -> NumberLiteralAst:
@@ -1244,13 +1234,6 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.LxDoubleQuoteStr).parse_once()
         return StringLiteralAst(c1, p1)
-
-    @parser_rule
-    def parse_literal_array(self) -> ArrayLiteralAst:
-        p1 = self.parse_literal_array_empty().for_alt()
-        p2 = self.parse_literal_array_non_empty().for_alt()
-        p3 = (p1 | p2).parse_once()
-        return p3
 
     @parser_rule
     def parse_literal_tuple(self) -> TupleLiteralAst:
@@ -1344,24 +1327,6 @@ class Parser:
         p19 = self.parse_characters("f256").for_alt()
         p20 = (p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13 | p14 | p15 | p16 | p17 | p18 | p19).parse_once()
         return p20
-
-    # ===== ARRAYS =====
-
-    @parser_rule
-    def parse_literal_array_empty(self) -> ArrayLiteralEmptyAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
-        p2 = self.parse_type().parse_once()
-        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
-        return ArrayLiteralEmptyAst(c1, p1, p2, p3)
-
-    @parser_rule
-    def parse_literal_array_non_empty(self) -> ArrayLiteralNonEmptyAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
-        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
-        return ArrayLiteralNonEmptyAst(c1, p1, p2, p3)
 
     # ===== TUPLES =====
 

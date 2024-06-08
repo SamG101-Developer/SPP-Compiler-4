@@ -15,7 +15,7 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     being given to the function.
 
     Attributes:
-        identifier: The identifier of the argument.
+        raw_identifier: The identifier of the argument.
         assignment_token: The token that represents the assignment of the argument.
         type: The type of the argument.
         identifier: The identifier of the argument.
@@ -27,9 +27,9 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     identifier: "TypeAst" = field(default=None, init=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
+        from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
         from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
-        self.identifier = TypeSingleAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
+        self.identifier = TypeAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

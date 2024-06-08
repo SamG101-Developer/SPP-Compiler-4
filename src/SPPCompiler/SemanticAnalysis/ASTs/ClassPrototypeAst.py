@@ -71,6 +71,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
         # (representing the new type symbol). Associate the scope with the symbol.
         sym = TypeSymbol(name=self.identifier, type=self)
         scope_handler.current_scope.add_symbol(sym)
+
         scope_handler.into_new_scope(self.identifier)
         sym.associated_scope = scope_handler.current_scope
 

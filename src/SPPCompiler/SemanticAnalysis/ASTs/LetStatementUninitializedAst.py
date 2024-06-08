@@ -37,6 +37,8 @@ class LetStatementUninitializedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # Ensure, for destructuring, that the RHS is a moved value - can't move out of a borrowed context.
+
         # Create a symbol for the variable being assigned to, and add it to the current scope.
         symbol = VariableSymbol(
             name=self.assign_to.identifier,

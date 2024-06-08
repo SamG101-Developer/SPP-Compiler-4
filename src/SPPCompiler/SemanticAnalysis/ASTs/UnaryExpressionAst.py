@@ -2,11 +2,11 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
@@ -17,8 +17,8 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     call prefix.
 
     Attributes:
-        - op: The unary operator.
-        - rhs: The right-hand side expression.
+        op: The unary operator.
+        rhs: The right-hand side expression.
     """
 
     op: "UnaryOperatorAst"
@@ -33,7 +33,11 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorFunctionCallAst
+
+        # This is only used for the "async" function calls, so ensure that the RHS is a function call.
+        if not isinstance(self.rhs, PostfixExpressionAst) or not isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst):
+            raise SemanticErrors.INVALID_ASYNC_CALL(self, self.rhs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

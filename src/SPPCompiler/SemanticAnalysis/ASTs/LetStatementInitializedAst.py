@@ -1,20 +1,14 @@
 from dataclasses import dataclass, field
 
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableAst import LocalVariableAst
-from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 
 
 @dataclass
@@ -32,11 +26,11 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         _sup_let_type: For function preprocessing.
     """
 
-    let_keyword: TokenAst
-    assign_to: LocalVariableAst
-    assign_token: TokenAst
-    value: ExpressionAst
-    _sup_let_type: TypeAst = field(default=None, kw_only=True)
+    let_keyword: "TokenAst"
+    assign_to: "LocalVariableAst"
+    assign_token: "TokenAst"
+    value: "ExpressionAst"
+    _sup_let_type: "TypeAst" = field(default=None, kw_only=True)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -53,14 +47,24 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         # TODO: why inherit from PreProcessor?
         pass
 
-    def generate(self, s: ScopeHandler) -> None:
+    def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the symbol for the variable being assigned to. This is only used for function preprocessing.
         variable_symbol = VariableSymbol(name=self.assign_to.identifier, type=self._sup_let_type)
-        s.current_scope.add_symbol(variable_symbol)
+        scope_handler.current_scope.add_symbol(variable_symbol)
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        if self._sup_let_type is not None:
+            return
+
         kwargs |= {"value": self.value, "preprocessed": self._sup_let_type is not None, "let_ast": self}
         self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Check the value being assigned is initialised.
+        rhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.value)
+        if rhs_symbol and not rhs_symbol.memory_info.ast_initialized:
+            raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
+        if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
+            raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
 
 
 __all__ = ["LetStatementInitializedAst"]

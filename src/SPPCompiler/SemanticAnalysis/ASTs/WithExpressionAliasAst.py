@@ -1,17 +1,11 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableAst import LocalVariableAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
@@ -22,12 +16,12 @@ class WithExpressionAliasAst(Ast, SemanticAnalyser):
     variable, such as object destructuring etc can be used here.
 
     Attributes:
-        - variable: The variable to be assigned to.
-        - assign_token: The assignment token.
+        variable: The variable to be assigned to.
+        assign_token: The assignment token.
     """
 
-    variable: LocalVariableAst
-    assign_token: TokenAst
+    variable: "LocalVariableAst"
+    assign_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -37,7 +31,9 @@ class WithExpressionAliasAst(Ast, SemanticAnalyser):
         s += f"{self.assign_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, with_expression: ExpressionAst = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, with_expression: Optional["ExpressionAst"] = None, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import LetStatementInitializedAst, TokenAst
+
         # Convert the variable assignment into a "let" statement.
         let_statement = LetStatementInitializedAst(
             pos=self.variable.pos,

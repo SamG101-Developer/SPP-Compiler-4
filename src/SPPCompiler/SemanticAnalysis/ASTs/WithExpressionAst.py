@@ -10,6 +10,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
@@ -20,10 +21,10 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     superimposed over the type of the object being entered.
 
     Attributes:
-        - with_keyword: The "with" keyword.
-        - alias: The optional alias to use for the object being entered (variable introduction).
-        - expression: The expression to enter.
-        - body: The body of the context block.
+        with_keyword: The "with" keyword.
+        alias: The optional alias to use for the object being entered (variable introduction).
+        expression: The expression to enter.
+        body: The body of the context block.
     """
 
     with_keyword: "TokenAst"
@@ -41,10 +42,29 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        scope_handler.into_new_scope("<with-block>")
+
+        # Analyse the expression.
+        self.expression.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Get the expression's type and its type scope's superimposed scopes.
+        expression_type = self.expression.infer_type(scope_handler, **kwargs).type
+        expression_type_sup_types = scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes
+
+        # Ensure the expression's type superimposes the "CtxRef" or "CtxMut" type.
+        if not CommonTypes.ctx_mut() not in expression_type_sup_types and CommonTypes.ctx_ref() not in expression_type_sup_types:
+            raise SemanticErrors.INVALID_WITH_EXPRESSION(self.expression, expression_type)
+
+        # Analyse the alias, if it exists.
+        if self.alias:
+            self.alias.do_semantic_analysis(scope_handler, with_expression=self.expression, **kwargs)
+
+        # Analyse the body and exit the scope.
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
+        scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        # Return the type of the final expression, or "Void" for an empty body.
+        # Return the final expression's type, or "Void" for an empty body.
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler, **kwargs)
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))

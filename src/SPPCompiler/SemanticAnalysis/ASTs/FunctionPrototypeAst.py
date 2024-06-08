@@ -79,9 +79,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     def pre_process(self, context: "ModulePrototypeAst | SupPrototypeAst") -> None:
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            ModulePrototypeAst, ClassPrototypeAst, SupPrototypeInheritanceAst, ObjectInitializerAst,
-            ObjectInitializerArgumentGroupAst, LetStatementInitializedAst, TypeSingleAst, GenericIdentifierAst,
-            IdentifierAst, InnerScopeAst, TokenAst, LocalVariableSingleAst)
+            ModulePrototypeAst, ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
+            IdentifierAst, InnerScopeAst, TokenAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         self._ctx = context
@@ -96,7 +95,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
         mock_class_name = IdentifierAst(self.pos, f"MOCK_{self.identifier.value}")
-        mock_class_name = TypeSingleAst(self.pos, [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
+        mock_class_name = TypeAst(self.pos, [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
 
         # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or
         # "FunMov/call_mov".
@@ -115,6 +114,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
             # Parse the mock class and let statement code to generate the respective ASTs.
             mock_cls_ast = Parser(Lexer(mock_cls).lex(), "").parse_class_prototype().parse_once()
             mock_let_ast = Parser(Lexer(mock_let).lex(), "").parse_let_statement_initialized().parse_once()
+            mock_let_ast._sup_let_type = function_class_type
 
             # Append both of these ASTs to the module or sup prototype ("context" will be either one).
             context.body.members.append(mock_cls_ast)

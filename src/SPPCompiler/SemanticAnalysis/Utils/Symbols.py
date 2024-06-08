@@ -66,7 +66,7 @@ class TypeSymbol(Symbol):
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TypeAst
         assert isinstance(self.name, TypeAst), f"Got type symbol with name: {self.name} ({type(self.name)}"  # TODO: This is not correct
-        assert isinstance(self.type, ClassPrototypeAst) or self.type is None
+        assert isinstance(self.type, ClassPrototypeAst) or self.type is None, f"Got type symbol with type: {type(self.type)}"
 
     def __json__(self) -> dict:
         return {

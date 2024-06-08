@@ -17,9 +17,9 @@ class WhereConstraintsAst(Ast):
     can be provided in the parent WhereConstraintsGroupAst node.
 
     Attributes:
-        - types_to_constrain: The types to constrain.
-        - colon_token: The colon token.
-        - constraints: The constraints of the types.
+        types_to_constrain: The types to constrain.
+        colon_token: The colon token.
+        constraints: The constraints of the types.
     """
 
     types_to_constrain: List[TypeAst]

@@ -2,17 +2,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterGroupAst import GenericParameterGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.ModulePrototypeAst import ModulePrototypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementItemAst import TypedefStatementItemAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementOldNamespaceAst import TypedefStatementOldNamespaceAst
-
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -23,16 +15,16 @@ class TypedefStatementAst(Ast, PreProcessor):
     existing type, or to reduce the namespace of a type.
     
     Attributes:
-        - use_keyword: The "use" keyword token.
-        - generic_parameters: The generic parameters of the typedef statement.
-        - old_type_namespace: The old type namespace of the typedef statement.
-        - items: The items of the typedef statement.
+        use_keyword: The "use" keyword token.
+        generic_parameters: The generic parameters of the typedef statement.
+        old_type_namespace: The old type namespace of the typedef statement.
+        items: The items of the typedef statement.
     """
     
-    use_keyword: TokenAst
-    generic_parameters: GenericParameterGroupAst
-    old_type_namespace: Optional[TypedefStatementOldNamespaceAst]
-    items: TypedefStatementItemAst
+    use_keyword: "TokenAst"
+    generic_parameters: "GenericParameterGroupAst"
+    old_type_namespace: Optional["TypedefStatementOldNamespaceAst"]
+    items: "TypedefStatementItemAst"
     
     def __post_init__(self):
         raise NotImplementedError("TypedefStatementAst is not implemented yet.")
@@ -46,7 +38,7 @@ class TypedefStatementAst(Ast, PreProcessor):
         s += f"{self.items.print(printer)}"
         return s
 
-    def pre_process(self, context: ModulePrototypeAst) -> None:
+    def pre_process(self, context: "ModulePrototypeAst") -> None:
         # Substitute the "Self" type in generic parameters.
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         ...

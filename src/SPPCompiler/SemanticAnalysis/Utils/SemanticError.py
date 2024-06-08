@@ -143,17 +143,17 @@ class SemanticErrors:
             pos=difference[-1][1].pos, error_type=SemanticErrorType.ORDER_ERROR,
             message=f"{classification_ordering[difference[-1][0]]} {what}s must follow {classification_ordering[difference[-2][0]]} {what}s.",
             tag_message=f"{classification_ordering[difference[-1][0]]} {what} declared here.",
-            tip="Ensure the ordering of {what}s are correct.")
+            tip=f"Ensure the ordering of {what}s are correct.")
         return exception
 
     @staticmethod
-    def USING_NON_INITIALIZED_VALUE(ast: Ast, symbol: VariableSymbol, a: str, b: str) -> SemanticError:
+    def USING_NON_INITIALIZED_VALUE(ast: Ast, symbol: VariableSymbol) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
-            pos=symbol.memory_info.ast_consumed.pos, tag_message=f"Variable {ast} {a}.")
+            pos=symbol.memory_info.ast_consumed.pos, tag_message=f"Variable {ast} is uninitialized/moved here.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.MEMORY_ERROR,
-            tag_message=f"{symbol.name} used {b}.",
+            tag_message=f"{symbol.name} used here.",
             message="Using a non-initialized value.",
             tip="Ensure that the value is fully initialized before being used.")
         return exception
@@ -265,7 +265,7 @@ class SemanticErrors:
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
             tag_message=f"{what.title()} '{ast}' does not exist in context.{closest}",
-            message="Undefined {what}.",
+            message=f"Undefined {what}.",
             tip=f"Ensure the {what} is defined.")
         return exception
 
@@ -410,8 +410,8 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            message="Numeric member access requires a tuple type",
             tag_message=f"Numeric member access found here",
+            message="Numeric member access requires a tuple type",
             tip="Use a tuple type for numeric member access")
         return exception
 
@@ -424,8 +424,8 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            message="Numeric member access out of bounds",
             tag_message=f"Numeric member access found here to element {rhs}",
+            message="Numeric member access out of bounds",
             tip=f"Use a valid index for numeric member access (< {len(lhs_ty.type.parts[-1].generic_arguments.arguments)})")
         return exception
 
@@ -438,8 +438,8 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            message="Cannot access attributes on unconstrained generic types",
             tag_message=f"Attribute '{rhs}' accessed here",
+            message="Cannot access attributes on unconstrained generic types",
             tip="Constrain the generic type to allow attribute access")
         return exception
 
@@ -452,7 +452,43 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            message="Undefined attribute",
             tag_message=f"Attribute '{rhs}' accessed here",
+            message="Undefined attribute",
             tip="Check for typos or define the attribute")
         return exception
+
+    @staticmethod
+    def INVALID_ASYNC_CALL(ast: Ast, rhs: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.ASYNC_ERROR,
+            tag_message=f"'{rhs}' is not a function call.",
+            message="Invalid 'async' usage",
+            tip="Make sure that the 'async' keyword is used before a function call.")
+        return exception
+
+    @staticmethod
+    def INVALID_WITH_EXPRESSION(ast: Ast, ty: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Type inferred as '{ty}'",
+            message=f"Type does not superimpose 'CtxRef' or 'CtxMut'",
+            tip=f"Superimpose 'CtxRef' or 'CtxMut' over the type.")
+        return exception
+
+    @staticmethod
+    def INVALID_COROUTINE_RETURN_TYPE(ast: Ast, ret: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ret.pos,
+            tag_message=f"Function type defined as '{ret}'")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            message="Gen expressions can only occur inside a generator",
+            tag_message=f"Gen expression found here",
+            tip="Ensure the function returns a 'GenMov', 'GenRef' or 'GenMut' type.")
+        raise exception

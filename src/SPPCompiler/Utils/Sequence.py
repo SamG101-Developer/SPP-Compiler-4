@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Callable, Iterator, Optional, Iterable
+from typing import List, Callable, Iterator, Optional, Iterable, Dict
 from ordered_set import OrderedSet
 
 
@@ -12,6 +12,9 @@ class Seq[T]:
 
     def append(self, item: T) -> None:
         self._value.append(item)
+
+    def insert(self, index: int, item: T) -> None:
+        self._value.insert(index, item)
 
     def for_each[U](self, func: Callable[[T], U]) -> None:
         for v in self._value: func(v)
@@ -200,3 +203,6 @@ class Seq[T]:
     @property
     def length(self) -> int:
         return len(self._value)
+
+    def dict(self) -> Dict:
+        return {key: val for (key, val) in self._value}

@@ -24,9 +24,9 @@ class Scope:
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeSingleAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         scope = self
-        if isinstance(symbol.name, TypeSingleAst):
+        if isinstance(symbol.name, TypeAst):
             name = copy.deepcopy(symbol.name)
             namespace = copy.deepcopy(name.parts[:-1])
 
@@ -59,12 +59,12 @@ class Scope:
 
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeSingleAst
-        assert isinstance(name, IdentifierAst) or isinstance(name, TypeSingleAst), f"Expected IdentifierAst or TypeAst, got {type(name)}"
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
+        assert isinstance(name, IdentifierAst) or isinstance(name, TypeAst), f"Expected IdentifierAst or TypeAst, got {type(name)}"
         scope = self
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
-        if isinstance(name, TypeSingleAst):
+        if isinstance(name, TypeAst):
             name = copy.deepcopy(name)
             namespace = copy.deepcopy(name.parts[:-1])  # TODO: for now (will need to consider typedefs on sup blocks)
 

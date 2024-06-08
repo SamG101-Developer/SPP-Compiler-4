@@ -10,7 +10,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class LocalVariableDestructureAst(Ast, SemanticAnalyser, SemanticAnalyser):
+class LocalVariableDestructureAst(Ast, SemanticAnalyser):
     """
     The LocalVariableDestructureAst node represents a type-destructure of local variables. This is an advanced form of a
     local variable, and is seen mostly in the "let" statement. For example, in the statement
@@ -34,14 +34,10 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser, SemanticAnalyser):
         return f"{self.class_type.print(printer)}{self.bracket_l_token.print(printer)}{Seq(self.items).print(printer, ", ")}{self.bracket_r_token.print(printer)}"
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import LocalVariableSkipArgumentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleAst import LocalVariableSingleAst
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableAssignmentAst import LocalVariableAssignmentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
-        from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
-        from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LocalVariableSkipArgumentAst, LocalVariableSingleAst, LocalVariableAssignmentAst,
+            PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
         # Semantically analyse the class type, to make sure it exists.
         self.class_type.do_semantic_analysis(scope_handler, **kwargs)

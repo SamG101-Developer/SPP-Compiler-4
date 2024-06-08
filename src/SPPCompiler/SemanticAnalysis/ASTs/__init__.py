@@ -1,8 +1,5 @@
 from __future__ import annotations
 from SPPCompiler.SemanticAnalysis.ASTs.AnnotationAst import AnnotationAst
-from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteralAst import ArrayLiteralAst
-from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteralEmptyAst import ArrayLiteralEmptyAst
-from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteralNonEmptyAst import ArrayLiteralNonEmptyAst
 from SPPCompiler.SemanticAnalysis.ASTs.AssignmentStatementAst import AssignmentStatementAst
 from SPPCompiler.SemanticAnalysis.ASTs.BinaryExpressionAst import BinaryExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.BooleanLiteralAst import BooleanLiteralAst
@@ -11,8 +8,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.ClassPrototypeAst import ClassPrototypeAs
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionAst import ConventionAst
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionNonInitAst import ConventionNonInitAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionPartInitAst import ConventionPartInitAst
 from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
 from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.FunctionArgumentAst import FunctionArgumentAst
@@ -103,7 +98,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototype
 from SPPCompiler.SemanticAnalysis.ASTs.SupTypedefAst import SupTypedefAst
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from SPPCompiler.SemanticAnalysis.ASTs.TupleLiteralAst import TupleLiteralAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeArrayAst import TypeArrayAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAllItemsAst import TypedefStatementAllItemsAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAst import TypedefStatementAst
@@ -114,7 +108,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemAst import Ty
 from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemsAst import TypedefStatementSpecificItemsAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeOptionalAst import TypeOptionalAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypePartAst import TypePartAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
+from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeTupleAst import TypeTupleAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeUnionAst import TypeUnionAst
 from SPPCompiler.SemanticAnalysis.ASTs.UnaryExpressionAst import UnaryExpressionAst

@@ -7,10 +7,6 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnal
 from SPPCompiler.SemanticAnalysis.ASTMixins.LLVMGeneration import LLVMGeneration
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.AnnotationAst import AnnotationAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.ModuleIdentifierAst import ModuleIdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.ModuleImplementationAst import ModuleImplementationAst
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -27,10 +23,10 @@ class ModulePrototypeAst(Ast, SemanticAnalyser, LLVMGeneration):
         body: The module implementation.
     """
 
-    annotations: List[AnnotationAst]
-    module_keyword: TokenAst
-    identifier: ModuleIdentifierAst
-    body: ModuleImplementationAst
+    annotations: List["AnnotationAst"]
+    module_keyword: "TokenAst"
+    identifier: "ModuleIdentifierAst"
+    body: "ModuleImplementationAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

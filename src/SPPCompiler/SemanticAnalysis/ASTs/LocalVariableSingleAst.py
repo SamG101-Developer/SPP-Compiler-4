@@ -51,7 +51,7 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
         # the "let" statement AST that contains this local variable.
         symbol = VariableSymbol(
             name=self.identifier,
-            type=value.infer_type(scope_handler, **kwargs)[1],
+            type=value.infer_type(scope_handler, **kwargs).type,
             is_mutable=self.is_mutable is not None,
             memory_info=MemoryStatus(ast_initialized=kwargs["let_ast"]))
         scope_handler.current_scope.add_symbol(symbol)

@@ -1,12 +1,10 @@
 from dataclasses import dataclass
 
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
-
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -17,8 +15,8 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
     another class.
 
     Attributes:
-        - super_class: The superclass of the superimposition.
-        - on_keyword: The "on" keyword token.
+        super_class: The superclass of the superimposition.
+        on_keyword: The "on" keyword token.
     """
 
     super_class: "TypeAst"
@@ -78,6 +76,12 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         scope_handler.exit_cur_scope()
+
+        # TODO : check there are no direct duplicate sup super-classes
+        # TODO : check overriden typedefs & methods appear on corresponding super-class
+        # TODO : check there are no duplicate / overlapping overloads of methods for this sup-block
+        #   At this point, all sup-blocks are discovered, so we can check for duplicate / overlapping overloads.
+        #   If in this function, it'll happen for every sup-block -only needs to happen once though (cls block?)
 
 
 __all__ = ["SupPrototypeInheritanceAst"]

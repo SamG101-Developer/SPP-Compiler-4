@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
@@ -44,7 +45,32 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+
+        # Analyse the expression.
+        self.expression.do_semantic_analysis(scope_handler, **kwargs)
+        coroutine_ret_type = kwargs["target-return-type"]
+
+        # Ensure the return type is one of the 3 generator return types.
+        if coroutine_ret_type not in [CommonTypes.gen_mov(), CommonTypes.gen_mut(), CommonTypes.gen_ref()]:
+            raise SemanticErrors.INVALID_COROUTINE_RETURN_TYPE(self, coroutine_ret_type)
+
+        # Determine the yield's convention and type.
+        given_yield_convention = None
+        match self.convention, self.expression.infer_type(scope_handler, **kwargs).convention:
+            case ConventionMovAst(), that_convention: given_yield_convention = that_convention
+            case self_convention, _: given_yield_convention = type(self.convention)
+        given_yield_type = InferredType(
+            type=self.expression.infer_type(scope_handler, **kwargs).type,
+            convention=given_yield_convention)
+
+        # Check the yielded convention and type matches the coroutine's return type.
+        target_yield_type = InferredType(
+            convention=coroutine_ret_type.parts[-1].generic_arguments["Yield"],
+            type=CommonTypes.type_variant_to_convention(coroutine_ret_type.parts[-1]))
+
+        if not given_yield_type.symbolic_eq(target_yield_type, scope_handler):
+            raise SemanticErrors.TYPE_MISMATCH(self, given_yield_type.type, target_yield_type.type)
 
 
 __all__ = ["YieldExpressionAst"]

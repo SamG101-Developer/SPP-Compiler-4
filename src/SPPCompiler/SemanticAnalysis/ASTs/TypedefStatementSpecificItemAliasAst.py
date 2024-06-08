@@ -3,9 +3,6 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
 
 @dataclass
 class TypedefStatementSpecificItemAliasAst(Ast):
@@ -14,12 +11,12 @@ class TypedefStatementSpecificItemAliasAst(Ast):
     alias requires the "as" keyword, and the "new_type".
 
     Attributes:
-        - as_keyword: The "as" keyword token.
-        - new_type: The new type.
+        as_keyword: The "as" keyword token.
+        new_type: The new type.
     """
 
-    as_keyword: TokenAst
-    new_type: TypeAst
+    as_keyword: "TokenAst"
+    new_type: "TypeAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

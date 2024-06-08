@@ -84,7 +84,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ObjectInitializerArgumentNamedAst
 
-        class_type = kwargs.get("class_type")
+        class_type = kwargs.get("class-type")
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
         attributes = type_symbol.type.body.members
 

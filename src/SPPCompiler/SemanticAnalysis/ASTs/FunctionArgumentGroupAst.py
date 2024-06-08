@@ -88,11 +88,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             # Check the argument is fully initialized before being used. This prevents the common "double free" and
             # "use after free" errors.
             if symbol and symbol.memory_info.ast_consumed:
-                match symbol.memory_info.ast_consumed:
-                    case LetStatementInitializedAst(): msg1, msg2 = "is declared as uninitialized.", "without being initialized."
-                    case _: msg1, msg2 = "is moved here.", "after being moved."
-
-                raise SemanticErrors.USING_NON_INITIALIZED_VALUE(argument, symbol, msg1, msg2)
+                raise SemanticErrors.USING_NON_INITIALIZED_VALUE(argument, symbol)
 
             # Check the argument doesn't contain partial moves. Non over-lapping partial moves are fine, ie "a.c" can be
             # accessed if "a.b" has been moved, but not if "a" has been moved.

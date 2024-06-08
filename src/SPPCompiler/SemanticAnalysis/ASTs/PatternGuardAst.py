@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -32,12 +33,16 @@ class PatternGuardAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+
         # Analyse the guard expression
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Ensure the guard expression evaluated to a Bool type.
-        if not self.expression.infer_type(scope_handler, **kwargs).type.symbolic_eq(CommonTypes.bool()):
-            raise SemanticErrors.TYPE_MISMATCH(self.expression, self.expression.infer_type(scope_handler, **kwargs).type, CommonTypes.bool())
+        # Ensure the guard expression evaluates to a Bool type.
+        expression_type = self.expression.infer_type(scope_handler, **kwargs).type
+        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
+        if not expression_type.symbolic_eq(target_type):
+            raise SemanticErrors.TYPE_MISMATCH(self.expression, target_type.type, expression_type.type)
 
 
 __all__ = ["PatternGuardAst"]

@@ -82,6 +82,13 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                 case PostfixExpressionAst():
                     lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda x: x != self.lhs[i]).value
 
+        # Check the value being assigned is initialized.
+        rhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.rhs)
+        if rhs_symbol and not rhs_symbol.memory_info.ast_initialized:
+            raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
+        if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
+            raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
+
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 

@@ -2,15 +2,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.WhereConstraintsGroupAst import WhereConstraintsGroupAst
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
@@ -24,8 +19,8 @@ class WhereBlockAst(Ast, Default, SemanticAnalyser):
         - constraint_group: The group of where constraints.
     """
 
-    where_keyword: TokenAst
-    constraint_group: WhereConstraintsGroupAst
+    where_keyword: "TokenAst"
+    constraint_group: "WhereConstraintsGroupAst"
 
     def __post_init__(self):
         ...
@@ -42,15 +37,22 @@ class WhereBlockAst(Ast, Default, SemanticAnalyser):
 
     @staticmethod
     def default() -> WhereBlockAst:
-        # Create a default WhereBlockAst.
-        return WhereBlockAst(
+        from SPPCompiler.SemanticAnalysis.ASTs import WhereConstraintsGroupAst, TokenAst
+
+        # Create an empty constraints group.
+        where_constraints_group = WhereConstraintsGroupAst(
+            pos=-1,
+            brack_l_token=TokenAst.dummy(TokenType.TkBrackL),
+            constraints=[],
+            brack_r_token=TokenAst.dummy(TokenType.TkBrackR))
+
+        # Create the where block.
+        where_block = WhereBlockAst(
             pos=-1,
             where_keyword=TokenAst.dummy(TokenType.KwWhere),
-            constraint_group=WhereConstraintsGroupAst(
-                pos=-1,
-                brack_l_token=TokenAst.dummy(TokenType.TkBrackL),
-                constraints=[],
-                brack_r_token=TokenAst.dummy(TokenType.TkBrackR)))
+            constraint_group=where_constraints_group)
+
+        return where_block
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same constraint group.

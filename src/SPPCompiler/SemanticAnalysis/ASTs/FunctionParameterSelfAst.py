@@ -22,10 +22,10 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
         - type_declaration: The type declaration of the "self" parameter.
     """
 
-    is_mutable: Optional[TokenAst]
-    convention: ConventionAst
-    identifier: IdentifierAst
-    type_declaration: TypeAst = field(default=None, init=False)
+    is_mutable: Optional["TokenAst"]
+    convention: "ConventionAst"
+    identifier: "IdentifierAst"
+    type_declaration: "TypeAst" = field(default=None, init=False)
 
     def __post_init__(self):
         # Set the "self" symbol's type to the "Self" type.

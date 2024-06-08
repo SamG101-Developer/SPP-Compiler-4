@@ -1,15 +1,10 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import List
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -21,16 +16,16 @@ class TypeTupleAst(Ast):
     TypeSingleAst node of the type "std.Tup[..Ts]".
 
     Attributes:
-        - paren_l_token: The left parenthesis token.
-        - items: The types of the tuple.
-        - paren_r_token: The right parenthesis token.
+        paren_l_token: The left parenthesis token.
+        items: The types of the tuple.
+        paren_r_token: The right parenthesis token.
     """
 
-    paren_l_token: TokenAst
-    items: List[TypeAst]
-    paren_r_token: TokenAst
+    paren_l_token: "TokenAst"
+    items: List["TypeAst"]
+    paren_r_token: "TokenAst"
 
-    def as_single_type(self) -> TypeSingleAst:
+    def as_single_type(self) -> "TypeAst":
         # Convert the TypeTupleAst to a TypeSingleAst.
         return CommonTypes.tuple(self.items, self.paren_l_token.pos)
 

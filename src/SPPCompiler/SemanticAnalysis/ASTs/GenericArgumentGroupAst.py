@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
@@ -73,6 +73,32 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
         return isinstance(other, GenericArgumentGroupAst) and self.arguments == other.arguments
+
+    @staticmethod
+    def from_dict(dictionary: Dict["TypeAst", "TypeAst"]) -> GenericArgumentGroupAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNamedAst, TokenAst
+
+        arguments = [GenericArgumentNamedAst(
+            pos=-1,
+            raw_identifier=identifier.parts[-1].to_identifier(),
+            assignment_token=TokenAst.dummy(TokenType.TkAssign),
+            type=type) for identifier, type in dictionary.items()]
+
+        return GenericArgumentGroupAst(
+            pos=-1,
+            bracket_l_token=TokenAst.dummy(TokenType.TkBrackL),
+            arguments=arguments,
+            bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
+
+    @staticmethod
+    def from_list(list: List["GenericArgumentAst"]) -> GenericArgumentGroupAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+
+        return GenericArgumentGroupAst(
+            pos=-1,
+            bracket_l_token=TokenAst.dummy(TokenType.TkBrackL),
+            arguments=list,
+            bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
 
 
 __all__ = ["GenericArgumentGroupAst"]

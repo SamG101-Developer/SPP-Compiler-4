@@ -55,7 +55,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst)
+            IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
@@ -77,11 +77,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         for i, function_overload in function_overloads.enumerate():
             try:
-                self.generic_arguments = infer_generics_types(
-                    generic_parameters=Seq(function_overload.generic_parameters).map(lambda p: p.identifier).value,
-                    explicit_generic_arguments=Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    infer_from=Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.type_infer(scope_handler, **kwargs))).dict(),
-                    map_to=Seq(function_overload.parameters).map(lambda p: (p.identifier, p.type_declaration)).dict())
+                self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    Seq(function_overload.generic_parameters).map(lambda p: p.identifier).value,
+                    Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.type_infer(scope_handler, **kwargs))).dict(),
+                    Seq(function_overload.parameters).map(lambda p: (p.identifier, p.type_declaration)).dict()))
 
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
                 parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)

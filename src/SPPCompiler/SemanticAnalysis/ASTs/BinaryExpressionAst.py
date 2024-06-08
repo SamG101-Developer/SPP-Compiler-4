@@ -159,7 +159,7 @@ class BinaryExpressionAstUtils:
         return mock_function_call
 
     @staticmethod
-    def convert_all_to_function(ast: BinaryExpressionAst) -> PostfixExpressionAst:
+    def convert_all_to_function(ast: BinaryExpressionAst) -> "PostfixExpressionAst":
         if not isinstance(ast, BinaryExpressionAst):
             return ast
 

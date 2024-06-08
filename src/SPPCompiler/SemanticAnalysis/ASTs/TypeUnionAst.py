@@ -1,15 +1,10 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import List
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypeSingleAst import TypeSingleAst
-
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -20,12 +15,12 @@ class TypeUnionAst(Ast):
     TypeSingleAst node of the type "std.Var[..Ts]" (variant type).
 
     Attributes:
-        - items: The types in the union.
+        items: The types in the union.
     """
 
-    items: List[TypeAst]
+    items: List["TypeAst"]
 
-    def as_single_type(self) -> TypeSingleAst:
+    def as_single_type(self) -> "TypeAst":
         # Convert the TypeUnionAst to a TypeSingleAst.
         return CommonTypes.var(self.items, self.items[0].pos)
 

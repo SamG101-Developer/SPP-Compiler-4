@@ -3,9 +3,6 @@ from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TypePartAst import TypePartAst
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -16,10 +13,10 @@ class TypedefStatementOldNamespaceAst(Ast):
     1, n or * items can be used from the namespace, so the separation is required.
 
     Attributes:
-        - items: The items being used from the namespace.
+        items: The items being used from the namespace.
     """
 
-    items: List[TypePartAst]
+    items: List["TypePartAst"]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

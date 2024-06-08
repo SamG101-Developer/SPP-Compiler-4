@@ -3,10 +3,6 @@ from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemAst import TypedefStatementSpecificItemAst
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -19,13 +15,14 @@ class TypedefStatementSpecificItemsAst(Ast):
     for "namespace.OldType1" and "namespace.OldType2" respectively.
 
     Attributes:
-        - old_type: The old type.
-        - alias: The alias of the old type.
+        paren_l_token: The left parenthesis token.
+        aliases: The aliases of the old types.
+        paren_r_token: The right parenthesis token.
     """
 
-    paren_l_token: TokenAst
-    aliases: List[TypedefStatementSpecificItemAst]
-    paren_r_token: TokenAst
+    paren_l_token: "TokenAst"
+    aliases: List["TypedefStatementSpecificItemAst"]
+    paren_r_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

@@ -61,7 +61,6 @@ class Compiler:
 
         # Stage 2 analysis is the semantic analysis, which is done on all modules. Reset scope to move out of namespace.
         for module, analyser in zip(modules, analysers):
-
             # Count how many modules come before this module in the innermost namespace of the module. This is to ensure
             # that the net scope inspected is the scope of this module, not the first class in the same namespace.
             current_module = module

@@ -13,7 +13,7 @@ class TokenAst(Ast):
     alongside the IdentifierAst and some types under the LiteralAst union.
 
     Attributes:
-        - token: The Token instance that was parsed.
+        token: The Token instance that was parsed.
     """
 
     token: Token

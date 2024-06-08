@@ -17,7 +17,7 @@ class SupTypedefAst(TypedefStatementAst):
     has compared to a normal TypedefAst node is the annotations that can be attached to it.
 
     Attributes:
-        - annotations: The annotations attached to the typedef.
+        annotations: The annotations attached to the typedef.
     """
 
     annotations: List[AnnotationAst]

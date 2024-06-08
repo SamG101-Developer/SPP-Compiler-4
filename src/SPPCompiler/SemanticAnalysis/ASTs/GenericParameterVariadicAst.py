@@ -29,8 +29,8 @@ class GenericParameterVariadicAst(Ast, SemanticAnalyser):
 
     def __post_init__(self):
         # Convert the raw identifier into a TypeSingleAst.
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TypeSingleAst
-        self.identifier = TypeSingleAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TypeAst
+        self.identifier = TypeAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

@@ -57,9 +57,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                 raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-        from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst
 
         # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
         # correct type

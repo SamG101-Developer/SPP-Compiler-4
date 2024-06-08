@@ -1,19 +1,14 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterGroupAst import GenericParameterGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.WhereBlockAst import WhereBlockAst
-
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -24,11 +19,11 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     over a class.
 
     Attributes:
-        - sup_keyword: The "sup" keyword token.
-        - generic_parameters: The generic parameters of the superimposition.
-        - identifier: The identifier of the superimposition.
-        - where_block: The where block of the superimposition.
-        - body: The body of the superimposition.
+        sup_keyword: The "sup" keyword token.
+        generic_parameters: The generic parameters of the superimposition.
+        identifier: The identifier of the superimposition.
+        where_block: The where block of the superimposition.
+        body: The body of the superimposition.
     """
 
     sup_keyword: "TokenAst"
@@ -39,6 +34,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def __post_init__(self):
         # Set the default values for the optional attributes
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
 

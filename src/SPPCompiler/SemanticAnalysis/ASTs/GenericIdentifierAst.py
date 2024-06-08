@@ -27,15 +27,19 @@ class GenericIdentifierAst(Ast):
     generic_arguments: Optional[GenericArgumentGroupAst]
 
     def __post_init__(self):
-        self.generic_arguments = self.generic_arguments or GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [], TokenAst.dummy(TokenType.TkBrackR))
+        self.generic_arguments = self.generic_arguments or GenericArgumentGroupAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the GenericIdentifierAst.
         s = ""
         s += f"{self.value}"
-        s += f"{self.generic_arguments.print(printer)}" if self.generic_arguments else ""
+        s += f"{self.generic_arguments.print(printer)}" if self.generic_arguments.arguments else ""
         return s
+
+    def to_identifier(self) -> "IdentifierAst":
+        from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
+        return IdentifierAst(self.pos, self.value)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value and generic arguments.

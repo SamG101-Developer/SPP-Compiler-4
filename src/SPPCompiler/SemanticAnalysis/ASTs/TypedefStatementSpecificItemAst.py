@@ -4,9 +4,6 @@ from typing import Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemAliasAst import TypedefStatementSpecificItemAliasAst
-
 
 @dataclass
 class TypedefStatementSpecificItemAst(Ast):
@@ -16,12 +13,12 @@ class TypedefStatementSpecificItemAst(Ast):
     allows the use of "NewType" as an alias for "namespace.OldType".
 
     Attributes:
-        - old_type: The old type.
-        - alias: The alias of the old type.
+        old_type: The old type.
+        alias: The alias of the old type.
     """
 
-    old_type: TypeAst
-    alias: Optional[TypedefStatementSpecificItemAliasAst]
+    old_type: "TypeAst"
+    alias: Optional["TypedefStatementSpecificItemAliasAst"]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
