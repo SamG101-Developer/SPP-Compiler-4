@@ -356,3 +356,103 @@ class SemanticErrors:
             message="Cannot instantiate a generic type.",
             tip="Ensure the type is not a generic type.")
         return exception
+
+    @staticmethod
+    def MISSING_ARGUMENT(ast: Ast, arg: Ast, what: str, item: str) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message=f"{what.title()} declared here",
+            message=f"Missing attribute '{arg}' in {what}",
+            tip=f"Give the missing {item} a value")
+        return exception
+
+    @staticmethod
+    def UNCALLABLE_TYPE(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Object '{ast}' is not callable.",
+            message=f"Uncallable object",
+            tip="Only identifiers can be called.")
+        return exception
+
+    @staticmethod
+    def TOO_MANY_ARGUMENTS(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Extra arguments provided.",
+            message="Too many arguments provided",
+            tip="Ensure the correct number of arguments are provided.")
+        return exception
+
+    @staticmethod
+    def NO_VALID_OVERLOADS(ast: Ast, signatures: str) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message="No valid overloads found.",
+            message="No valid overloads found for function with signatures.",
+            tip=f"Ensure the function is called with the correct arguments. Available Signatures:\n{signatures}")
+        return exception
+
+    @staticmethod
+    def NUMERICAL_MEMBER_ACCESS_TYPE(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"Type inferred as '{lhs_ty}'")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            message="Numeric member access requires a tuple type",
+            tag_message=f"Numeric member access found here",
+            tip="Use a tuple type for numeric member access")
+        return exception
+
+    @staticmethod
+    def NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"Type inferred as '{lhs_ty}' ({len(lhs_ty.type.parts[-1].generic_arguments.arguments)} elements)")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            message="Numeric member access out of bounds",
+            tag_message=f"Numeric member access found here to element {rhs}",
+            tip=f"Use a valid index for numeric member access (< {len(lhs_ty.type.parts[-1].generic_arguments.arguments)})")
+        return exception
+
+    @staticmethod
+    def MEMBER_ACCESS_GENERIC_TYPE(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"Type inferred as '{lhs_ty}' (generic)")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            message="Cannot access attributes on unconstrained generic types",
+            tag_message=f"Attribute '{rhs}' accessed here",
+            tip="Constrain the generic type to allow attribute access")
+        return exception
+
+    @staticmethod
+    def MEMBER_ACCESS_NON_EXISTENT(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos,
+            tag_message=f"Type inferred as '{lhs_ty}'")
+        exception.add_error(
+            pos=rhs.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            message="Undefined attribute",
+            tag_message=f"Attribute '{rhs}' accessed here",
+            tip="Check for typos or define the attribute")
+        return exception

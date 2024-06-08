@@ -51,6 +51,7 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is
         # because the condition fragment is combined with the branch fragments, and "1 == == 2" is invalid.
+        kwargs |= {"condition": self.condition}
         for branch in self.branches:
             branch.do_semantic_analysis(scope_handler, **kwargs)
 

@@ -13,4 +13,5 @@ type PatternVariantNestedAst = (
         PatternVariantLiteralAst |
         PatternVariantSkipArgumentAst)
 
+
 __all__ = ["PatternVariantNestedAst"]

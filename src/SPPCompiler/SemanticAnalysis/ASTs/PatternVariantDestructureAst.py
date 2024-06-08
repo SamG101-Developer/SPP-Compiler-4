@@ -2,12 +2,10 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -19,10 +17,10 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     "y".
 
     Attributes:
-        - class_type: The class type being destructured.
-        - bracket_l_token: The left bracket token.
-        - items: The items being destructured.
-        - bracket_r_token: The right bracket token.
+        class_type: The class type being destructured.
+        bracket_l_token: The left bracket token.
+        items: The items being destructured.
+        bracket_r_token: The right bracket token.
     """
 
     class_type: "TypeAst"
@@ -41,15 +39,16 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def convert_to_variable(self) -> "LocalVariableDestructureAst":
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableDestructureAst import LocalVariableDestructureAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAssignmentAst import PatternVariantVariableAssignmentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LocalVariableDestructureAst, PatternVariantSkipArgumentAst, PatternVariantVariableAssignmentAst,
+            PatternVariantVariableAst)
 
         # Convert inner patterns to variables.
-        converted_items = Seq(self.items)\
-            .filter_to_type(PatternVariantVariableAssignmentAst, PatternVariantSkipArgumentAst, PatternVariantVariableAst)\
-            .map(lambda i: i.convert_to_variable())
+        converted_items = Seq(self.items).filter_to_type(
+            PatternVariantVariableAssignmentAst,
+            PatternVariantSkipArgumentAst,
+            PatternVariantVariableAst
+        ).map(lambda i: i.convert_to_variable())
 
         # Return the new LocalVariableDestructureAst.
         bindings = LocalVariableDestructureAst(
@@ -63,8 +62,7 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-        from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
-        from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+        from SPPCompiler.SemanticAnalysis.ASTs import LetStatementInitializedAst, TokenAst
 
         # Convert the destructuring pattern into a variable, and analyse it.
         bindings = self.convert_to_variable()

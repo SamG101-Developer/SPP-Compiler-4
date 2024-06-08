@@ -1,12 +1,10 @@
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
@@ -16,7 +14,7 @@ class PatternVariantLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     value to a literal value. For example, "case point then == 1" would compare "point" to "1".
 
     Attributes:
-        - literal: The literal being compared to.
+        literal: The literal being compared to.
     """
 
     literal: "LiteralAst"

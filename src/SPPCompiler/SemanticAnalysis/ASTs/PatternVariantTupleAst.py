@@ -2,12 +2,10 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -17,6 +15,11 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
     The PatternVariantTupleAst node represents a tuple destructuring pattern on a conditional branch. This is used to
     match a tuple of values to a tuple of patterns. For example, "== (1, (2, 3), a)" would match a tuple of 3 elements,
     where the 2nd element is a tuple of 2 elements, and the 3rd element is anything, bound to "a".
+
+    Attributes:
+        paren_l_token: The left parenthesis token.
+        items: The items being destructured.
+        paren_r_token: The right parenthesis token.
     """
 
     paren_l_token: "TokenAst"
@@ -32,11 +35,9 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def convert_to_variable(self) -> "LetStatementInitializedAst":
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableTupleAst import LocalVariableTupleAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantLiteralAst import PatternVariantLiteralAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAssignmentAst import PatternVariantVariableAssignmentAst
-        from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LocalVariableTupleAst, PatternVariantLiteralAst, PatternVariantSkipArgumentAst,
+            PatternVariantVariableAssignmentAst, PatternVariantVariableAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(

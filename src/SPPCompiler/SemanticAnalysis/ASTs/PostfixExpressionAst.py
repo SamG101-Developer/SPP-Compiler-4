@@ -31,7 +31,9 @@ class PostfixExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        ...
+        # Analyse the LHS and the operator.
+        self.lhs.do_semantic_analysis(scope_handler, **kwargs)
+        self.op.do_semantic_analysis(scope_handler, lhs=self.lhs, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # Infer the type of the operator applied over the LHS.

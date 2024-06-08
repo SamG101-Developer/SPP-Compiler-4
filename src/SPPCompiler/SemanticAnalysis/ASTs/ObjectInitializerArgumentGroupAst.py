@@ -42,9 +42,6 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         # Analyse the arguments of the object initializer.
         Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
-        # This method sometimes needs to be called to ensure certain checks, but the rest of the semantic analysis also
-        # handles the symbols' memory state, which isn't desired here.
-
         # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
         named_arguments = Seq(self.arguments).map(lambda a: a.identifier)
         if named_arguments.contains_duplicates():
@@ -78,11 +75,11 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
         # Check all the arguments are attributes of the class.
         if invalid_arguments := argument_identifiers.set_subtract(attribute_identifiers):
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers, "attribute")
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers.value, "attribute")
 
         # Check all the attributes have been assigned a value.
         if not def_argument and (missing_arguments := attribute_identifiers.set_subtract(argument_identifiers)):
-            raise SemanticErrors.MISSING_OBJECT_INITLIAZER_ARGUMENT(missing_arguments[0])
+            raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "object initializer", "attribute")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ObjectInitializerArgumentNamedAst

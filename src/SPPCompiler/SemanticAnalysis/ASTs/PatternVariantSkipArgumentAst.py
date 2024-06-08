@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
-
 
 @dataclass
 class PatternVariantSkipArgumentAst(Ast):
@@ -14,10 +12,10 @@ class PatternVariantSkipArgumentAst(Ast):
     "case point then == Point(x, ..)" would destructure the "point" into "x" and skip the other fields like "y" and "z".
 
     Attributes:
-        - variadic_token: The variadic token.
+        variadic_token: The variadic token.
     """
 
-    variadic_token: TokenAst
+    variadic_token: "TokenAst"
 
     def convert_to_variable(self) -> "LocalVariableSkipArgumentAst":
         from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import LocalVariableSkipArgumentAst

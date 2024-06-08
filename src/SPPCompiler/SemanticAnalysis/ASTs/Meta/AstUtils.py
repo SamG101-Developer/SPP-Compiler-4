@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict
 
 from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 def infer_generics_types(
@@ -45,4 +46,4 @@ def infer_generics_types(
     return inferred_generic_arguments | explicit_generic_arguments
 
 
-__all__ = ["AstUtils"]
+__all__ = ["infer_generics_types"]
