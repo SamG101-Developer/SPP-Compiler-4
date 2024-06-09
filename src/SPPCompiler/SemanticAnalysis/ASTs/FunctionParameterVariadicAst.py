@@ -60,7 +60,7 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalyser):
 
     def identifier_for_param(self) -> "IdentifierAst":
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
-        return IdentifierAst(self.pos, "UNMATCHABLE")
+        return IdentifierAst(self.pos, "variadic parameter")
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.

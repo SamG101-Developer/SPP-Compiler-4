@@ -58,7 +58,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
             IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst,
-            FunctionArgumentNormalAst, GenericArgumentNormalAst, GenericArgumentNamedAst)
+            FunctionArgumentNormalAst, GenericArgumentNormalAst, GenericArgumentNamedAst, FunctionParameterVariadicAst,
+            TupleLiteralAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
@@ -107,13 +108,26 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     parameter_identifiers.remove(argument.identifier)
 
                 # Check too many arguments haven't been passed to the function.
-                if arguments.length > len(function_overload.parameters.parameters):
+                is_variadic_function = isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
+                if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
                     raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
                 # Convert all anonymous arguments to named arguments (in the function being called).
-                for argument in arguments.filter_to_type(FunctionArgumentNormalAst):
-                    new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
-                    arguments.replace(argument, new_argument)
+                for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
+                    if is_variadic_function and parameter_identifiers.length == 1:
+                        # value is a tuple of the remaining arguments
+                        variadic_value = TupleLiteralAst(
+                            pos=argument.pos,
+                            paren_l_token=TokenAst.dummy(TokenType.TkParenL),
+                            items=arguments[j:].map(lambda a: a.value).value,
+                            paren_r_token=TokenAst.dummy(TokenType.TkParenR))
+                        new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers[0], TokenAst.dummy(TokenType.TkAssign), argument.convention, variadic_value)
+                        arguments = arguments[:j]
+                        arguments.append(new_argument)
+                        break
+                    else:
+                        new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
+                        arguments.replace(argument, new_argument)
                 self.arguments.arguments = arguments.value
 
                 # Convert all anonymous generic arguments to named generic arguments (in the function being called).
@@ -222,10 +236,20 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 arguments = Seq(arguments).sort(key=lambda a: parameter_identifiers.index(a.identifier))
                 for j, (argument, parameter) in arguments.zip(parameter_identifiers).enumerate():
                     argument_type = argument.infer_type(scope_handler, **kwargs)
-                    parameter_type = InferredType(convention=type(function_overload.parameters.parameters[j].convention), type=function_overload.parameters.parameters[j].type_declaration)
+                    parameter_type = InferredType(
+                        convention=type(function_overload.parameters.parameters[j].convention),
+                        type=function_overload.parameters.parameters[j].type_declaration)
 
                     argument_symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
-                    if not argument_type.symbolic_eq(parameter_type, scope_handler):
+                    # For the variadic parameter, check all the argument type's tuple-elements match the parameter type.
+                    if is_variadic_function and j == parameter_identifiers.length - 1:
+                        for variadic_argument in argument.value.items:
+                            tuple_element_type = variadic_argument.infer_type(scope_handler, **kwargs)
+                            if not tuple_element_type.symbolic_eq(parameter_type, scope_handler):
+                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f"for '{parameter.value}'")
+
+                    # Otherwise, check the argument type directly matches the parameter type.
+                    elif not argument_type.symbolic_eq(parameter_type, scope_handler):
                         raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f"for '{parameter.value}'")
 
                 # If the function call is valid, then add it to the list of valid overloads.
