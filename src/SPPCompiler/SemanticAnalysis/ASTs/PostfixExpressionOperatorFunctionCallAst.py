@@ -216,7 +216,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                     argument_symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
                     if not argument_type.symbolic_eq(parameter_type, scope_handler):
-                        raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol)
+                        raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f"for '{parameter.value}'")
 
                 # If the function call is valid, then add it to the list of valid overloads.
                 valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))
