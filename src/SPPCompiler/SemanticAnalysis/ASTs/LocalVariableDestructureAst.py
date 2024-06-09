@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorType
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -36,7 +37,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableSkipArgumentAst, LocalVariableSingleAst, LocalVariableAssignmentAst,
+            LocalVariableSkipArgumentAst, LocalVariableSingleAst, LocalVariableAssignmentAst, ConventionMovAst,
             PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
         # Semantically analyse the class type, to make sure it exists.
@@ -46,37 +47,23 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
         # Only allow 1 multi-skip inside a tuple.
         skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentAst)
         if skips.length > 1:
-            exception = SemanticError()
-            exception.add_info(
-                pos=skips[1].pos, tag_message="Multiple skip arguments found.")
-            exception.add_error(
-                pos=skips[1].pos, error_type=SemanticErrorType.ORDER_ERROR,
-                tag_message="Multiple skip arguments in a tuple.",
-                message="Only one skip argument is allowed in a tuple.",
-                tip="Remove the additional skip argument.")
-            raise exception
+            raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
 
-        for current_local_variable in self.items:
+        # Check the RHS is the same type as the class type.
+        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(kwargs["value"].infer_type(scope_handler, **kwargs), scope_handler):
+            lhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.class_type)
+            raise SemanticErrors.TYPE_MISMATCH(self, kwargs["value"].infer_type(scope_handler, **kwargs), self.class_type, lhs_symbol)
+
+        nested_destructures = []
+        for current_local_variable in Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst):
             # Don't allow the unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
             if isinstance(current_local_variable, LocalVariableSingleAst) and current_local_variable.unpack_token:
-                exception = SemanticError()
-                exception.add_error(
-                    pos=current_local_variable.unpack_token.pos, error_type=SemanticErrorType.ORDER_ERROR,
-                    tag_message="Unpacking token in a destructure.",
-                    message="Unpacking tokens are not allowed in a destructure.",
-                    tip="Remove the unpacking token.")
-                raise exception
+                raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable.unpack_token)
 
             # Check the given variable exists as an attribute on the type: "let p = Point(x, ..)" requires "x" to be an
             # attribute of "Point".
             if not attributes.map(lambda a: a.identifier).contains(current_local_variable.identifier):
-                exception = SemanticError()
-                exception.add_error(
-                    pos=current_local_variable.identifier.pos, error_type=SemanticErrorType.NAME_ERROR,
-                    tag_message=f"Attribute '{current_local_variable.identifier.value}' not found in type '{self.class_type.value}'.",
-                    message="Attribute not found in type.",
-                    tip="Ensure the attribute exists in the type.")
-                raise exception
+                raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).value, "attribute")
 
             # Convert the destructure into a let statement, for "let Point(x, y, z) = point".
             if isinstance(current_local_variable, LocalVariableSingleAst):
@@ -94,8 +81,10 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                     pos=self.pos,
                     let_keyword=TokenAst.dummy(TokenType.KwLet),
                     assign_to=current_local_variable,
-                    assign_token=TokenAst.dummy(TokenType.TkAssign, pos=self.pos),
+                    assign_token=TokenAst.dummy(TokenType.TkAssign),
                     value=ast_1)
+
+                nested_destructures.append(ast_2)
 
             # Convert the destructure into a let statement, for "let Vec(point=Point(x, y, z)) = vec".
             elif isinstance(current_local_variable, LocalVariableAssignmentAst):
@@ -113,16 +102,16 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                     pos=self.pos,
                     let_keyword=TokenAst.dummy(TokenType.KwLet),
                     assign_to=current_local_variable.value,
-                    assign_token=TokenAst.dummy(TokenType.TkAssign, pos=self.pos),
+                    assign_token=TokenAst.dummy(TokenType.TkAssign),
                     value=ast_1)
+
+                nested_destructures.append(ast_2)
+
+        for nested_destructure in nested_destructures:
+            nested_destructure.do_semantic_analysis(scope_handler, **kwargs)
 
         # Make sure all the attributes have been assigned to, unless there is a ".." skip.
         assigned_attributes = Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst)
-        if assigned_attributes.length < attributes.length and not skips:
-            exception = SemanticError()
-            exception.add_error(
-                pos=self.pos, error_type=SemanticErrorType.ORDER_ERROR,
-                tag_message=f"Missing attribute(s) for type '{self.class_type.value}': {attributes.join(", ")}.",
-                message="Not all attributes have been assigned to.",
-                tip="Ensure all attributes are assigned to.")
-            raise exception
+        missing_attributes = attributes.map(lambda a: a.identifier).set_subtract(assigned_attributes.map(lambda a: a.identifier))
+        if missing_attributes and not skips:
+            raise SemanticErrors.MISSING_ARGUMENT(self, missing_attributes[0], "destructure", "attribute")

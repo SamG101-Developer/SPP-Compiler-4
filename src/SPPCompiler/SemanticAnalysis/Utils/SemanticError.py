@@ -79,7 +79,7 @@ class SemanticErrors:
             tag_message=f"Variable '{lhs_symbol.name}' declared as '{lhs_type}'.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Expected type '{lhs_type}' {extra}, inferred '{rhs_type}'.",
+            tag_message=f"Expected type '{lhs_type}'{extra}, inferred '{rhs_type}'.",
             message="Type mismatch.",
             tip="Ensure the RHS type exactly matches the LHS.")
         return exception
@@ -144,8 +144,8 @@ class SemanticErrors:
             tag_message=f"{classification_ordering[difference[-2][0]]} {what} declared here.")
         exception.add_error(
             pos=difference[-1][1].pos, error_type=SemanticErrorType.ORDER_ERROR,
-            message=f"{classification_ordering[difference[-1][0]]} {what}s must follow {classification_ordering[difference[-2][0]]} {what}s.",
             tag_message=f"{classification_ordering[difference[-1][0]]} {what} declared here.",
+            message=f"{classification_ordering[difference[-2][0]]} {what}s must follow {classification_ordering[difference[-1][0]].lower()} {what}s.",
             tip=f"Ensure the ordering of {what}s are correct.")
         return exception
 
@@ -242,8 +242,8 @@ class SemanticErrors:
             pos=ast.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
             message="Optional parameters must use the by-mov convention",
-            tag_message=f"Convention '{ast}' used here.",
-            tip=f"Remove the '{ast}' convention from the parameter declaration")
+            tag_message=f"Convention '{str(ast).strip()}' used here.",
+            tip=f"Remove the '{str(ast).strip()}' convention from the parameter declaration")
         return exception
 
     @staticmethod
@@ -519,4 +519,26 @@ class SemanticErrors:
             tag_message=f"Missing generic argument for '{ast}'",
             message="Generic argument missing",
             tip="Provide a generic argument for the type.")
+        return exception
+
+    @staticmethod
+    def MULTIPLE_ARGUMENT_SKIPS(ast0: Ast, ast1: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast0.pos, tag_message="Multiple skip arguments found.")
+        exception.add_error(
+            pos=ast1.pos, error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Multiple skip arguments in a tuple.",
+            message="Only one skip argument is allowed in a tuple.",
+            tip="Remove the additional skip argument.")
+        return exception
+
+    @staticmethod
+    def UNPACKING_TOKEN_IN_DESTRUCTURE(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Unpacking token in a destructure.",
+            message="Unpacking tokens are not allowed in a destructure.",
+            tip="Remove the unpacking token.")
         return exception

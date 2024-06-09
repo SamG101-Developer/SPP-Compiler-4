@@ -56,15 +56,16 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         if self._sup_let_type is not None:
             return
 
-        kwargs |= {"value": self.value, "preprocessed": self._sup_let_type is not None, "let_ast": self}
-        self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
-
         # Check the value being assigned is initialised.
         rhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.value)
         if rhs_symbol and not rhs_symbol.memory_info.ast_initialized:
             raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
         if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
             raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
+
+        # Analyse the value being assigned to the variable.
+        kwargs |= {"value": self.value, "let_ast": self}
+        self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["LetStatementInitializedAst"]

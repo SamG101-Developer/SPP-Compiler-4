@@ -246,7 +246,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         for variadic_argument in argument.value.items:
                             tuple_element_type = variadic_argument.infer_type(scope_handler, **kwargs)
                             if not tuple_element_type.symbolic_eq(parameter_type, scope_handler):
-                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f"for '{parameter.value}'")
+                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.value}'")
 
                     # Otherwise, check the argument type directly matches the parameter type.
                     elif not argument_type.symbolic_eq(parameter_type, scope_handler):

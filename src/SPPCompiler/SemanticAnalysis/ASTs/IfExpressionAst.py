@@ -86,6 +86,7 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # The IfExpressionAst's returning type is any PatternBlockAst's returning type (all blocks will have the same).
+        kwargs |= {"condition": self.condition}
         if self.branches and self.branches[0].body.members:
             return self.branches[0].body.members[-1].infer_type(scope_handler, **kwargs)
 

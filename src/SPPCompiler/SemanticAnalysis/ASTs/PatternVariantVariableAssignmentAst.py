@@ -46,7 +46,7 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
 
         return bindings
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
         from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
@@ -57,11 +57,11 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
             let_keyword=TokenAst.dummy(TokenType.KwLet),
             assign_to=bindings,
             assign_token=TokenAst.dummy(TokenType.TkAssign),
-            value=if_condition)
+            value=kwargs["condition"])
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is "Void", as all let statements return void.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))

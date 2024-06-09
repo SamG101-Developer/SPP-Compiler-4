@@ -30,10 +30,10 @@ class PatternVariantLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         # Return the literal.
         return self.literal
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse the literal.
         self.literal.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is the literal's type.
         return self.literal.infer_type(scope_handler, **kwargs)

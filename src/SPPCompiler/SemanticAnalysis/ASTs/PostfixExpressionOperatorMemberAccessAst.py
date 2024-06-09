@@ -62,7 +62,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
         # correct type
         if isinstance(self.identifier, IdentifierAst):
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs)[1]).associated_scope
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type).associated_scope
             return InferredType(convention=ConventionMovAst, type=lhs_type_scope.get_symbol(self.identifier).type)
 
         # The numeric access needs to get the generic arguments of the left side (tuple), then get the type of the

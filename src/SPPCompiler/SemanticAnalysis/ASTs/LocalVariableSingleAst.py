@@ -36,12 +36,6 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         kwargs |= {"assignment": True}
 
-        # For let statements that are not function-ast-reductions, ensure that the memory status of the expression is
-        # correct.
-        if kwargs["preprocessed"]:
-            ...
-            # AstUtils.ensure_memory_integrity_of_expression(self, scope_handler, **kwargs)
-
         # Get the value of the local variable, and semantically analyse it. This must happen before type-inference, as
         # inferring an invalid expression could cause an error.
         value = kwargs["value"]

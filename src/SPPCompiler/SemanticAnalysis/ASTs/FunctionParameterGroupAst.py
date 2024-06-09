@@ -63,7 +63,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         # Ensure there is a maximum of 1 variadic parameter.
         variadic_parameters = Seq(self.parameters).filter_to_type(FunctionParameterVariadicAst)
         if variadic_parameters.length > 1:
-            raise SemanticErrors.MULTIPLE_VARIADIC_PARAMETERS(variadic_parameters[0].identifier, variadic_parameters[1].identifier)
+            raise SemanticErrors.MULTIPLE_VARIADIC_PARAMETERS(variadic_parameters[0].variable, variadic_parameters[1].variable)
 
         # Analyse each parameter.
         Seq(self.parameters).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))

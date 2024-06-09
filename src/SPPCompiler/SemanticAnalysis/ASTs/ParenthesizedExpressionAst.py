@@ -35,7 +35,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Analyse the expression inside the parentheses.
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # Infer the type of the expression inside the parentheses.
         return self.expression.infer_type(scope_handler, **kwargs)
 

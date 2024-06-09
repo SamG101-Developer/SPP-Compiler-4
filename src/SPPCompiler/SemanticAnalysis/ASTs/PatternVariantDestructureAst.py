@@ -60,7 +60,7 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
         return bindings
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import LetStatementInitializedAst, TokenAst
 
@@ -71,11 +71,11 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             let_keyword=TokenAst.dummy(TokenType.KwLet),
             assign_to=bindings,
             assign_token=TokenAst.dummy(TokenType.TkAssign),
-            value=if_condition)
+            value=kwargs["condition"])
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The destructuring pattern's type is the class type being destructured into.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=self.class_type)

@@ -43,10 +43,10 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
             unpack_token=self.unpack_token,
             identifier=self.identifier)
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         conversion = self.convert_to_variable()
         # todo
 
-    def infer_type(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=if_condition.infer_type(scope_handler, **kwargs).type)
+        return InferredType(convention=ConventionMovAst, type=kwargs["condition"].infer_type(scope_handler, **kwargs).type)

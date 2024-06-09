@@ -26,7 +26,7 @@ class PatternVariantElseAst(Ast, SemanticAnalyser):
         s += f"{self.else_token.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, if_condition: "ExpressionAst" = None, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         ...
 
 
