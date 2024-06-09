@@ -366,8 +366,8 @@ class SemanticErrors:
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.ORDER_ERROR,
-            tag_message=f"{what.title()} declared here",
-            message=f"Missing attribute '{arg}' in {what}",
+            tag_message=f"Missing {item} '{arg}' in {what}",
+            message=f"{what.title()} declared here",
             tip=f"Give the missing {item} a value")
         return exception
 
