@@ -64,7 +64,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Infer all the generic from arguments, and analyse the new generic-complete type. This type is required to be
         # analysed so that the type-checking of arguments can be done.
         self.class_type.parts[-1].generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
-            Seq(type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value,
+            Seq(type_symbol.type.generic_parameters.get_req()).map(lambda p: p.identifier).value,
             Seq(self.class_type.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
             Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.type_infer(scope_handler, **kwargs))).dict(),
             Seq(type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict()))

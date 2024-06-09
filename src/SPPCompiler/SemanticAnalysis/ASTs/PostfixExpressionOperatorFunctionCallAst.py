@@ -130,7 +130,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "function call", "parameter")
 
                 self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
-                    Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).value,
+                    Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).value,
                     Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict()))
