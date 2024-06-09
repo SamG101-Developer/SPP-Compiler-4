@@ -97,7 +97,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # Check there aren't any named arguments that don't match the function's parameters.
                 if invalid_arguments := named_argument_identifiers.set_subtract(parameter_identifiers):
-                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], parameter_identifiers.value, "parameter")
+                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], parameter_identifiers.map(lambda p: p.value).value, "parameter")
 
                 # Remove all named arguments from the available parameters, leaving only the unnamed parameters.
                 for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
@@ -115,7 +115,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # Check all the required parameters have been assigned a value.
                 argument_identifiers = Seq(arguments).map(lambda a: a.identifier)
-                if missing_arguments := parameter_identifiers.set_subtract(argument_identifiers):
+                required_parameter_identifiers = Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
+                if missing_arguments := required_parameter_identifiers.set_subtract(argument_identifiers):
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "function call", "parameter")
 
                 self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
