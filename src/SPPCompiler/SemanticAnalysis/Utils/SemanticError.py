@@ -491,7 +491,32 @@ class SemanticErrors:
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            message="Gen expressions can only occur inside a generator",
             tag_message=f"Gen expression found here",
+            message="Gen expressions can only occur inside a generator",
             tip="Ensure the function returns a 'GenMov', 'GenRef' or 'GenMut' type.")
-        raise exception
+        return exception
+
+    @staticmethod
+    def GENERIC_INFERRABLE(ast: Ast, orig: Ast, new: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=orig.pos,
+            tag_message=f"{ast} defined here")
+        exception.add_error(
+            pos=new.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"{ast} has been inferred by an argument",
+            message="Type redeclaration",
+            tip="Remove the redefined type, or re-name it.")
+        return exception
+
+    @staticmethod
+    def MISSING_GENERIC_ARGUMENT(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Missing generic argument for '{ast}'",
+            message="Generic argument missing",
+            tip="Provide a generic argument for the type.")
+        return exception

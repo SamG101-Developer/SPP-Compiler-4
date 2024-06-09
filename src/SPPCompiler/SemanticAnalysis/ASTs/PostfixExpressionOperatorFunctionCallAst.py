@@ -1,6 +1,6 @@
 import copy
-from dataclasses import dataclass
-from typing import Optional, Tuple, Type
+from dataclasses import dataclass, field
+from typing import Optional, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
@@ -31,6 +31,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     arguments: "FunctionArgumentGroupAst"
     fold_token: Optional["TokenAst"]
 
+    _overload: Optional[Tuple["FunctionPrototypeAst", Scope, Optional["FunctionArgumentNamedAst"]]] = field(default=None, init=False)
+
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
         self.generic_arguments = self.generic_arguments or GenericArgumentGroupAst.default()
@@ -56,7 +58,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
             IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst,
-            FunctionArgumentNormalAst)
+            FunctionArgumentNormalAst, GenericArgumentNormalAst, GenericArgumentNamedAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
@@ -83,6 +85,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
                 parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 arguments = Seq(self.arguments.arguments.copy())
+                generic_arguments = Seq(self.generic_arguments.arguments.copy())
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
                 # todo: function folding: "function(tup).."
 
@@ -112,6 +115,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
                     arguments.replace(argument, new_argument)
                 self.arguments.arguments = arguments.value
+
+                # Convert all anonymous generic arguments to named generic arguments (in the function being called).
+                generic_parameter_identifiers = Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
+                for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
+                    new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
+                    generic_arguments.replace(generic_argument, new_argument)
+                self.generic_arguments.arguments = generic_arguments.value
 
                 # Check all the required parameters have been assigned a value.
                 argument_identifiers = Seq(arguments).map(lambda a: a.identifier)
@@ -196,7 +206,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         non_generic_function_overload_scope = None
                         for scope in mock_function_sup_scopes[i][0]._children_scopes:
                             type_symbols = Seq(scope.all_symbols(True)).filter_to_type(TypeSymbol)
-                            if all([type_symbol.name in self.generic_arguments.map(lambda a: a.identifier) and type_symbol.type == scope_handler.current_scope.get_symbol(self.generic_arguments.arguments.find(lambda a: a.identifier == type_symbol.name).type).type for type_symbol in type_symbols]):
+                            if all([type_symbol.name in Seq(self.generic_arguments.arguments).map(lambda a: a.identifier) and type_symbol.type == scope_handler.current_scope.get_symbol(Seq(self.generic_arguments.arguments).find(lambda a: a.identifier == type_symbol.name).type).type for type_symbol in type_symbols]):
                                 non_generic_function_overload_scope = scope
                                 break
 
@@ -234,13 +244,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 function_overload_string = f"{function_overload}"
                 function_overload_string = function_overload_string[:function_overload_string.index("{") - 1]
                 function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index("("):]}"
-                signatures += f"\n\t{function_overload_string} ({error.additional_info[0][2]})"
+                signatures += f"\n\t{function_overload_string} ({error.additional_info[-1][2]})"
 
             raise SemanticErrors.NO_VALID_OVERLOADS(function_name, signatures)
 
         # Todo: handle multiple valid overloads. Use most precise, error for equal precision (ambiguous call).
         # Return the valid overload
-        return valid_overloads[0]
+        self._overload = valid_overloads[0]
+        return self._overload
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
@@ -260,8 +271,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
-        # owned, ie ConventionMovAst.
-        function_proto, function_scope, _ = self._get_matching_overload(scope_handler, lhs, **kwargs)
+        # owned => ConventionMovAst.
+        function_proto, function_scope, _ = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
         function_return_type = function_scope.get_symbol(function_return_type).fq_type
         return InferredType(convention=ConventionMovAst, type=function_return_type)
