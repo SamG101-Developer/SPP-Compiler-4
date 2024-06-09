@@ -56,6 +56,12 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
             ast_borrow=self.convention,
             ast_initialized=self)
 
+    def identifier_for_param(self) -> "IdentifierAst":
+        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleAst, IdentifierAst
+        match self.variable:
+            case LocalVariableSingleAst(): return self.variable.identifier
+            case _: return IdentifierAst(self.pos, "UNMATCHABLE")
+
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.
         return isinstance(other, FunctionParameterRequiredAst) and self.variable == other.variable

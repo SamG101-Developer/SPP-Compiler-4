@@ -42,9 +42,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
             raise SemanticErrors.UNKNOWN_IDENTIFIER(self, similar.value, "identifier")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionRefAst, ConventionMutAst, ConventionMovAst
 
         # Get the symbol for the identifier.
         sym = scope_handler.current_scope.get_symbol(self)

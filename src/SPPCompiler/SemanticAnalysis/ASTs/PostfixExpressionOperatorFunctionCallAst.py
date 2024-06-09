@@ -55,7 +55,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst)
+            IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst,
+            FunctionArgumentNormalAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
@@ -63,12 +64,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # Todo: change to check for Fun... super-impositions?
         match function_name:
             case IdentifierAst():
-                function_scope = scope_handler.current_scope.get_symbol(function_name.infer_type(scope_handler, **kwargs).type).associated_scope
+                function_scope = scope_handler.current_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.value}").lex(), "").parse_type().parse_once()).associated_scope
             case PostfixExpressionAst():
                 owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
                 function_scope = owner_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.op.identifier}").lex(), "").parse_type().parse_once()).associated_scope
             case _:
                 raise SemanticErrors.UNCALLABLE_TYPE(function_name)
+
+        # todo: function_scope.sup_scopes are empty
 
         mock_function_sup_scopes = function_scope.sup_scopes
         function_overloads = Seq(mock_function_sup_scopes).map(lambda s: s[1].body.members).flat()
@@ -77,20 +80,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         for i, function_overload in function_overloads.enumerate():
             try:
-                self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
-                    Seq(function_overload.generic_parameters).map(lambda p: p.identifier).value,
-                    Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.type_infer(scope_handler, **kwargs))).dict(),
-                    Seq(function_overload.parameters).map(lambda p: (p.identifier, p.type_declaration)).dict()))
-
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
-                parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier)
+                parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 arguments = Seq(self.arguments.arguments.copy())
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
                 # todo: function folding: "function(tup).."
 
                 # Create a dummy "self" argument for class method calls.
-                if self_param := function_overload.get_self():
+                if self_param := function_overload.parameters.get_self():
                     arguments.append(FunctionArgumentNamedAst(
                         pos=function_name.lhs.name,
                         identifier=IdentifierAst(pos=-1, value="self"),
@@ -107,18 +104,25 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     parameter_identifiers.remove(argument.identifier)
 
                 # Check too many arguments haven't been passed to the function.
-                if arguments.length > parameter_identifiers.length:
-                    raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length].pos)
+                if arguments.length > len(function_overload.parameters.parameters):
+                    raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
                 # Convert all anonymous arguments to named arguments (in the function being called).
-                for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
-                    new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
+                for argument in arguments.filter_to_type(FunctionArgumentNormalAst):
+                    new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
                     arguments.replace(argument, new_argument)
+                self.arguments.arguments = arguments.value
 
                 # Check all the required parameters have been assigned a value.
                 argument_identifiers = Seq(arguments).map(lambda a: a.identifier)
                 if missing_arguments := parameter_identifiers.set_subtract(argument_identifiers):
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "function call", "parameter")
+
+                self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).value,
+                    Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
+                    Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict()))
 
                 # If there are generic arguments, then create a new function overload with the generic arguments filled in.
                 # Add this to the scopes with the FunctionPrototypeAST's methods.
@@ -201,13 +205,17 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         function_overload_scope = non_generic_function_overload_scope
 
                 # Check the types of the arguments match the types of the parameters. Sort the arguments by the
-                # parameter order for easy comparison.
+                # parameter order for easy comparison. Parameters identifiers were removed from earlier to recreate the
+                # list.
+                parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 arguments = Seq(arguments).sort(key=lambda a: parameter_identifiers.index(a.identifier))
-                for j, argument, parameter in arguments.zip(parameter_identifiers).enumerate():
-                    argument_type = argument.type_infer(scope_handler, **kwargs)
-                    parameter_type = InferredType(convention=function_overload.parameters.parameters[j].convention, type=function_overload.parameters.parameters[j].type_declaration)
-                    if not argument_type.symbolic_eq(parameter_type):
-                        raise SemanticErrors.TYPE_MISMATCH(argument, argument_type, parameter_type)
+                for j, (argument, parameter) in arguments.zip(parameter_identifiers).enumerate():
+                    argument_type = argument.infer_type(scope_handler, **kwargs)
+                    parameter_type = InferredType(convention=type(function_overload.parameters.parameters[j].convention), type=function_overload.parameters.parameters[j].type_declaration)
+
+                    argument_symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
+                    if not argument_type.symbolic_eq(parameter_type, scope_handler):
+                        raise SemanticErrors.TYPE_MISMATCH(argument, argument_type, parameter_type, argument_symbol)
 
                 # If the function call is valid, then add it to the list of valid overloads.
                 valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))

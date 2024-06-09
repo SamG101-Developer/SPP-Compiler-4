@@ -267,9 +267,9 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
-            tag_message=f"{what.title()} '{ast}' does not exist in context.{closest}",
+            tag_message=f"{what.title()} '{ast}' does not exist in context.",
             message=f"Undefined {what}.",
-            tip=f"Ensure the {what} is defined.")
+            tip=f"Define the {what} in this scope.{closest}")
         return exception
 
     @staticmethod

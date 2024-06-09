@@ -81,8 +81,8 @@ class TypeAst(Ast, SemanticAnalyser):
         # Check if the base type exists.
         if not base_type_exists:
             scope = scope_handler.get_namespaced_scope(namespace) if namespace else scope_handler.current_scope
-            types = Seq(scope.all_symbols()).filter_to_type(TypeSymbol).map(lambda s: s.name).value
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, types, "type")
+            types = Seq(scope.all_symbols()).filter_to_type(TypeSymbol).map(lambda s: s.name).map(lambda t: t.parts[-1].to_identifier().value).value
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self.parts[-1].to_identifier(), types, "type")
 
         elif not this_type_exists and generic_arguments:
             # Get the symbol and scope for the base type.

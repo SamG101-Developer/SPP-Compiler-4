@@ -55,6 +55,9 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "function argument")
 
+        # Analyse each argument.
+        Seq(self.arguments).map(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
             ConventionMovAst, ConventionRefAst, ConventionMutAst,
