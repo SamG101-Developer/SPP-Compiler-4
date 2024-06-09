@@ -74,7 +74,7 @@ class SemanticErrors:
     @staticmethod
     def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType, lhs_symbol) -> SemanticError:
         exception = SemanticError()
-        exception.add_info(
+        if lhs_symbol: exception.add_info(
             pos=lhs_symbol.memory_info.ast_initialized.pos,
             tag_message=f"Variable '{lhs_symbol.name}' declared as '{lhs_type}'.")
         exception.add_error(

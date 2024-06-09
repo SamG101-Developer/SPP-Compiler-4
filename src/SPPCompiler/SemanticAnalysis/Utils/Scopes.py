@@ -44,13 +44,13 @@ class Scope:
         return symbol
 
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
 
         match name:
             case IdentifierAst():
                 identifier = name
             case PostfixExpressionAst():
-                while isinstance(name, PostfixExpressionAst): name = name.lhs
+                while isinstance(name, PostfixExpressionAst) and isinstance(name.lhs, PostfixExpressionOperatorMemberAccessAst): name = name.lhs
                 identifier = name
             case _:
                 return None

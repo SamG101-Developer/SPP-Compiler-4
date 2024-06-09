@@ -215,7 +215,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                     argument_symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
                     if not argument_type.symbolic_eq(parameter_type, scope_handler):
-                        raise SemanticErrors.TYPE_MISMATCH(argument, argument_type, parameter_type, argument_symbol)
+                        raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol)
 
                 # If the function call is valid, then add it to the list of valid overloads.
                 valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))
@@ -255,7 +255,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         else:
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
-    def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> Tuple[Type["ConventionAst"], "TypeAst"]:
+    def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
@@ -263,7 +263,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         function_proto, function_scope, _ = self._get_matching_overload(scope_handler, lhs, **kwargs)
         function_return_type = copy.deepcopy(function_proto.return_type)
         function_return_type = function_scope.get_symbol(function_return_type).fq_type
-        return ConventionMovAst, function_return_type
+        return InferredType(convention=ConventionMovAst, type=function_return_type)
 
 
 __all__ = ["PostfixExpressionOperatorFunctionCallAst"]
