@@ -66,13 +66,12 @@ class TypeAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, GenericArgumentNormalAst, GenericArgumentNamedAst, TokenAst, GenericArgumentGroupAst)
+            IdentifierAst, GenericArgumentNormalAst, GenericArgumentNamedAst, TokenAst, GenericParameterVariadicAst)
 
         # Check if this type exists both with and without the generic arguments.
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
         this_type_exists = scope_handler.current_scope.has_symbol(self)
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments.copy())
-        print("!! Analysing", self)
 
         # Check the namespace exists.  todo: identify which part of the namespace is invalid + "similar" in parent scope
         namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
@@ -80,9 +79,8 @@ class TypeAst(Ast, SemanticAnalyser):
             raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[0], [], "namespace")
 
         # Check if the base type exists.
-        namespace_scope = scope_handler.get_namespaced_scope(namespace) if namespace else None
         if not base_type_exists:
-            scope = namespace_scope if namespace else scope_handler.current_scope
+            scope = scope_handler.get_namespaced_scope(namespace) if namespace else scope_handler.current_scope
             types = Seq(scope.all_symbols()).filter_to_type(TypeSymbol).map(lambda s: s.name).value
             raise SemanticErrors.UNKNOWN_IDENTIFIER(self, types, "type")
 
@@ -90,46 +88,50 @@ class TypeAst(Ast, SemanticAnalyser):
             # Get the symbol and scope for the base type.
             base_type_symbol = scope_handler.current_scope.get_symbol(self.without_generics())
             base_type_scope  = base_type_symbol.associated_scope
-            generic_arguments.for_each(lambda g: g.type.do_semantic_analysis(scope_handler, **kwargs))
+
+            # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
+            generic_parameter_identifiers = Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
+            for i, generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst).enumerate():
+                if len(generic_parameter_identifiers) == 1 and isinstance(Seq(base_type_symbol.type.generic_parameters.parameters)[-1], GenericParameterVariadicAst):
+                    final_generic_arguments = generic_arguments.filter_to_type(GenericArgumentNormalAst)[i:].map(lambda g: g.type)
+                    identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
+                    new_argument = GenericArgumentNamedAst(generic_argument.pos, identifier, TokenAst.dummy(TokenType.TkAssign), CommonTypes.tuple(final_generic_arguments))
+                    generic_arguments.replace(generic_argument, new_argument)
+                    break
+                else:
+                    identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
+                    new_argument = GenericArgumentNamedAst(generic_argument.pos, identifier, TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
+                    generic_arguments.replace(generic_argument, new_argument)
+
+            # if self.without_generics() != CommonTypes.tuple([]):
+            #     self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
+            self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
             # Create a new scope and symbol for the generic version of the type.
             this_type_scope_name = copy.deepcopy(base_type_scope._scope_name)
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
-            this_type_scope = Scope(this_type_scope_name, namespace_scope or scope_handler.global_scope)
+            this_type_scope = Scope(this_type_scope_name, scope_handler.global_scope)
             this_type_scope._sup_scopes = base_type_scope._sup_scopes.copy()
             this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 
-            # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
-            generic_parameter_identifiers = Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
-            for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
-                new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
-                generic_arguments.replace(generic_argument, new_argument)
-            self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
-
-            # Inject the generic arguments into the new scope.
-            (namespace_scope or scope_handler.global_scope)._children_scopes.append(this_type_scope)
-            (namespace_scope or scope_handler.global_scope).add_symbol(TypeSymbol(name=self, type=this_type_cls_ast, associated_scope=this_type_scope))
-            print(f"Written symbol {self} to {(namespace_scope or scope_handler.global_scope)._scope_name}")
+            # Add the new scope and symbol to the correct parent scope.
+            scope_handler.global_scope._children_scopes.append(this_type_scope)
+            scope_handler.global_scope.add_symbol(TypeSymbol(name=self, type=this_type_cls_ast, associated_scope=this_type_scope))
 
             # Add the generic arguments mapping to the correct types into the new symbol table.
-            # if self.without_generics() != CommonTypes.tuple([]):
-            print("-" * 100)
-            print(this_type_scope._scope_name)
+            if self.without_generics() != CommonTypes.tuple([]):
+                for generic_argument in generic_arguments:
+                    this_type_scope.add_symbol(TypeSymbol(
+                        name=generic_argument.identifier,
+                        type=scope_handler.current_scope.get_symbol(generic_argument.type).type,
+                        associated_scope=scope_handler.current_scope.get_symbol(generic_argument.type).associated_scope))
 
-            for generic_argument in generic_arguments:
-                print(f"## {generic_argument.type}")
+                    for attribute_symbol in Seq(this_type_scope.all_symbols()).filter_to_type(VariableSymbol):
+                        attribute_symbol.type.substitute_generics(generic_argument.identifier, generic_argument.type)
 
-                this_type_scope.add_symbol(TypeSymbol(
-                    name=generic_argument.identifier,
-                    type=(namespace_scope or scope_handler.current_scope).get_symbol(generic_argument.type).type,
-                    associated_scope=(namespace_scope or scope_handler.current_scope).get_symbol(generic_argument.type).associated_scope))
-
-                for attribute_symbol in Seq(this_type_scope.all_symbols()).filter_to_type(VariableSymbol):
-                    attribute_symbol.type.substitute_generics(generic_argument.identifier, generic_argument.type)
-
-                for attribute in this_type_cls_ast.body.members:
-                    attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+                    for attribute in this_type_cls_ast.body.members:
+                        attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
 
     def __iter__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst

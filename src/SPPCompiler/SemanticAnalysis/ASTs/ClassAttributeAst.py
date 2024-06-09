@@ -40,7 +40,7 @@ class ClassAttributeAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
-        if self.type_declaration.symbolic_eq(CommonTypes.void(self.pos)):
+        if self.type_declaration.symbolic_eq(CommonTypes.void(self.pos), scope_handler.current_scope):
             raise SemanticErrors.INVALID_CLASS_ATTRIBUTE_TYPE(self.type_declaration)
 
 
