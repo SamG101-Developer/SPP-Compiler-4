@@ -1,3 +1,4 @@
+import re
 from typing import List
 
 from colorama import Fore, Style
@@ -75,5 +76,7 @@ class ErrorFormatter:
             f"{Fore.LIGHTWHITE_EX}{left_padding} | {Style.NORMAL}{Fore.LIGHTRED_EX if not minimal else Fore.LIGHTGREEN_EX}{carets_line_as_string}\n",
             f"{Style.RESET_ALL}{Fore.LIGHTRED_EX}{message}" * (not minimal),
         ])
+
+        # final_error_message = re.sub(r"\n", "", final_error_message, 1)
 
         return final_error_message

@@ -38,7 +38,7 @@ class SemanticError(Exception):
 
     def add_error(self, pos: int, error_type: SemanticErrorType, message: str, tag_message: str, tip: str, format_: SemanticErrorStringFormatType = SemanticErrorStringFormatType.NORMAL) -> SemanticError:
         error_type = inflection.titleize(str(error_type).rsplit(".", 1)[-1].replace("_", " "))
-        message = f"{Style.BRIGHT}{error_type}: {Style.NORMAL}{message}\n{Fore.LIGHTCYAN_EX}{Style.BRIGHT}Tip: {Style.NORMAL}{tip}"
+        message = f"\n{Style.BRIGHT}{error_type}: {Style.NORMAL}{message}\n{Fore.LIGHTCYAN_EX}{Style.BRIGHT}Tip: {Style.NORMAL}{tip}"
         self.additional_info.append((pos, message, tag_message, format_))
         return self
 
@@ -53,9 +53,9 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_error(
             pos=lhs.pos, error_type=SemanticErrorType.VALUE_ERROR,
-            tag_message=f"Found a {lhs.__class__.__name__} instead.",
-            message="The left-hand-side of an assignment statement must be a variable or attribute.",
-            tip="Ensure that the left-hand-side of the assignment is a variable or attribute.")
+            tag_message=f"Non-identifier found.",
+            message="Only identifiers can be assigned to.",
+            tip="Change the LHS to a variable or attribute.")
         return exception
 
     @staticmethod
@@ -63,22 +63,25 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             pos=lhs_symbol.memory_info.ast_initialized.pos,
-            tag_message=f"Variable {lhs_symbol.name} is declared immutable as {lhs_symbol.memory_info.ast_initialized}.")
+            tag_message=f"Variable {lhs_symbol.name} is declared immutable here.")
         exception.add_error(
             pos=lhs.pos, error_type=SemanticErrorType.VALUE_ERROR,
             tag_message=f"Assignment to immutable variable '{lhs_symbol.name}' here.",
             message="Cannot assign to an immutable variable.",
-            tip="Ensure that the variable is mutable.")
+            tip="ADd the 'mut' keyword to declare the variable as mutable.")
         return exception
 
     @staticmethod
-    def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType) -> SemanticError:
+    def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType, lhs_symbol) -> SemanticError:
         exception = SemanticError()
+        exception.add_info(
+            pos=lhs_symbol.memory_info.ast_initialized.pos,
+            tag_message=f"Variable '{lhs_symbol.name}' declared as '{lhs_type}'.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Expected type {rhs_type}, inferred {lhs_type} here.",
+            tag_message=f"Expected type '{lhs_type}', inferred '{rhs_type}'.",
             message="Type mismatch.",
-            tip="Ensure that the types match.")
+            tip="Ensure the RHS type exactly matches the LHS.")
         return exception
 
     @staticmethod
