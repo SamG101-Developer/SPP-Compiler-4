@@ -50,9 +50,9 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
 
         # Check the RHS is the same type as the class type.
-        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(kwargs["value"].infer_type(scope_handler, **kwargs), scope_handler):
-            lhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.class_type)
-            raise SemanticErrors.TYPE_MISMATCH(self, kwargs["value"].infer_type(scope_handler, **kwargs), self.class_type, lhs_symbol)
+        value_type = kwargs["value"].infer_type(scope_handler, **kwargs)
+        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(value_type, scope_handler):
+            raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
         nested_destructures = []
         for current_local_variable in Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst):
@@ -104,6 +104,12 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                     assign_to=current_local_variable.value,
                     assign_token=TokenAst.dummy(TokenType.TkAssign),
                     value=ast_1)
+
+                if not type(current_local_variable.value).__name__.startswith("Local"):
+                    value_type = current_local_variable.value.infer_type(scope_handler, **kwargs)
+                    target_type = ast_1.infer_type(scope_handler, **kwargs)
+                    if not value_type.symbolic_eq(target_type, scope_handler):
+                        raise SemanticErrors.TYPE_MISMATCH(current_local_variable, target_type, value_type)
 
                 nested_destructures.append(ast_2)
 
