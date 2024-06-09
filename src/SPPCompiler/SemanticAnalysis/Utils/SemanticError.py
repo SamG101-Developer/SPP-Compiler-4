@@ -4,7 +4,7 @@ import difflib
 import inflection
 from colorama import Fore, Style
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, TypeSymbol
@@ -72,7 +72,7 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType, lhs_symbol: VariableSymbol, extra: str = "") -> SemanticError:
+    def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType, lhs_symbol: Optional[VariableSymbol] = None, extra: str = "") -> SemanticError:
         exception = SemanticError()
         if lhs_symbol: exception.add_info(
             pos=lhs_symbol.memory_info.ast_initialized.pos,
