@@ -44,14 +44,15 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler, inline: bool = False, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
 
+        # Create a new scope and add the members to it.
+        if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
+        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
+
         # Ensure code doesn't come after a return statement at the current level.
         for i, member in Seq(self.members).enumerate():
             if isinstance(member, ReturnStatementAst) and member is not self.members[-1]:
                 raise SemanticErrors.UNREACHABLE_CODE(member, self.members[i + 1])
 
-        # Create a new scope and add the members to it.
-        if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
-        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
         if not inline: scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
