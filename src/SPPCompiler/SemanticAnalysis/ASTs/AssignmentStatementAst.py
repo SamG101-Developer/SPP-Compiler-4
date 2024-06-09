@@ -48,6 +48,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
         for lhs in self.lhs:
             lhs.do_semantic_analysis(scope_handler, **kwargs)
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(lhs)
+            lhs_symbols.append(symbol)
             if not symbol:
                 raise SemanticErrors.INVALID_LHS_EXPR(lhs)
 
