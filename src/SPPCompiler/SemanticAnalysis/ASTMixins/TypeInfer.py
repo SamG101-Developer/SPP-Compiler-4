@@ -19,7 +19,7 @@ class InferredType:
     type: TypeAst
 
     def symbolic_eq(self, other: InferredType, scope_handler: ScopeHandler) -> bool:
-        return self.convention == other.convention and self.type.symbolic_eq(other.type, scope_handler)
+        return self.convention == other.convention and self.type.symbolic_eq(other.type, scope_handler.current_scope)
 
     def __str__(self):
         return f"{self.convention}{self.type}"
