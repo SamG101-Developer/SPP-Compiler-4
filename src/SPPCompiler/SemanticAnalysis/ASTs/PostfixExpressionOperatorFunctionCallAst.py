@@ -250,6 +250,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                             if not tuple_element_type.symbolic_eq(parameter_type, scope_handler):
                                 raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.value}'")
 
+                    # Skip the self argument (type is guaranteed to be correct).
+                    elif parameter.value == "self":
+                        continue
+
                     # Otherwise, check the argument type directly matches the parameter type.
                     elif not argument_type.symbolic_eq(parameter_type, scope_handler):
                         raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.value}'")
