@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -35,9 +36,9 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LetStatementUninitializedAst, TokenAst, ConventionRefAst, ConventionMutAst)
+            ConventionRefAst, ConventionMutAst, ObjectInitializerAst, TokenAst,
+            LetStatementUninitializedAst, IdentifierAst, LetStatementInitializedAst)
 
         # Convert the parameter to a "let" statement.
         let_statement = LetStatementUninitializedAst(
@@ -46,6 +47,15 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
             assign_to=self.variable,
             colon_token=self.colon_token,
             type_declaration=self.type_declaration)
+        let_statement.do_semantic_analysis(scope_handler, **kwargs)
+        # let_statement = LetStatementInitializedAst(
+        #     pos=self.pos,
+        #     let_keyword=TokenAst.dummy(TokenType.KwLet),
+        #     assign_to=self.variable,
+        #     assign_token=TokenAst.dummy(TokenType.TkAssign),
+        #     value=ObjectInitializerAst(self.pos, self.type_declaration, None))
+
+        # kwargs["value"] = ObjectInitializerAst(self.pos, self.type_declaration, None)
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
         # Set the symbol's memory status depending on the convention.

@@ -11,7 +11,8 @@ def infer_generics_types(
         generic_parameters: list[TypeAst],
         explicit_generic_arguments: Dict[TypeAst, TypeAst],
         infer_from: Dict[IdentifierAst, TypeAst],
-        map_to: Dict[IdentifierAst, TypeAst]) -> Dict[TypeAst, TypeAst]:
+        map_to: Dict[IdentifierAst, TypeAst],
+        scope_handler: ScopeHandler) -> Dict[TypeAst, TypeAst]:
 
     """
     For the class:
@@ -32,7 +33,19 @@ def infer_generics_types(
     """
 
     # Infer all possible generic arguments.
-    inferred_generic_arguments = {map_to[identifier]: value for identifier, value in infer_from.items() if identifier in map_to.keys() and map_to[identifier] in generic_parameters}
+    inferred_generic_arguments = {}
+    for identifier, value in infer_from.items():
+        if identifier in map_to.keys() and map_to[identifier] in generic_parameters and map_to[identifier] not in inferred_generic_arguments:
+            inferred_generic_arguments[map_to[identifier]] = value
+
+    # Check no inferred generic arguments have conflicting inferred types.
+    for inferred_generic_argument in inferred_generic_arguments.keys():
+        if list(map_to.values()).count(inferred_generic_argument) > 1:
+            inferred = [infer_from[identifier] for identifier, generic in map_to.items() if map_to[identifier] in generic_parameters and generic == inferred_generic_argument]
+            for i in inferred:
+                for j in inferred:
+                    if not i.symbolic_eq(j, scope_handler.current_scope):
+                        raise SemanticErrors.CONFLICTING_GENERIC_INFERENCE(inferred_generic_argument, inferred[0], inferred[1])
 
     # Check no inferred generic arguments are already explicitly defined.
     for inferred_generic_argument in inferred_generic_arguments.keys():

@@ -147,7 +147,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).value,
                     Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
-                    Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict()))
+                    Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
+                    scope_handler))
 
                 # If there are generic arguments, then create a new function overload with the generic arguments filled in.
                 # Add this to the scopes with the FunctionPrototypeAST's methods.
@@ -268,7 +269,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 function_overload_string = f"{function_overload}"
                 function_overload_string = function_overload_string[:function_overload_string.index("{") - 1]
                 function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index("("):]}"
-                signatures += f"\n\t{function_overload_string} ({error.additional_info[-1][2]})"
+                signatures += f"\n\t{function_overload_string} {error.additional_info[-1][1]}\n"
 
             raise SemanticErrors.NO_VALID_OVERLOADS(function_name, signatures)
 

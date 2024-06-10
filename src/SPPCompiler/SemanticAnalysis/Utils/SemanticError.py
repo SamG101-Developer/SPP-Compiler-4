@@ -269,7 +269,7 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
-            tag_message=f"{what.title()} '{ast}' does not exist in context.",
+            tag_message=f"{what.title()} '{ast}' does not exist.",
             message=f"Undefined {what}.",
             tip=f"Define the {what} in this scope.{closest}")
         return exception
@@ -555,4 +555,16 @@ class SemanticErrors:
             tag_message=f"Assignment value contains {rhs_c} items.",
             message="The length of the tuple does not match the length of the other tuple.",
             tip="Ensure that the tuple has the same number of items as the other tuple.")
+        return exception
+
+    @staticmethod
+    def CONFLICTING_GENERIC_INFERENCE(what: Ast, existing: Ast, conflicting: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=existing.pos, tag_message=f"'{what}' inferred here as '{existing}'.")
+        exception.add_error(
+            pos=conflicting.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"'{what}' inferred here as '{conflicting}'.",
+            message="Conflicting generic inference.",
+            tip="Ensure that the inferred generic arguments are unique.")
         return exception

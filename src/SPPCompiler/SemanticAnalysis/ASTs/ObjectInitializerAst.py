@@ -63,8 +63,9 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         self.class_type.parts[-1].generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
             Seq(type_symbol.type.generic_parameters.get_req()).map(lambda p: p.identifier).value,
             Seq(self.class_type.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-            Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.value.infer_type(scope_handler, **kwargs))).dict(),
-            Seq(type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict()))
+            Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.value.infer_type(scope_handler, **kwargs).type)).dict(),
+            Seq(type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict(),
+            scope_handler))
         self.class_type.do_semantic_analysis(scope_handler, **kwargs)
 
         # Type-check the arguments of the object initializer.
