@@ -171,7 +171,7 @@ class TypeAst(Ast, SemanticAnalyser):
         that_scope = that_scope or this_scope
         this_type = this_scope.get_symbol(self).type
         that_type = that_scope.get_symbol(that).type
-        return this_type == that_type
+        return this_type is that_type
 
     def __hash__(self):
         return int.from_bytes(hashlib.md5("".join([str(p) for p in self.parts]).encode()).digest())
