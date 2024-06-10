@@ -48,7 +48,7 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
         # Get the expression's type and its type scope's superimposed scopes.
-        expression_type = self.expression.infer_type(scope_handler, **kwargs).type
+        expression_type = self.expression.infer_type(scope_handler, **kwargs).type_symbol.fq_type
         expression_type_sup_types = scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes
 
         # Ensure the expression's type superimposes the "CtxRef" or "CtxMut" type.
@@ -67,4 +67,6 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Return the final expression's type, or "Void" for an empty body.
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler, **kwargs)
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void(pos=self.pos)))

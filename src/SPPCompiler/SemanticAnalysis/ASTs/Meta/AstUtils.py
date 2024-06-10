@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Dict
 
 from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 
 
 def infer_generics_types(

@@ -48,7 +48,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
 
         # Ensure that the tuple has the same number of items as the other tuple.
         lhs_tuple_elements = self.items
-        rhs_tuple_elements = kwargs["value"].infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
+        rhs_tuple_elements = kwargs["value"].infer_type(scope_handler, **kwargs).type_symbol.fq_type.parts[-1].generic_arguments.arguments
         if len(lhs_tuple_elements) < len(rhs_tuple_elements) and not skips:
             raise SemanticErrors.TUPLE_SIZE_MISMATCH(self, kwargs["value"], len(lhs_tuple_elements), len(rhs_tuple_elements))
 

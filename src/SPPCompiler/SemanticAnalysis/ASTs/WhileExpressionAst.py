@@ -39,22 +39,22 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        
         # Analyse the condition
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
     
         # Ensure the condition it evaluates to a Bool type.
-        condition_type = self.condition.infer_type(scope_handler, **kwargs).type
-        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
+        condition_type = self.condition.infer_type(scope_handler, **kwargs).type_symbol
+        target_type = scope_handler.current_scope.get_symbol(CommonTypes.bool())
         if not condition_type.symbolic_eq(target_type):
-            raise SemanticErrors.TYPE_MISMATCH(self.condition, target_type, condition_type)
+            raise SemanticErrors.TYPE_MISMATCH(self.condition, target_type.name, condition_type)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
         # The resulting type of a loop is always "Void", because it never returns (dummy value).
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void(pos=self.pos)))
 
 
 __all__ = ["WhileExpressionAst"]

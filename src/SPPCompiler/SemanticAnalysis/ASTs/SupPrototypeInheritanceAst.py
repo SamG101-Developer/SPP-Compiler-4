@@ -52,7 +52,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope

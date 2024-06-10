@@ -43,9 +43,10 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
 
         # Create a variable symbol for the local variable and add it to the current scope. Set the initialization AST to
         # the "let" statement AST that contains this local variable.
+        print("VV", value.infer_type(scope_handler, **kwargs), "DONE")
         symbol = VariableSymbol(
             name=self.identifier,
-            type=value.infer_type(scope_handler, **kwargs).type,
+            type=value.infer_type(scope_handler, **kwargs).type_symbol.fq_type,
             is_mutable=self.is_mutable is not None,
             memory_info=MemoryStatus(ast_initialized=self))
         scope_handler.current_scope.add_symbol(symbol)

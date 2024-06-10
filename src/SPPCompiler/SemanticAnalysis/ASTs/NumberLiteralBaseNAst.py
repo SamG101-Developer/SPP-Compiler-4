@@ -52,11 +52,17 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
         # The string literal's type is either `std.BigNum` or `std.BigDec` if no explicit type is given, otherwise it is
         # the explicit type.
         if self.type:
-            return InferredType(convention=ConventionMovAst, type=self.type)
+            return InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(self.type))
         if self.value.token.token_type == TokenType.LxDecDecimal:
-            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_dec(self.pos))
+            return InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.big_dec(self.pos)))
         else:
-            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_int(self.pos))
+            return InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.big_int(self.pos)))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same type.

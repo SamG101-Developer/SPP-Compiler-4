@@ -45,7 +45,9 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # The type is a Fut[T] where T is the return type of the function call.
         # TODO: this will cause an error, because the RHS hasn't been analysed yet
         future_type = CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs)[1], pos=self.pos)
-        return InferredType(convention=ConventionMovAst, type=future_type)
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(future_type))
 
 
 __all__ = ["UnaryExpressionAst"]

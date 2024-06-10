@@ -101,7 +101,9 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             # are the values, and for shorthand: "Point(x, y)", the arguments are the identifiers.
             argument = argument.value if isinstance(argument, ObjectInitializerArgumentNamedAst) else argument.identifier
             argument_type = argument.infer_type(scope_handler)
-            attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
+            attribute_type = InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(attribute.type_declaration))
 
             # Compare the types of the argument and the attribute.
             if not argument_type.symbolic_eq(attribute_type, scope_handler):

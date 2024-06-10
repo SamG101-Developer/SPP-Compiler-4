@@ -69,6 +69,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             if len(self.lhs) == 1:
                 lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
                 rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+                print(self.lhs[0], self.rhs, lhs_type.type_symbol.fq_type, rhs_type.type_symbol.fq_type)
                 if not lhs_type.symbolic_eq(rhs_type, scope_handler):
                     raise SemanticErrors.TYPE_MISMATCH(self.rhs, lhs_type, rhs_type, lhs_symbol)
             else:
@@ -92,7 +93,9 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Assignment never returns anything, so return the Void type. This is so that the memory rules of the language
         # can be adhered to.
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void()))
 
 
 __all__ = ["AssignmentStatementAst"]

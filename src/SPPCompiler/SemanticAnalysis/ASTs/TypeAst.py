@@ -125,7 +125,8 @@ class TypeAst(Ast, SemanticAnalyser):
                     this_type_scope.add_symbol(TypeSymbol(
                         name=generic_argument.identifier,
                         type=scope_handler.current_scope.get_symbol(generic_argument.type).type,
-                        associated_scope=scope_handler.current_scope.get_symbol(generic_argument.type).associated_scope))
+                        associated_scope=scope_handler.current_scope.get_symbol(generic_argument.type).associated_scope,
+                        is_generic=True))
 
                     for attribute_symbol in Seq(this_type_scope.all_symbols()).filter_to_type(VariableSymbol):
                         attribute_symbol.type.substitute_generics(generic_argument.identifier, generic_argument.type)

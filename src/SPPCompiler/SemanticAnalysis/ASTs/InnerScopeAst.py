@@ -59,7 +59,10 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
         # The returning type of a scope is the final expression in the "self.members" list.
         if self.members:
             return self.members[-1].infer_type(scope_handler, **kwargs)
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
+        
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void()))
 
 
 __all__ = ["InnerScopeAst"]

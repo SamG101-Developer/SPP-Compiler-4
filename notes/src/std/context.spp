@@ -3,15 +3,19 @@ mod std.context
 
 cls CtxRef[Out] { }
 
+##
 sup [Out] CtxRef[Out] {
     fun enter(&self) -> Out { }
     fun exit(&self) -> Void { }
 }
+##
 
 
 cls CtxMut[Out] { }
 
+##
 sup [Out] CtxMut[Out] {
     fun enter(&mut self) -> Out { }
     fun exit(&mut self) -> Void { }
 }
+##

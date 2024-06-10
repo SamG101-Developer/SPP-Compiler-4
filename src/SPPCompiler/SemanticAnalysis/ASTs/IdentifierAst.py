@@ -53,7 +53,12 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         else: convention = ConventionMovAst
 
         # Return the convention and the type of the identifier.
-        return InferredType(convention=convention, type=sym.type)
+
+        print("III", self, sym.type)
+
+        return InferredType(
+            convention=convention,
+            type_symbol=scope_handler.current_scope.get_symbol(sym.type))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value.

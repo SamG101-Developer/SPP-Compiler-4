@@ -47,7 +47,9 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalyser, TypeInfer):
             case ConventionMovAst(), that_convention: convention = that_convention
             case self_convention, _: convention = type(self_convention)
 
-        return InferredType(convention=convention, type=self.value.infer_type(scope_handler, **kwargs).type)
+        return InferredType(
+            convention=convention,
+            type_symbol=self.value.infer_type(scope_handler, **kwargs).type_symbol)
 
 
 __all__ = ["FunctionArgumentNormalAst"]

@@ -32,7 +32,9 @@ class BooleanLiteralAst(Ast, SemanticAnalyser, TypeInfer):
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.bool(self.pos))
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.bool(self.pos)))
 
 
 __all__ = ["BooleanLiteralAst"]

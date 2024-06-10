@@ -64,7 +64,9 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is "Void", as all let statements return void.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void(self.pos)))
 
 
 __all__ = ["PatternVariantVariableAssignmentAst"]

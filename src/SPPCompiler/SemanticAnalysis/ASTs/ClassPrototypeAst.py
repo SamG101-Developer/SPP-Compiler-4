@@ -79,7 +79,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
         # attributes may rely on these generic types. Build VariableSymbols for each attribute of the class. Add "Self"
         # as a TypeSymbol pointing to the current class.
         scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self(), type=self))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: scope_handler.current_scope.add_symbol(VariableSymbol(name=m.identifier, type=m.type_declaration)))
 
         # Move back into the parent scope.

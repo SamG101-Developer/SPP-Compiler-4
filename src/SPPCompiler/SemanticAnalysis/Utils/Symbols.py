@@ -62,6 +62,7 @@ class TypeSymbol(Symbol):
     name: TypeAst
     type: Optional[ClassPrototypeAst]  # None for generic types
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
+    is_generic: bool = dataclasses.field(default=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TypeAst
@@ -77,6 +78,9 @@ class TypeSymbol(Symbol):
 
     @property
     def fq_type(self) -> TypeAst:
+        if self.is_generic:
+            return self.name
+
         associated_scope = self.associated_scope._parent_scope
         fq_type = copy.deepcopy(self.name)
         while associated_scope._parent_scope is not None:

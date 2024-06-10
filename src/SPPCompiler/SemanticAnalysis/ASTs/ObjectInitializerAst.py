@@ -63,7 +63,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         self.class_type.parts[-1].generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
             Seq(type_symbol.type.generic_parameters.get_req()).map(lambda p: p.identifier).value,
             Seq(self.class_type.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-            Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.value.infer_type(scope_handler, **kwargs).type)).dict(),
+            Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.value.infer_type(scope_handler, **kwargs).type_symbol.fq_type)).dict(),
             Seq(type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict(),
             scope_handler))
         self.class_type.do_semantic_analysis(scope_handler, **kwargs)
@@ -72,10 +72,11 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        # The returning type of the object initializer is the constructed object's type.
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
-
-        # The returning type of the object initializer is the type of the object being constructed.
-        return InferredType(convention=ConventionMovAst, type=self.class_type)
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(self.class_type))
 
 
 __all__ = ["ObjectInitializerAst"]

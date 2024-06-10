@@ -91,7 +91,9 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             return self.branches[0].body.members[-1].infer_type(scope_handler, **kwargs)
 
         # If there are no statements then every PatternBlockAst is returning the `Void` type.
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.void()))
 
 
 __all__ = ["IfExpressionAst"]

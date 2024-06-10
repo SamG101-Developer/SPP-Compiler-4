@@ -32,7 +32,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst
-        lhs_type = lhs.infer_type(scope_handler, **kwargs).type
+        lhs_type = lhs.infer_type(scope_handler, **kwargs).type_symbol.fq_type
 
         # Numeric member access.
         if isinstance(self.identifier, TokenAst):
@@ -46,7 +46,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Identifier member access.
         if isinstance(self.identifier, IdentifierAst):
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type).associated_scope
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type_symbol.fq_type).associated_scope
 
             # Check if the left side is a generic type.
             if not lhs_type_scope:
@@ -62,14 +62,18 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
         # correct type
         if isinstance(self.identifier, IdentifierAst):
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type).associated_scope
-            return InferredType(convention=ConventionMovAst, type=lhs_type_scope.get_symbol(self.identifier).type)
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type_symbol.fq_type).associated_scope
+            return InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(lhs_type_scope.get_symbol(self.identifier).type))
 
         # The numeric access needs to get the generic arguments of the left side (tuple), then get the type of the
         # correct element.
         elif isinstance(self.identifier, TokenAst):
             lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            return InferredType(convention=ConventionMovAst, type=lhs_type.type.parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type)
+            return InferredType(
+                convention=ConventionMovAst,
+                type_symbol=scope_handler.current_scope.get_symbol(lhs_type.type.parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.

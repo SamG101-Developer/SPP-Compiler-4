@@ -58,9 +58,11 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
         # The tuple's type is `std.Tup[...Ts]` where `Ts` is the collection of types in the tuple.
-        tuple_type = CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs).type).value, pos=self.pos)
+        tuple_type = CommonTypes.tuple(Seq(self.items).map(lambda i: i.infer_type(scope_handler, **kwargs).type_symbol.fq_type).value, pos=self.pos)
         tuple_type.do_semantic_analysis(scope_handler, **kwargs)
-        return InferredType(convention=ConventionMovAst, type=tuple_type)
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(tuple_type))
 
 
 __all__ = ["TupleLiteralAst"]

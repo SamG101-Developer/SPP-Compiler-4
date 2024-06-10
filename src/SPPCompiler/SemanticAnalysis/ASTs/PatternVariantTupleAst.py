@@ -73,4 +73,6 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=kwargs["condition"].infer_type(scope_handler, **kwargs).type)
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=kwargs["condition"].infer_type(scope_handler, **kwargs).type_symbol)

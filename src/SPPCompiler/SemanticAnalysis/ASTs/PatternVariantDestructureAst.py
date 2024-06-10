@@ -78,7 +78,9 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The destructuring pattern's type is the class type being destructured into.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=self.class_type)
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(self.class_type))
 
 
 __all__ = ["PatternVariantDestructureAst"]

@@ -60,17 +60,18 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
         match self.convention, self.expression.infer_type(scope_handler, **kwargs).convention:
             case ConventionMovAst(), that_convention: given_yield_convention = that_convention
             case self_convention, _: given_yield_convention = type(self.convention)
+        
         given_yield_type = InferredType(
-            type=self.expression.infer_type(scope_handler, **kwargs).type,
-            convention=given_yield_convention)
+            convention=given_yield_convention,
+            type_symbol=self.expression.infer_type(scope_handler, **kwargs).type_symbol)
 
         # Check the yielded convention and type matches the coroutine's return type.
         target_yield_type = InferredType(
             convention=coroutine_ret_type.parts[-1].generic_arguments["Yield"],
-            type=CommonTypes.type_variant_to_convention(coroutine_ret_type.parts[-1]))
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.type_variant_to_convention(coroutine_ret_type.parts[-1])))
 
         if not given_yield_type.symbolic_eq(target_yield_type, scope_handler):
-            raise SemanticErrors.TYPE_MISMATCH(self, given_yield_type.type, target_yield_type.type)
+            raise SemanticErrors.TYPE_MISMATCH(self, given_yield_type.type_symbol.name, target_yield_type.type_symbol.name)
 
 
 __all__ = ["YieldExpressionAst"]

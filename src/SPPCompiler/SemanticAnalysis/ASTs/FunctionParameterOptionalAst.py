@@ -67,7 +67,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
 
         # Analyse the default value
         self.default_value.do_semantic_analysis(scope_handler, **kwargs)
-        default_value_type = self.default_value.infer_type(scope_handler, **kwargs).type
+        default_value_type = self.default_value.infer_type(scope_handler, **kwargs).type_symbol.fq_type
         if not self.type_declaration.symbolic_eq(default_value_type, scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH(self, self.type_declaration, default_value_type, symbol)
 

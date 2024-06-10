@@ -31,6 +31,9 @@ class StringLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         assert self.value.token.token_type == TokenType.LxDoubleQuoteStr
 
-    def infer_type(self, scope_handler, **kwargs) -> InferredType:
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.str(pos=self.pos))
+        
+        return InferredType(
+            convention=ConventionMovAst,
+            type_symbol=scope_handler.current_scope.get_symbol(CommonTypes.str(pos=self.pos)))
