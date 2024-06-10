@@ -31,7 +31,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     arguments: "FunctionArgumentGroupAst"
     fold_token: Optional["TokenAst"]
 
-    _overload: Optional[Tuple["FunctionPrototypeAst", Scope, Optional["FunctionArgumentNamedAst"]]] = field(default=None, init=False)
+    _overload: Optional[Tuple["FunctionPrototypeAst", Scope]] = field(default=None, init=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
@@ -46,7 +46,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         s += f"{self.fold_token.print(printer)}" if self.fold_token else ""
         return s
 
-    def _get_matching_overload(self, scope_handler: ScopeHandler, function_name: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", Scope, Optional["FunctionArgumentNamedAst"]]:
+    def _get_matching_overload(self, scope_handler: ScopeHandler, function_name: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", Scope]:
         """
         Determine the correct overload to select based on the arguments given to the function call.
 
@@ -85,19 +85,21 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             try:
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
                 parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
-                arguments = Seq(self.arguments.arguments.copy())
                 generic_arguments = Seq(self.generic_arguments.arguments.copy())
-                named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
                 # todo: function folding: "function(tup).."
 
                 # Create a dummy "self" argument for class method calls.
                 if self_param := function_overload.parameters.get_self():
-                    arguments.append(FunctionArgumentNamedAst(
+                    self_arg = FunctionArgumentNamedAst(
                         pos=function_name.lhs.pos,
                         identifier=IdentifierAst(pos=-1, value="self"),
                         assignment_token=TokenAst.dummy(TokenType.TkAssign),
                         convention=self_param.convention,
-                        value=function_name.lhs))
+                        value=function_name.lhs)
+                    self.arguments.arguments.insert(0, self_arg)
+
+                arguments = Seq(self.arguments.arguments.copy())
+                named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 # Check there aren't any named arguments that don't match the function's parameters.
                 if invalid_arguments := named_argument_identifiers.set_subtract(parameter_identifiers):
@@ -168,7 +170,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     # This is ONLY done to reduce the copies being made if a specialization is required > 1 time.
                     if non_generic_function_overload not in function_overload._specializations:
 
-                        # Save the substituted overload (specialization) into the original function's specializations list.
+                        # Save the substituted overload (specialization) into the original function's specialisation list.
                         # This is to ensure that the same specialization isn't created twice.
                         function_overload._specializations.append(non_generic_function_overload)
                         function_overload._ctx.body.members.append(non_generic_function_overload)
@@ -250,7 +252,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                             if not tuple_element_type.symbolic_eq(parameter_type, scope_handler):
                                 raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.value}'")
 
-                    # Skip the self argument (type is guaranteed to be correct).
+                    # Skip the "self" argument (the type is guaranteed to be correct).
                     elif parameter.value == "self":
                         continue
 
@@ -259,11 +261,16 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.value}'")
 
                 # If the function call is valid, then add it to the list of valid overloads.
-                valid_overloads.append((function_overload, function_overload_scope, arguments.find(lambda a: a.identifier.value == "self")))
+                valid_overloads.append((function_overload, function_overload_scope))
                 if new_scope:
                     remove_scope()
 
+                if function_overload.parameters.get_self():
+                    self.arguments.arguments.remove(self_arg)
+
             except SemanticError as e:
+                if function_overload.parameters.get_self():
+                    self.arguments.arguments.remove(self_arg)
                 function_overload_errors.append((function_overload, e))
 
         # If there are no valid overloads, display each overload, and why it is invalid for the arguments.
@@ -286,22 +293,16 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
         self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
-        _, _, self_arg = self._get_matching_overload(scope_handler, lhs, **kwargs)
+        self._get_matching_overload(scope_handler, lhs, **kwargs)
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Analyse the arguments (including the "self" argument, to check for conflicting borrows)
-        if self_arg:
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-            self.arguments.arguments.remove(self_arg)
-        else:
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
         # owned => ConventionMovAst.
-        function_proto, function_scope, _ = self._overload
+        function_proto, function_scope = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
         function_return_type = function_scope.get_symbol(function_return_type).fq_type
         return InferredType(convention=ConventionMovAst, type=function_return_type)
