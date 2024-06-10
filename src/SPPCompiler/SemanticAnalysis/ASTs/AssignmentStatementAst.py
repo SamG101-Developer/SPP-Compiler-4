@@ -5,6 +5,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnal
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -83,17 +84,8 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                 case PostfixExpressionAst():
                     lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda x: x != self.lhs[i]).value
 
-        # Check the value being assigned is initialized.
-        rhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.rhs)
-        if rhs_symbol and (not rhs_symbol.memory_info.ast_initialized or rhs_symbol.memory_info.ast_consumed):
-            raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
-        if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
-            raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
-        if isinstance(self.rhs, PostfixExpressionAst) and rhs_symbol.memory_info.is_borrow:
-            raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, self.op, rhs_symbol)
-        match self.rhs:
-            case IdentifierAst(): rhs_symbol.memory_info.ast_consumed = self
-            case PostfixExpressionAst(): rhs_symbol.memory_info.ast_partial_moves.append(self.rhs)
+        # Check the value being assigned is initialised.
+        ensure_memory_integrity(self, self.rhs, self.op, scope_handler)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

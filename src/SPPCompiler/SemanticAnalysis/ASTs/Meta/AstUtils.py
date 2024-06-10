@@ -3,6 +3,8 @@ from typing import Dict
 
 from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 
 
 def infer_generics_types(
@@ -44,6 +46,40 @@ def infer_generics_types(
 
     # Return a union of the inferred and explicit generic arguments.
     return inferred_generic_arguments | explicit_generic_arguments
+
+
+def ensure_memory_integrity(
+        entire_ast: Ast, value_ast: Ast, move_ast: Ast, scope_handler: ScopeHandler,
+        check_move: bool = True, check_partial_move: bool = True, check_move_from_borrowed_context: bool = True,
+        mark_symbols: bool = True) -> None:
+
+    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+
+    symbol = scope_handler.current_scope.get_outermost_variable_symbol(value_ast)
+
+    # 1. Check the symbol has not been consumed by another move. This prevents double moves or using uninitialized values.
+    if check_move and isinstance(value_ast, IdentifierAst) and symbol and symbol.memory_info.ast_consumed:
+        raise SemanticErrors.USING_NON_INITIALIZED_VALUE(value_ast, symbol)
+
+    # 2. Check the symbol does not have any partial move.
+    if check_partial_move and isinstance(value_ast, IdentifierAst) and symbol and symbol.memory_info.ast_partial_moves:
+        raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(value_ast, symbol)
+
+    # 3. Check there are no overlapping partial moves for postfix expressions.
+    if check_partial_move and isinstance(value_ast, PostfixExpressionAst) and symbol and symbol.memory_info.ast_partial_moves:
+        for partial_move in symbol.memory_info.ast_partial_moves:
+            if str(partial_move).startswith(str(value_ast)):
+                raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(value_ast, symbol)
+
+    # 4. Check the symbol is not being moved from a borrowed context.
+    if check_move_from_borrowed_context and isinstance(value_ast, PostfixExpressionAst) and symbol.memory_info.is_borrow:
+        raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(value_ast, move_ast, symbol)
+
+    # 5. Mark the symbol as consumed or partially moved.
+    if mark_symbols:
+        match value_ast:
+            case IdentifierAst(): symbol.memory_info.ast_consumed = move_ast
+            case PostfixExpressionAst(): symbol.memory_info.ast_partial_moves.append(value_ast)
 
 
 __all__ = ["infer_generics_types"]

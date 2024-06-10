@@ -215,7 +215,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
                 and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
                 and self.body.members
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
-            raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token.pos)
+            raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token)
 
         scope_handler.exit_cur_scope()
 

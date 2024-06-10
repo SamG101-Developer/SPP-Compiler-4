@@ -19,13 +19,10 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
     Attributes:
         class_type: The type of the object to be constructed.
         arguments: The arguments to be given to the object's constructor.
-
-        _modified_type: The type of the object to be constructed, with generic arguments inferred.
     """
 
     class_type: "TypeAst"
     arguments: "ObjectInitializerArgumentGroupAst"
-    _modified_type: Optional["TypeAst"] = field(default=None, init=False)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -77,7 +74,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # The returning type of the object initializer is the type of the object being constructed.
-        return InferredType(convention=ConventionMovAst, type=self._modified_type)
+        return InferredType(convention=ConventionMovAst, type=self.class_type)
 
 
 __all__ = ["ObjectInitializerAst"]

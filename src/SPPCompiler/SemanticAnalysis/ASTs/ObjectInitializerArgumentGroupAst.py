@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -69,9 +70,10 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         def_argument = def_arguments[0] if def_arguments else None
 
         # Mark the default value as moved.#
-        match def_argument.value:
-            case IdentifierAst(): scope_handler.current_scope.get_symbol(def_argument.value).memory_info.ast_consumed = def_argument
-            case PostfixExpressionAst(): scope_handler.current_scope.get_outermost_variable_symbol(def_argument.value).memory_info.ast_partial_moves.append(def_argument.value)
+        if def_argument:
+            match def_argument.value:
+                case IdentifierAst(): scope_handler.current_scope.get_symbol(def_argument.value).memory_info.ast_consumed = def_argument
+                case PostfixExpressionAst(): scope_handler.current_scope.get_outermost_variable_symbol(def_argument.value).memory_info.ast_partial_moves.append(def_argument.value)
 
         # Check all the arguments are attributes of the class.
         if invalid_arguments := argument_identifiers.set_subtract(attribute_identifiers):

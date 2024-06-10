@@ -6,6 +6,7 @@ from typing import List
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
@@ -60,8 +61,10 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            ConventionMovAst, ConventionRefAst, ConventionMutAst,
-            IdentifierAst, PostfixExpressionAst, LetStatementInitializedAst)
+            ConventionMovAst, ConventionRefAst, ConventionMutAst, IdentifierAst, PostfixExpressionAst)
+
+        # Note that the memory rules here are also implemented in AstUtils.ensure_memory_integrity, but have to be split
+        # here because of the multiple conventions that can be used.
 
         # Ensure the pre-analysis is done anyway.
         self.do_semantic_pre_analysis(scope_handler, **kwargs)
@@ -78,27 +81,19 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             # Get the symbol for the function call. This is only gettable if the argument is an identifier or an
             # attribute. In the case it is an attribute, use the outermost part, as long as it is an IdentifierAst. For
             # example, "1.foo.bar.baz()" would have a "None" symbol.
-            match argument.value:
-                case IdentifierAst():
-                    symbol = scope_handler.current_scope.get_symbol(argument.value)
-                case PostfixExpressionAst():
-                    temp = argument.value
-                    while isinstance(temp, PostfixExpressionAst): temp = temp.lhs
-                    symbol = scope_handler.current_scope.get_symbol(temp) if isinstance(temp, IdentifierAst) else None
-                case _:
-                    symbol = None
+            # match argument.value:
+            #     case IdentifierAst():
+            #         symbol = scope_handler.current_scope.get_symbol(argument.value)
+            #     case PostfixExpressionAst():
+            #         temp = argument.value
+            #         while isinstance(temp, PostfixExpressionAst): temp = temp.lhs
+            #         symbol = scope_handler.current_scope.get_symbol(temp) if isinstance(temp, IdentifierAst) else None
+            #     case _:
+            #         symbol = None
+            symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
 
-            # Check the argument is fully initialized before being used. This prevents the common "double free" and
-            # "use after free" errors.
-            if symbol and symbol.memory_info.ast_consumed:
-                raise SemanticErrors.USING_NON_INITIALIZED_VALUE(argument, symbol)
-
-            # Check the argument doesn't contain partial moves. Non over-lapping partial moves are fine, ie "a.c" can be
-            # accessed if "a.b" has been moved, but not if "a" has been moved.
-            if symbol and symbol.memory_info.ast_partial_moves:
-                for partial_move in symbol.memory_info.ast_partial_moves:
-                    if str(partial_move).startswith(str(argument.value)):
-                        raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(argument, symbol)
+            # Check for uninitialized / partially-moved values.
+            ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move_from_borrowed_context=False, mark_symbols=False)
 
             """Law of Exclusivity"""
 
@@ -106,11 +101,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             # applies to overlapping borrows.
             match argument.convention:
                 case ConventionMovAst() if symbol:
-                    # Mark the symbol as moved or partially moved, for IdentifierAst and PostfixExpressionAsts
-                    # respectively.
-                    match argument.value:
-                        case IdentifierAst(): symbol.memory_info.ast_consumed = argument
-                        case PostfixExpressionAst(): symbol.memory_info.ast_partial_moves.append(argument.value)
+                    # mark symbols are moves / partially move, and check for moving from a borrowed context.
+                    ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move=False, check_partial_move=False)
 
                     # Cannot move an identifier already borrowed as a previous argument. For example, "a" cannot be
                     # moved into a function call if "a" or "a.b" is borrowed as a previous argument.
@@ -118,11 +110,6 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                         if str(borrow).startswith(str(argument.value)):
                             how = "immutably" if borrow in borrows_ref else "mutably"
                             raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, f"{how} borrow", "move")
-
-                    # Cannot move from a borrowed context, so prevent partial moves for postfix identifiers whose
-                    # outermost identifier is borrowed.
-                    if isinstance(argument.value, PostfixExpressionAst) and symbol.memory_info.is_borrow:
-                        raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(argument, argument.value.op, symbol)
 
                 case ConventionMutAst() if symbol:
                     # Cannot take a mutable borrow from an object that is already an immutable borrow. For example, if a

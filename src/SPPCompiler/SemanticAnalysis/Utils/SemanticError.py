@@ -164,9 +164,11 @@ class SemanticErrors:
     @staticmethod
     def USING_PARTIAL_MOVED_VALUE(ast: Ast, symbol: VariableSymbol) -> SemanticError:
         exception = SemanticError()
+        exception.add_info(
+            pos=symbol.memory_info.ast_partial_moves[0].pos, tag_message=f"Attribute '{symbol.memory_info.ast_partial_moves[0]}' is moved here.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.MEMORY_ERROR,
-            tag_message=f"{ast} contains the partial moves: {Seq(symbol.memory_info.ast_partial_moves).join(", ")}.",
+            tag_message=f"'{ast}' is partially moved.",
             message="Using a partially moved value.",
             tip="Ensure that the value is fully initialized before being used.")
         return exception
