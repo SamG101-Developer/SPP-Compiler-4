@@ -63,7 +63,7 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             pos=lhs_symbol.memory_info.ast_initialized.pos,
-            tag_message=f"Variable {lhs_symbol.name} is declared immutable here.")
+            tag_message=f"Variable '{lhs_symbol.name}' is declared immutable here.")
         exception.add_error(
             pos=lhs.pos, error_type=SemanticErrorType.VALUE_ERROR,
             tag_message=f"Assignment to immutable variable '{lhs_symbol.name}' here.",
@@ -541,4 +541,16 @@ class SemanticErrors:
             tag_message="Unpacking token in a destructure.",
             message="Unpacking tokens are not allowed in a destructure.",
             tip="Remove the unpacking token.")
+        return exception
+
+    @staticmethod
+    def TUPLE_SIZE_MISMATCH(lhs: Ast, rhs: Ast, lhs_c: int, rhs_c: int) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=lhs.pos, tag_message=f"Assignment tuple contains {lhs_c} items.")
+        exception.add_error(
+            pos=rhs.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Assignment value contains {rhs_c} items.",
+            message="The length of the tuple does not match the length of the other tuple.",
+            tip="Ensure that the tuple has the same number of items as the other tuple.")
         return exception
