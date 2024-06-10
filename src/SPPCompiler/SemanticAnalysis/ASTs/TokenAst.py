@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import hashlib
 from dataclasses import dataclass
 
 from SPPCompiler.LexicalAnalysis.Tokens import Token, TokenType
@@ -33,6 +35,10 @@ class TokenAst(Ast):
         c1 = isinstance(other, TokenAst) and self.token.token_type == other.token.token_type
         c2 = self.token.token_metadata == other.token.token_metadata if self.token.token_type.name.startswith("Lx") else True
         return c1 and c2
+
+    def __hash__(self):
+        # The hash must be fixed, so that the same identifiers in different IdentifierAst objects have the same hash.
+        return int.from_bytes(hashlib.md5(self.token.token_type.name.encode()).digest())
 
 
 __all__ = ["TokenAst"]
