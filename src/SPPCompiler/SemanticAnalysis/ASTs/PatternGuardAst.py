@@ -40,9 +40,9 @@ class PatternGuardAst(Ast, SemanticAnalyser):
 
         # Ensure the guard expression evaluates to a Bool type.
         expression_type = self.expression.infer_type(scope_handler, **kwargs).type
-        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
-        if not expression_type.symbolic_eq(target_type):
-            raise SemanticErrors.TYPE_MISMATCH(self.expression, target_type.type, expression_type.type)
+        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool()).type
+        if not expression_type.symbolic_eq(target_type, scope_handler.current_scope):
+            raise SemanticErrors.TYPE_MISMATCH(self.expression, target_type, expression_type)
 
 
 __all__ = ["PatternGuardAst"]

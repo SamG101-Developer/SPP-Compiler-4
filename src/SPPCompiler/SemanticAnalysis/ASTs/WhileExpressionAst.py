@@ -48,7 +48,7 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         condition_type = self.condition.infer_type(scope_handler, **kwargs).type
         target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
         if not condition_type.symbolic_eq(target_type):
-            raise SemanticErrors.TYPE_MISMATCH(self.condition, target_type.type, condition_type.type)
+            raise SemanticErrors.TYPE_MISMATCH(self.condition, target_type, condition_type)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
