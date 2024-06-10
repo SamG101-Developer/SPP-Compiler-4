@@ -176,12 +176,12 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             existing.pos,
-            tag_message=f"Object '{existing}' {existing_how} here")
+            tag_message=f"Object '{existing}' {existing_how.rstrip("e")}ed here")
         exception.add_error(
             pos=conflict.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
-            message=f"Cannot {conflicting_how} an object that's currently being {existing_how}",
-            tag_message=f"Overlapping object '{conflict}' {conflicting_how.rstrip("e")}ed here",
+            message=f"Cannot {conflicting_how} an object that's currently being {existing_how.rstrip("e")}ed.",
+            tag_message=f"Overlapping object '{conflict}' {conflicting_how.rstrip("e")}ed here.",
             tip=f"TODO")
         return exception
 

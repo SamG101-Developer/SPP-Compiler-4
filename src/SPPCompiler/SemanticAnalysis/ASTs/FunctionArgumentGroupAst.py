@@ -116,7 +116,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # moved into a function call if "a" or "a.b" is borrowed as a previous argument.
                     for borrow in borrows_ref | borrows_mut:
                         if str(borrow).startswith(str(argument.value)):
-                            raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument, "move", "borrowed")
+                            how = "immutably" if borrow in borrows_ref else "mutably"
+                            raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, f"{how} borrow", "move")
 
                     # Cannot move from a borrowed context, so prevent partial moves for postfix identifiers whose
                     # outermost identifier is borrowed.
@@ -127,7 +128,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # Cannot take a mutable borrow from an object that is already an immutable borrow. For example, if a
                     # parameter is "f(&a)", then "a" cannot be used as "call_func(&mut a)".
                     if symbol.memory_info.is_borrow_ref:
-                        raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(symbol.memory_info.ast_borrow, argument, "mutably borrow", "immutably borrowed")
+                        raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(symbol.memory_info.ast_borrow, argument.value, "mutably borrow", "immutably borrow")
 
                     # Can only take a mutable borrow from a variable that has been marked as mutable on declaration.
                     # This requires something like "let mut a = 0".
@@ -149,7 +150,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # of exclusivity.
                     for borrow in borrows_mut:
                         if str(borrow).startswith(str(argument.value)) or str(argument.value).startswith(str(borrow)):
-                            raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, "mutably borrow", f"immutably borrowed")
+                            raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, "mutably borrow", f"immutably borrow")
 
                     # Add the immutable borrow to the set of immutable borrows.
                     borrows_ref.add(argument.value)
