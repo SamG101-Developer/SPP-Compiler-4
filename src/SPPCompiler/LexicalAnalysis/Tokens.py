@@ -127,8 +127,8 @@ class TokenType(Enum):
 
     LxBinDigits = r"0b[01]+"
     LxHexDigits = r"0x[0-9a-fA-F]+"
-    LxDecDigits = r"[0-9]([0-9_]*[0-9])?"
-    LxDecFloat = r"[0-9]([0-9_]*[0-9])?\.[0-9]([0-9_]*[0-9])?"
+    LxDecInteger = r"[0-9]([0-9_]*[0-9])?"
+    LxDecDecimal = r"[0-9]([0-9_]*[0-9])?\.[0-9]([0-9_]*[0-9])?"
 
     LxDoubleQuoteStr = r"\"[^\"]*\""
     LxMultiLineComment = r"##[^#]*##"

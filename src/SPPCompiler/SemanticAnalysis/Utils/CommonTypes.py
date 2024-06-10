@@ -15,9 +15,9 @@ class CommonTypes:
         return TypeAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "Bool", None)])
 
     @staticmethod
-    def big_num(pos: int = -1):
+    def big_int(pos: int = -1):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst, GenericIdentifierAst
-        return TypeAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "BigNum", None)])
+        return TypeAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "BigInt", None)])
 
     @staticmethod
     def big_dec(pos: int = -1):

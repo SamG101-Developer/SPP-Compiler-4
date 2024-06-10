@@ -43,7 +43,7 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         assert isinstance(self.value.token.token_metadata, str)
-        assert self.value.token.token_type in [TokenType.LxDecFloat, TokenType.LxDecDigits]
+        assert self.value.token.token_type in [TokenType.LxDecDecimal, TokenType.LxDecInteger]
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
@@ -53,10 +53,10 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
         # the explicit type.
         if self.type:
             return InferredType(convention=ConventionMovAst, type=self.type)
-        if self.value.token.token_type == TokenType.LxDecFloat:
+        if self.value.token.token_type == TokenType.LxDecDecimal:
             return InferredType(convention=ConventionMovAst, type=CommonTypes.big_dec(self.pos))
         else:
-            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_num(self.pos))
+            return InferredType(convention=ConventionMovAst, type=CommonTypes.big_int(self.pos))
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same type.
