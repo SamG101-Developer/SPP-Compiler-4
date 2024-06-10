@@ -68,14 +68,14 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
         def_argument = def_arguments[0] if def_arguments else None
 
-        # Mark the default value as moved.
-        match def_argument:
-            case IdentifierAst(): scope_handler.current_scope.get_symbol(def_argument).memory_info.ast_consumed = def_argument
-            case PostfixExpressionAst(): scope_handler.current_scope.get_outermost_variable_symbol(def_argument).memory_info.ast_partial_moves.append(def_argument.value)
+        # Mark the default value as moved.#
+        match def_argument.value:
+            case IdentifierAst(): scope_handler.current_scope.get_symbol(def_argument.value).memory_info.ast_consumed = def_argument
+            case PostfixExpressionAst(): scope_handler.current_scope.get_outermost_variable_symbol(def_argument.value).memory_info.ast_partial_moves.append(def_argument.value)
 
         # Check all the arguments are attributes of the class.
         if invalid_arguments := argument_identifiers.set_subtract(attribute_identifiers):
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers.value, "attribute")
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers.map(lambda i: i.value).value, "attribute")
 
         # Check all the attributes have been assigned a value.
         if not def_argument and (missing_arguments := attribute_identifiers.set_subtract(argument_identifiers)):
@@ -102,8 +102,8 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
 
             # Compare the types of the argument and the attribute.
-            if not argument_type.symbolic_eq(attribute_type):
-                raise SemanticErrors.TYPE_MISMATCH(argument, argument_type, attribute_type)
+            if not argument_type.symbolic_eq(attribute_type, scope_handler):
+                raise SemanticErrors.TYPE_MISMATCH(argument, attribute_type, argument_type)
 
         # Todo: super-class checks
 
@@ -112,7 +112,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import ObjectInitializerArgumentNamedAst, TokenAst
 
         named_arguments = Seq(self.arguments).filter_to_type(ObjectInitializerArgumentNamedAst)
-        token_arguments = named_arguments.filter(lambda a: isinstance(a, TokenAst))
+        token_arguments = named_arguments.filter(lambda a: isinstance(a.identifier, TokenAst))
         default_arguments = token_arguments.filter(lambda a: a.identifier.token.token_type == TokenType.KwElse)
         return default_arguments.value
 
@@ -121,7 +121,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import ObjectInitializerArgumentNamedAst, TokenAst
 
         named_arguments = Seq(self.arguments).filter_to_type(ObjectInitializerArgumentNamedAst)
-        token_arguments = named_arguments.filter(lambda a: isinstance(a, TokenAst))
+        token_arguments = named_arguments.filter(lambda a: isinstance(a.identifier, TokenAst))
         default_arguments = token_arguments.filter(lambda a: a.identifier.token.token_type == TokenType.KwSup)
         return default_arguments.value
 
