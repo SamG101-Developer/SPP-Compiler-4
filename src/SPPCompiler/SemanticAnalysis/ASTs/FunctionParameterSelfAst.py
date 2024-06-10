@@ -61,6 +61,9 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
             ast_borrow=self.convention,
             ast_initialized=self)
 
+    def identifier_for_param(self) -> "IdentifierAst":
+        return self.identifier
+
     def __eq__(self, other):
         # Check both ASTs are the same type.
         return isinstance(other, FunctionParameterSelfAst)

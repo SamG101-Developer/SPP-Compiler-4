@@ -93,7 +93,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # Create a dummy "self" argument for class method calls.
                 if self_param := function_overload.parameters.get_self():
                     arguments.append(FunctionArgumentNamedAst(
-                        pos=function_name.lhs.name,
+                        pos=function_name.lhs.pos,
                         identifier=IdentifierAst(pos=-1, value="self"),
                         assignment_token=TokenAst.dummy(TokenType.TkAssign),
                         convention=self_param.convention,
@@ -115,7 +115,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # Convert all anonymous arguments to named arguments (in the function being called).
                 for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
                     if is_variadic_function and parameter_identifiers.length == 1:
-                        # value is a tuple of the remaining arguments
+
+                        # Value is a tuple of the remaining arguments.
                         variadic_value = TupleLiteralAst(
                             pos=argument.pos,
                             paren_l_token=TokenAst.dummy(TokenType.TkParenL),
@@ -153,7 +154,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # If there are generic arguments, then create a new function overload with the generic arguments filled in.
                 # Add this to the scopes with the FunctionPrototypeAST's methods.
                 new_scope = False
-                if self.generic_arguments:
+                if self.generic_arguments.arguments:
                     # Copy the current overload, because a new one will be created with the generic parameters being
                     # substituted with their corresponding generic arguments in the parameter and return types.
                     non_generic_function_overload = copy.deepcopy(function_overload)
@@ -282,11 +283,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
         self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
         _, _, self_arg = self._get_matching_overload(scope_handler, lhs, **kwargs)
-        Seq(self.generic_arguments.arguments).for_each(lambda x: x.type.do_semantic_analysis(scope_handler, **kwargs))
+        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
         # Analyse the arguments (including the "self" argument, to check for conflicting borrows)
         if self_arg:
-            self.arguments.arguments.append(self_arg)
             self.arguments.do_semantic_analysis(scope_handler, **kwargs)
             self.arguments.arguments.remove(self_arg)
         else:
