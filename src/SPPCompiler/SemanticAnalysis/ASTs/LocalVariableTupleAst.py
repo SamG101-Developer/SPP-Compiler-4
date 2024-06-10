@@ -59,7 +59,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
             ast_0 = PostfixExpressionOperatorMemberAccessAst(
                 pos=self.pos,
                 dot_token=TokenAst.dummy(TokenType.TkDot),
-                identifier=TokenAst.dummy(TokenType.LxDecDigits, info=f"{i}"))
+                identifier=TokenAst.dummy(TokenType.LxDecInteger, info=f"{i}"))
 
             ast_1 = PostfixExpressionAst(
                 pos=self.pos,
