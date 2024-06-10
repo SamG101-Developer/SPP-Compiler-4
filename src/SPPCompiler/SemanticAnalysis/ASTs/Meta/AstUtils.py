@@ -68,18 +68,22 @@ def ensure_memory_integrity(
 
     from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
 
+    # Get the symbol, for Identifiers and PostfixExpressions. If the value isn't either of these, then the memory rules
+    # don't apply, so all the checks are skipped.
     symbol = scope_handler.current_scope.get_outermost_variable_symbol(value_ast)
+    if not symbol:
+        return
 
     # 1. Check the symbol has not been consumed by another move. This prevents double moves or using uninitialized values.
-    if check_move and isinstance(value_ast, IdentifierAst) and symbol and symbol.memory_info.ast_consumed:
+    if check_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_consumed:
         raise SemanticErrors.USING_NON_INITIALIZED_VALUE(value_ast, symbol)
 
     # 2. Check the symbol does not have any partial move.
-    if check_partial_move and isinstance(value_ast, IdentifierAst) and symbol and symbol.memory_info.ast_partial_moves:
+    if check_partial_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_partial_moves:
         raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(value_ast, symbol)
 
     # 3. Check there are no overlapping partial moves for postfix expressions.
-    if check_partial_move and isinstance(value_ast, PostfixExpressionAst) and symbol and symbol.memory_info.ast_partial_moves:
+    if check_partial_move and isinstance(value_ast, PostfixExpressionAst) and symbol.memory_info.ast_partial_moves:
         for partial_move in symbol.memory_info.ast_partial_moves:
             if str(partial_move).startswith(str(value_ast)):
                 raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(value_ast, symbol)
