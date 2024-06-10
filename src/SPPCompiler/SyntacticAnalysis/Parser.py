@@ -954,7 +954,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkDot).parse_once()
         p2 = self.parse_identifier().for_alt()
-        p3 = self.parse_token(TokenType.LxDecDigits).for_alt()
+        p3 = self.parse_token(TokenType.LxDecInteger).for_alt()
         p4 = (p2 | p3).parse_once()
         return PostfixExpressionOperatorMemberAccessAst(c1, p1, p4)
 
@@ -1170,7 +1170,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkDot).parse_once()
         p2 = self.parse_generic_identifier().for_alt()
-        p3 = self.parse_token(TokenType.LxDecDigits).for_alt()
+        p3 = self.parse_token(TokenType.LxDecInteger).for_alt()
         p4 = (p2 | p3).parse_once()
         return p4
 
@@ -1271,7 +1271,7 @@ class Parser:
     def parse_literal_number_b10_integer(self) -> NumberLiteralBase10Ast:
         c1 = self.current_pos()
         p1 = self.parse_numeric_prefix_op().parse_optional()
-        p2 = self.parse_token(TokenType.LxDecDigits).parse_once()
+        p2 = self.parse_token(TokenType.LxDecInteger).parse_once()
         p3 = self.parse_numeric_postfix_type().parse_optional()
         return NumberLiteralBase10Ast(c1, p2, p3, p1)
 
@@ -1279,7 +1279,7 @@ class Parser:
     def parse_literal_number_b10_float(self) -> NumberLiteralBase10Ast:
         c1 = self.current_pos()
         p1 = self.parse_numeric_prefix_op().parse_optional()
-        p2 = self.parse_token(TokenType.LxDecFloat).parse_once()
+        p2 = self.parse_token(TokenType.LxDecDecimal).parse_once()
         p3 = self.parse_numeric_postfix_type().parse_optional()
         return NumberLiteralBase10Ast(c1, p1, p2, p3)
 
