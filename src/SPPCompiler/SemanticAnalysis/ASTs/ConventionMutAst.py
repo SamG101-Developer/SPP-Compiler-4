@@ -30,7 +30,7 @@ class ConventionMutAst(Ast, metaclass=ConventionMutAstMeta):
         # Print the ConventionMutAst.
         s = ""
         s += f"{self.ampersand_token.print(printer)}"
-        s += f"{self.mut_token.print(printer)} "
+        s += f"{self.mut_token.print(printer)}"
         return s
 
     def __eq__(self, other):

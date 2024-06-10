@@ -176,12 +176,12 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             existing.pos,
-            tag_message=f"Object '{conflict}' {existing_how} here")
+            tag_message=f"Object '{existing}' {existing_how} here")
         exception.add_error(
             pos=conflict.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
             message=f"Cannot {conflicting_how} an object that's currently being {existing_how}",
-            tag_message=f"Same object {conflicting_how}d here",
+            tag_message=f"Overlapping object '{conflict}' {conflicting_how.rstrip("e")}ed here",
             tip=f"TODO")
         return exception
 
@@ -242,8 +242,8 @@ class SemanticErrors:
             pos=ast.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
             message="Optional parameters must use the by-mov convention",
-            tag_message=f"Convention '{str(ast).strip()}' used here.",
-            tip=f"Remove the '{str(ast).strip()}' convention from the parameter declaration")
+            tag_message=f"Convention '{ast}' used here.",
+            tip=f"Remove the '{ast}' convention from the parameter declaration")
         return exception
 
     @staticmethod

@@ -15,8 +15,8 @@ class PostfixExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     postfix operator on the RHS (function call, member access, etc.).
 
     Attributes:
-        - lhs: The expression on the LHS.
-        - op: The postfix operator on the RHS.
+        lhs: The expression on the LHS.
+        op: The postfix operator on the RHS.
     """
 
     lhs: "ExpressionAst"
@@ -42,3 +42,7 @@ class PostfixExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same lhs and operator.
         return isinstance(other, PostfixExpressionAst) and self.lhs == other.lhs and self.op == other.op
+
+    def __hash__(self):
+        # Hash the lhs and operator.
+        return hash(self.lhs) * 2

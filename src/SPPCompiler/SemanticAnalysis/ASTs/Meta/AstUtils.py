@@ -30,11 +30,11 @@ def infer_generics_types(
     """
 
     # Infer all possible generic arguments.
-    inferred_generic_arguments = {map_to[identifier]: value for identifier, value in infer_from.items() if identifier in map_to.keys()}
+    inferred_generic_arguments = {map_to[identifier]: value for identifier, value in infer_from.items() if identifier in map_to.keys() and map_to[identifier] in generic_parameters}
 
     # Check no inferred generic arguments are already explicitly defined.
     for inferred_generic_argument in inferred_generic_arguments.keys():
-        if inferred_generic_argument in explicit_generic_arguments:  # and explicit_generic_arguments[inferred_generic_argument] != inferred_generic_arguments[inferred_generic_argument]:
+        if inferred_generic_argument in explicit_generic_arguments:  # and explicit_generic_arguments[inferred_generic_argument].symbolic_eq(inferred_generic_arguments[inferred_generic_argument]):
             raise SemanticErrors.GENERIC_INFERRABLE(inferred_generic_argument, explicit_generic_arguments[inferred_generic_argument], inferred_generic_arguments[inferred_generic_argument])
 
     # Check all generic parameters have been inferred or explicitly defined.

@@ -50,7 +50,7 @@ class Scope:
             case IdentifierAst():
                 identifier = name
             case PostfixExpressionAst():
-                while isinstance(name, PostfixExpressionAst) and isinstance(name.lhs, PostfixExpressionOperatorMemberAccessAst): name = name.lhs
+                while isinstance(name, PostfixExpressionAst) and isinstance(name.op, PostfixExpressionOperatorMemberAccessAst): name = name.lhs
                 identifier = name
             case _:
                 return None

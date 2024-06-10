@@ -89,6 +89,8 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
         if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
             raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
+        if isinstance(self.rhs, PostfixExpressionAst) and rhs_symbol.memory_info.is_borrow:
+            raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, self.op, rhs_symbol)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

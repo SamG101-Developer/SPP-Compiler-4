@@ -53,6 +53,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         scope_handler.current_scope.add_symbol(variable_symbol)
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst
+
         if self._sup_let_type is not None:
             return
 
@@ -62,6 +64,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, rhs_symbol)
         if rhs_symbol and rhs_symbol.memory_info.ast_partial_moves:
             raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, rhs_symbol)
+        if isinstance(self.value, PostfixExpressionAst) and rhs_symbol.memory_info.is_borrow:
+            raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, self.assign_token, rhs_symbol)
 
         # Analyse the value being assigned to the variable.
         kwargs |= {"value": self.value, "let_ast": self}
