@@ -31,7 +31,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        # Check that the identifier exists in the current or parent scopes.
+        # Check the identifier exists in the current or parent scopes.
         if not scope_handler.current_scope.has_symbol(self):
 
             # Create a list of "similar" symbols, from the list of variable symbols in the current and parent scopes.

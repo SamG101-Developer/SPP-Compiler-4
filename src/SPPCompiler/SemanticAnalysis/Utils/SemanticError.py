@@ -513,12 +513,12 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def MISSING_GENERIC_ARGUMENT(ast: Ast) -> SemanticError:
+    def MISSING_GENERIC_ARGUMENT(ast: Ast, what: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.NAME_ERROR,
-            tag_message=f"Missing generic argument for '{ast}'",
+            tag_message=f"Missing generic argument for '{what}'",
             message="Generic argument missing",
             tip="Provide a generic argument for the type.")
         return exception

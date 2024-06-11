@@ -46,7 +46,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Identifier member access.
         if isinstance(self.identifier, IdentifierAst):
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type).associated_scope
+            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
 
             # Check if the left side is a generic type.
             if not lhs_type_scope:

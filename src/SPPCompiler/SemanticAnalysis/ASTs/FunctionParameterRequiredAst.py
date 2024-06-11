@@ -37,8 +37,9 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            ConventionRefAst, ConventionMutAst, ObjectInitializerAst, TokenAst,
-            LetStatementUninitializedAst, IdentifierAst, LetStatementInitializedAst)
+            ConventionRefAst, ConventionMutAst, TokenAst, LetStatementUninitializedAst)
+
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
 
         # Convert the parameter to a "let" statement.
         let_statement = LetStatementUninitializedAst(

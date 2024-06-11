@@ -41,6 +41,8 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import (
             LetStatementUninitializedAst, TokenAst, ConventionRefAst, ConventionMutAst)
 
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
+
         # Convert the parameter to a "let" statement.
         let_statement = LetStatementUninitializedAst(
             pos=self.pos,

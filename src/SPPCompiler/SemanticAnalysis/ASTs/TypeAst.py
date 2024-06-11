@@ -8,7 +8,7 @@ from typing import List, Optional
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_generic_arguments_to_named
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_generic_arguments_to_named, infer_generics_types
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -97,6 +97,12 @@ class TypeAst(Ast, SemanticAnalyser):
 
             if self.without_generics() != CommonTypes.tuple([]):
                 self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
+                self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    self,
+                    Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value,
+                    Seq(self.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    {}, {}, scope_handler))
+
             self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
             # Create a new scope and symbol for the generic version of the type.
@@ -124,6 +130,20 @@ class TypeAst(Ast, SemanticAnalyser):
 
                     for attribute in this_type_cls_ast.body.members:
                         attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+
+        elif base_type_exists and (base_type_symbol := scope_handler.current_scope.get_symbol(self.without_generics())).type:
+
+            convert_generic_arguments_to_named(
+                generic_arguments=generic_arguments,
+                generic_parameters=Seq(base_type_symbol.type.generic_parameters.parameters))
+
+            if self.without_generics() != CommonTypes.tuple([]):
+                self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
+                self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    self,
+                    Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value,
+                    Seq(self.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    {}, {}, scope_handler))
 
     def __iter__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
