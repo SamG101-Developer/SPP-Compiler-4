@@ -54,10 +54,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
 
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-
         # Exit the new scope.
         scope_handler.exit_cur_scope()
 
@@ -73,6 +69,14 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # each member of the body.
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Add the superimposition scope to the class scope.
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
+        if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
+            cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         scope_handler.exit_cur_scope()

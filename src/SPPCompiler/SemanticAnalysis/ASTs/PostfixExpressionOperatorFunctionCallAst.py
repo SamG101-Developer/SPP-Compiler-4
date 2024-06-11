@@ -77,6 +77,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # todo: function_scope.sup_scopes are empty
 
         mock_function_sup_scopes = function_scope.sup_scopes
+        for s in mock_function_sup_scopes:
+            print(s[0]._scope_name)
         function_overloads = Seq(mock_function_sup_scopes).map(lambda s: s[1].body.members).flat()
         function_overload_errors = []
         valid_overloads = []
@@ -110,7 +112,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     parameter_identifiers.remove(argument.identifier)
 
                 # Check too many arguments haven't been passed to the function.
-                is_variadic_function = isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
+                is_variadic_function = function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
                 if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
                     raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
@@ -291,7 +293,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         return self._overload
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
-        # Check that a matching overload exists for the function call. Also get the "self" argument (for analysis)
+        # Check a matching overload exists for the function call. Also get the "self" argument (for analysis)
         self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
         self._get_matching_overload(scope_handler, lhs, **kwargs)
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
@@ -299,12 +301,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        function_name = lhs
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
         # owned => ConventionMovAst.
         function_proto, function_scope = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
-        function_return_type = function_scope.get_symbol(function_return_type).fq_type
+        owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
+
+        scope = function_scope
+        while scope:
+            scope = scope._parent_scope
+
         return InferredType(convention=ConventionMovAst, type=function_return_type)
 
 

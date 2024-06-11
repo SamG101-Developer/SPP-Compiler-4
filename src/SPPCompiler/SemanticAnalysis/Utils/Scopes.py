@@ -120,9 +120,8 @@ class Scope:
 
     @property
     def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
-        # The sup scopes are a tree of scopes
-        # however, die to inheritance, say C inherits A and B, and B inherits A, then the sup scopes must be B and B'a
-        # A, so use a set to make sure that the 2nd A isn't added too
+        # The sup scopes are a tree of scopes however, due to inheritance, say C inherits A and B, and B inherits A,
+        # then the sup scopes must be B and B'a A, so use a set to make sure that the 2nd A isn't added too.
         all_sup_scopes = []
         scopes_read = []
         for sup_scope, ast in self._sup_scopes:
