@@ -121,3 +121,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.WhileExpressionAst import WhileExpression
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAliasAst import WithExpressionAliasAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAst import WithExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpressionAst
+
+# Inherit FunctionPrototypeAst
+from SPPCompiler.SemanticAnalysis.ASTs.CoroutinePrototypeAst import CoroutinePrototypeAst
+from SPPCompiler.SemanticAnalysis.ASTs.SubroutinePrototypeAst import SubroutinePrototypeAst

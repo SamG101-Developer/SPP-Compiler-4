@@ -1,45 +1,28 @@
 mod main
 
 
-cls Point {
-    x: std.BigInt
-    y: std.BigInt
-    z: std.BigInt
-}
-
-cls Vector {
-    point: Point
-    angle: std.BigInt
+cls Point[T] {
+    x: std.Bool
+    y: std.Bool
 }
 
 
-cls Type[T] {
-    a: T
-    b: T
+sup [T] Point[T] {
+    fun function[U](a: T) -> T { }
 }
 
 
-sup [T] Type[T] {
-    fun func[U](&self) -> U { }
-    fun g(&self, a: T) -> std.Bool { }
+cor generator() -> std.GenMov[std.BigInt, std.Str] {
+    gen 1
+    gen 2
+    gen 3
 }
-
-sup Type[std.Bool] {
-    fun bool_func(&self) -> std.Bool { }
-}
-
-
-sup Point {
-    fun func(&self) -> Point { }
-    fun func(&self, a: std.Bool) -> std.Bool { }
-}
-
-
-fun a() -> std.Void { }
 
 
 fun main() -> std.Void {
-    let t = Type(a=1, b=2)
-    let mut x = t.bool_func()
-    x = 1
+    let p = Point[std.Str](x=false, y=false)
+    let mut a = p.function[std.BigInt]("true")
+    a = "123"
+
+    let x = generator()
 }

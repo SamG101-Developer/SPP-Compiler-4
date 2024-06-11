@@ -30,11 +30,11 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
         return s
 
     def pre_process(self, context: "ModulePrototypeAst") -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import SubroutinePrototypeAst, CoroutinePrototypeAst
 
         # Pre-process the module's members and remove all function prototypes (converted).
         Seq(self.module.body.members).for_each(lambda m: m.pre_process(context))
-        self.module.body.members = Seq(self.module.body.members).filter_not_type(FunctionPrototypeAst).value
+        self.module.body.members = Seq(self.module.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).value
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the module's members.
