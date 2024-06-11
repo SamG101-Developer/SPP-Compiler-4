@@ -66,7 +66,8 @@ class TypeAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, GenericArgumentNormalAst, GenericArgumentNamedAst, TokenAst, GenericParameterVariadicAst)
+            IdentifierAst, GenericArgumentNormalAst, GenericArgumentNamedAst, TokenAst, GenericParameterVariadicAst,
+            GenericArgumentGroupAst)
 
         # Check if this type exists both with and without the generic arguments.
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
@@ -91,6 +92,9 @@ class TypeAst(Ast, SemanticAnalyser):
 
             # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
             generic_parameter_identifiers = Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
+            for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
+                generic_parameter_identifiers.remove(generic_argument.identifier)
+
             for i, generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst).enumerate():
                 if len(generic_parameter_identifiers) == 1 and isinstance(Seq(base_type_symbol.type.generic_parameters.parameters)[-1], GenericParameterVariadicAst):
                     final_generic_arguments = generic_arguments.filter_to_type(GenericArgumentNormalAst)[i:].map(lambda g: g.type)
@@ -99,12 +103,11 @@ class TypeAst(Ast, SemanticAnalyser):
                     generic_arguments.replace(generic_argument, new_argument)
                     break
                 else:
-                    identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
-                    new_argument = GenericArgumentNamedAst(generic_argument.pos, identifier, TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
+                    new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
                     generic_arguments.replace(generic_argument, new_argument)
 
             # if self.without_generics() != CommonTypes.tuple([]):
-            #     self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
+            self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
             self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
             # Create a new scope and symbol for the generic version of the type.

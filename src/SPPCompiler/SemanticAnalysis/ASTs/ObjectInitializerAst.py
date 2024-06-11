@@ -54,6 +54,10 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
         generic_parameter_identifiers = Seq(type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
         generic_arguments = Seq(self.class_type.parts[-1].generic_arguments.arguments)
+
+        for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
+            generic_parameter_identifiers.remove(generic_argument.identifier)
+
         for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
             new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
             generic_arguments.replace(generic_argument, new_argument)

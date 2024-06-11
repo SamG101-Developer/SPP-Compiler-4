@@ -135,9 +135,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # Convert all anonymous generic arguments to named generic arguments (in the function being called).
                 generic_parameter_identifiers = Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
+
+                for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
+                    generic_parameter_identifiers.remove(generic_argument.identifier)
+
                 for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
                     new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
                     generic_arguments.replace(generic_argument, new_argument)
+
                 self.generic_arguments.arguments = generic_arguments.value
 
                 # Check all the required parameters have been assigned a value.
