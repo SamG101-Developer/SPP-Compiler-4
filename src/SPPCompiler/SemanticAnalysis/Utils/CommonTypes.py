@@ -134,16 +134,13 @@ class CommonTypes:
         return TypeAst(pos, [IdentifierAst(pos, "std"), GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
-    def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> "ConventionAst":
-        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+    def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> type:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
-        from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
         match identifier.value[-3:]:
-            case "Ref": return ConventionRefAst(pos, TokenAst.dummy(TokenType.TkBitAnd, pos=pos))
-            case "Mut": return ConventionMutAst(pos, TokenAst.dummy(TokenType.TkBitAnd, pos=pos), TokenAst.dummy(TokenType.KwMut, pos=pos))
-            case "Mov": return ConventionMovAst(pos)
-            case _:
-                raise
+            case "Ref": return ConventionRefAst
+            case "Mut": return ConventionMutAst
+            case "Mov": return ConventionMovAst
+            case _: raise

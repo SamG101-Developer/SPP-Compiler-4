@@ -58,7 +58,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     _orig: "IdentifierAst" = field(default=None, kw_only=True)
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True)
     _specializations: List["FunctionPrototypeAst"] = field(default_factory=list, kw_only=True)
-    _is_coro: bool = field(default=False, init=False)
+    _is_coro: bool = field(default=False, init=False)  # todo: assign this somewhere
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
