@@ -153,7 +153,7 @@ class SemanticErrors:
     def USING_NON_INITIALIZED_VALUE(ast: Ast, symbol: VariableSymbol) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
-            pos=symbol.memory_info.ast_consumed.pos, tag_message=f"Variable {ast} is uninitialized/moved here.")
+            pos=symbol.memory_info.ast_consumed.pos, tag_message=f"Variable '{ast}' is uninitialized/moved here.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.MEMORY_ERROR,
             tag_message=f"{symbol.name} used here.",

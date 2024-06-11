@@ -48,15 +48,6 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
             colon_token=self.colon_token,
             type_declaration=self.type_declaration)
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
-        # let_statement = LetStatementInitializedAst(
-        #     pos=self.pos,
-        #     let_keyword=TokenAst.dummy(TokenType.KwLet),
-        #     assign_to=self.variable,
-        #     assign_token=TokenAst.dummy(TokenType.TkAssign),
-        #     value=ObjectInitializerAst(self.pos, self.type_declaration, None))
-
-        # kwargs["value"] = ObjectInitializerAst(self.pos, self.type_declaration, None)
-        let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
         # Set the symbol's memory status depending on the convention.
         symbol = scope_handler.current_scope.get_symbol(self.variable.identifier)

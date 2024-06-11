@@ -53,6 +53,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             if not symbol:
                 raise SemanticErrors.INVALID_LHS_EXPR(lhs)
 
+        self.rhs.do_semantic_analysis(scope_handler, **kwargs)
         for i, lhs_symbol in Seq(lhs_symbols).enumerate():
             # Mutation requires either a mutable identifier, or an outermost mutable value. This can be an "&mut"
             # borrow, or a "mut" value. The const-ness of a borrow trumps the value's mutability for attributes:
