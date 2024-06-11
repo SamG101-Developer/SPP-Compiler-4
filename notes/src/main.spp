@@ -1,28 +1,17 @@
 mod main
 
 
-cls Point[T] {
-    x: std.Bool
-    y: std.Bool
+cls A {
+    x: std.BigInt
+    y: std.BigInt
 }
 
 
-sup [T] Point[T] {
-    fun function[U](a: T) -> T { }
-}
-
-
-cor generator() -> std.GenMov[std.BigInt, std.Str] {
-    gen 1
-    gen 2
-    gen 3
-}
+fun func(p0: &A, p1: &mut A) -> std.Void { }
 
 
 fun main() -> std.Void {
-    let p = Point[std.Str](x=false, y=false)
-    let mut a = p.function[std.BigInt]("true")
-    a = "123"
-
-    let x = generator()
+    let mut a = A(x=1, y=2)
+    let x = a.x
+    func(&a, &mut a)
 }
