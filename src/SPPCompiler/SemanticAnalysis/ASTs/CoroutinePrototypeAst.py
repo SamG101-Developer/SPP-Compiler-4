@@ -12,14 +12,15 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
         super().do_semantic_analysis(scope_handler, **kwargs)
         from SPPCompiler.SemanticAnalysis.ASTs import ReturnStatementAst
 
+        # Get the coroutine return type (it is the generic argument in the "Return" type).
+        coroutine_return_type = Seq(self.return_type.parts[-1].generic_arguments.arguments).find(lambda i: i.identifier.parts[-1].to_identifier().value == "Return").type
+
         # Add the "target-return-type" to the kwargs, so other ASTs can use the function's return type is required.
         # Analyse the body of the function, and then pop the return type from the kwargs.
         kwargs |= {"target-return-type": self.return_type}
+        kwargs |= {"coroutine-return-type": coroutine_return_type}
         kwargs |= {"is-coroutine": self.function_token}
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
-
-        # Get the coroutine return type (it is the generic argument in the "Return" type).
-        coroutine_return_type = Seq(self.return_type.parts[-1].generic_arguments.arguments).find(lambda i: i.identifier.parts[-1].to_identifier().value == "Return").type
 
         # Ensure the return type is one of the 3 generator return types.
         if self.return_type.without_generics() not in [
