@@ -1,0 +1,6 @@
+from SPPCompiler.SemanticAnalysis.ASTs.ObjectInitializerArgumentNamedAst import ObjectInitializerArgumentNamedAst
+from SPPCompiler.SemanticAnalysis.ASTs.ObjectInitializerArgumentNormalAst import ObjectInitializerArgumentNormalAst
+
+type ObjectInitializerArgumentAst = ObjectInitializerArgumentNormalAst | ObjectInitializerArgumentNamedAst
+
+__all__ = ["ObjectInitializerArgumentAst"]

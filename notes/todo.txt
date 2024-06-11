@@ -1,6 +1,6 @@
 Generics:
 -- All things generic constraints (functions, classes, sup-blocks, member access).
--- Replace sup-scopes on generic classes with generic conversion fallthrough (into sup-methods etc.)
+-- Sup scopes for certain generics only.
 -- Function specialization.
 
 Binary expressions:
@@ -31,20 +31,18 @@ Patterns:
 
 Tuples:
 -- Change binary folding to create a chain of binary calls, not just first 2 ops => `1.add(2).add(3)` etc)
--- Tuple function folding: foldable tuples need to be marked as so, then the function fold only folds those tuples.
+-- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
 -- Tuple unpacking into parameters ie `function_call(..tuple)`
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Check memory rules apply to multiple values inside tuples
 
 Other:
 -- The `Self` type needs to change for parameter types.
--- Change parameters to be like local variables, allowing different types like `fun function(Point(x, y): Point) -> Point { ... }`
--- Allow global constants (can't be (partially-)moved, can be copied or "&" though)
+-- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- Static methods not callable from class type (parsing issue)
 -- Suggest similar namespaces for undefined namespaces
 -- Special `Copy` type that doesn't "move" the value
--- Convert all manual AST creations to use the Lexer/Parser classes + pos shift
--- Potential shorthand for the function type: `param: (&, Str, Str) -> Bool` => `param: FunRef[Bool, (Str, Str)]`
-
-Errors:
--- Add fixed error codes, and call the instead of the error message
+-- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
+-- Reject assignments with a `Void` type
+-- What about a param like: "fn func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
+-- Re-add the "cannot use self in module function" check (removed for false positives)

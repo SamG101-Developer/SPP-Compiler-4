@@ -1,22 +1,22 @@
 mod std.number
 
 
-cls BigNum {
+cls BigInt {
     values: std.Vec[U32]
 }
 
 cls BigDec { }
 
 
-sup std.ops.Sub on BigNum {
-    fun sub(self, other: BigNum) -> BigNum { }
+sup std.ops.Sub on BigInt {
+    fun sub(self, other: BigInt) -> BigInt { }
 }
 
-sup std.ops.Add on BigNum {
-    fun add(self, other: BigNum) -> BigNum { }
+sup std.ops.Add on BigInt {
+    fun add(self, other: BigInt) -> BigInt { }
 }
 
-sup BigNum {
+sup BigInt {
     fun test() -> std.Void { }
 }
 
