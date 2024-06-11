@@ -7,7 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnal
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -98,7 +98,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         value=function_name.lhs)
                     self.arguments.arguments.insert(0, self_arg)
 
-                arguments = Seq(self.arguments.arguments.copy())
+                arguments = Seq(self.arguments.arguments)
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 # Check there aren't any named arguments that don't match the function's parameters.
@@ -114,45 +114,24 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
                     raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
-                # Convert all anonymous arguments to named arguments (in the function being called).
-                for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
-                    if is_variadic_function and parameter_identifiers.length == 1:
-
-                        # Value is a tuple of the remaining arguments.
-                        variadic_value = TupleLiteralAst(
-                            pos=argument.pos,
-                            paren_l_token=TokenAst.dummy(TokenType.TkParenL),
-                            items=arguments[j:].map(lambda a: a.value).value,
-                            paren_r_token=TokenAst.dummy(TokenType.TkParenR))
-                        new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers[0], TokenAst.dummy(TokenType.TkAssign), argument.convention, variadic_value)
-                        arguments = arguments[:j]
-                        arguments.append(new_argument)
-                        break
-                    else:
-                        new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifiers.pop(0), TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
-                        arguments.replace(argument, new_argument)
-                self.arguments.arguments = arguments.value
-
-                # Convert all anonymous generic arguments to named generic arguments (in the function being called).
-                generic_parameter_identifiers = Seq(function_overload.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
-
-                for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
-                    generic_parameter_identifiers.remove(generic_argument.identifier)
-
-                for generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst):
-                    new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
-                    generic_arguments.replace(generic_argument, new_argument)
-
-                self.generic_arguments.arguments = generic_arguments.value
+                # Convert all anonymous arguments and generics to named counterparts.
+                self.arguments.arguments = convert_function_arguments_to_named(arguments, Seq(function_overload.parameters.parameters), is_variadic_function).value
+                self.generic_arguments.arguments = convert_generic_arguments_to_named(generic_arguments, Seq(function_overload.generic_parameters.parameters)).value
 
                 # Check all the required parameters have been assigned a value.
                 argument_identifiers = Seq(arguments).map(lambda a: a.identifier)
                 required_parameter_identifiers = Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
-                if missing_arguments := required_parameter_identifiers.set_subtract(argument_identifiers):
-                    raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "function call", "parameter")
+                if missing_parameters := required_parameter_identifiers.set_subtract(argument_identifiers):
+                    raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
 
-                owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
+                # Inherit any generics from the owner scope into the function's generics.
+                if isinstance(function_name, PostfixExpressionAst):
+                    owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
+                else:
+                    owner_scope_generic_arguments = []
+
                 self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    self,
                     Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).value,
                     Seq(self.generic_arguments.arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
@@ -311,11 +290,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # owned => ConventionMovAst.
         function_proto, function_scope = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
-        owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
-
-        scope = function_scope
-        while scope:
-            scope = scope._parent_scope
 
         return InferredType(convention=ConventionMovAst, type=function_return_type)
 

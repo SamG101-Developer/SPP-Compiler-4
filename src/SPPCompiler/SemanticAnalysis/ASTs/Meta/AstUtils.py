@@ -1,18 +1,21 @@
 from __future__ import annotations
 from typing import Dict
 
-from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.Utils.Sequence import Seq
 
 
 def infer_generics_types(
-        generic_parameters: list[TypeAst],
-        explicit_generic_arguments: Dict[TypeAst, TypeAst],
-        infer_from: Dict[IdentifierAst, TypeAst],
-        map_to: Dict[IdentifierAst, TypeAst],
-        scope_handler: ScopeHandler) -> Dict[TypeAst, TypeAst]:
+        ast: Ast,
+        generic_parameters: list["TypeAst"],
+        explicit_generic_arguments: Dict["TypeAst", "TypeAst"],
+        infer_from: Dict["IdentifierAst", "TypeAst"],
+        map_to: Dict["IdentifierAst", "TypeAst"],
+        scope_handler: ScopeHandler) -> Dict["TypeAst", "TypeAst"]:
 
     """
     For the class:
@@ -55,7 +58,7 @@ def infer_generics_types(
     # Check all generic parameters have been inferred or explicitly defined.
     for generic_parameter in generic_parameters:
         if generic_parameter not in explicit_generic_arguments and generic_parameter not in inferred_generic_arguments:
-            raise SemanticErrors.MISSING_GENERIC_ARGUMENT(generic_parameter)
+            raise SemanticErrors.MISSING_GENERIC_ARGUMENT(ast, generic_parameter)
 
     # Return a union of the inferred and explicit generic arguments.
     return inferred_generic_arguments | explicit_generic_arguments
@@ -97,6 +100,78 @@ def ensure_memory_integrity(
         match value_ast:
             case IdentifierAst(): symbol.memory_info.ast_consumed = move_ast
             case PostfixExpressionAst(): symbol.memory_info.ast_partial_moves.append(value_ast)
+
+
+def convert_generic_arguments_to_named(
+        generic_arguments: Seq["GenericArgumentAst"],
+        generic_parameters: Seq["GenericParameterAst"]) -> Seq["GenericArgumentAst"]:
+
+    from SPPCompiler.SemanticAnalysis.ASTs import (
+        GenericArgumentNamedAst, GenericArgumentNormalAst, GenericParameterOptionalAst, GenericParameterVariadicAst,
+        TokenAst)
+
+    # Remove the named generic arguments from the list of generic parameter identifiers.
+    generic_parameter_identifiers = Seq(generic_parameters.value.copy()).map(lambda p: p.identifier)
+    for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
+        generic_parameter_identifiers.remove(generic_argument.identifier)
+
+    # Loop over every unnamed generic argument in the list.
+    for i, generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst).enumerate():
+
+        # Check if the final generic parameter is variadic; if it is, then run separate steps.
+        if generic_parameter_identifiers.length == 1 and isinstance(Seq(generic_parameters)[-1], GenericParameterVariadicAst):
+            final_generic_arguments = generic_arguments.filter_to_type(GenericArgumentNormalAst)[i:].map(lambda g: g.type)
+            generic_parameter_identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
+            new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifier, TokenAst.dummy(TokenType.TkAssign), CommonTypes.tuple(final_generic_arguments))
+            generic_arguments.replace(generic_argument, new_argument)  # todo: ?
+            break
+
+        # For a normal generic parameter, assign the next generic parameter identifier to the generic argument.
+        else:
+            generic_parameter_identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
+            new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifier, TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
+            generic_arguments.replace(generic_argument, new_argument)
+
+    # Add default values for any remaining generic parameters.
+    for generic_parameter in generic_parameters:
+        if isinstance(generic_parameter, GenericParameterOptionalAst) and generic_parameter.identifier not in generic_arguments.map(lambda a: a.identifier):
+            new_argument = GenericArgumentNamedAst(generic_parameter.pos, generic_parameter.identifier.parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_parameter.default_value)
+            generic_arguments.append(new_argument)
+
+    return generic_arguments
+
+
+def convert_function_arguments_to_named(
+        arguments: Seq["FunctionArgumentAst"],
+        parameters: Seq["FunctionParameterAst"],
+        is_variadic: bool) -> Seq["FunctionArgumentAst"]:
+
+    from SPPCompiler.SemanticAnalysis.ASTs import (
+        FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst)
+
+    parameter_identifiers = Seq(parameters.value.copy()).map(lambda p: p.identifier_for_param())
+
+    # Loop over every unnamed argument in the list.
+    for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
+
+        # Check if the final parameter is variadic; if it is, then run separate steps.
+        if is_variadic and parameter_identifiers.length == 1:
+
+            # Value is a tuple of the remaining arguments.
+            final_arguments = TupleLiteralAst(argument.pos, TokenAst.dummy(TokenType.TkParenL), arguments[j:].map(lambda a: a.value).value, TokenAst.dummy(TokenType.TkParenR))
+            parameter_identifier = parameter_identifiers[0]  # todo: make .pop(0)?
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, final_arguments)
+            arguments = arguments[:j]
+            arguments.append(new_argument)
+            break
+
+        # For a normal parameter, assign the next parameter identifier to the argument.
+        else:
+            parameter_identifier = parameter_identifiers.pop(0)
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
+            arguments.replace(argument, new_argument)
+
+    return arguments
 
 
 __all__ = ["infer_generics_types"]

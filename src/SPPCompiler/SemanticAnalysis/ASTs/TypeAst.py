@@ -5,10 +5,10 @@ import hashlib
 from dataclasses import dataclass
 from typing import List, Optional
 
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_generic_arguments_to_named
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -91,23 +91,12 @@ class TypeAst(Ast, SemanticAnalyser):
             base_type_scope  = base_type_symbol.associated_scope
 
             # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
-            generic_parameter_identifiers = Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value.copy()
-            for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
-                generic_parameter_identifiers.remove(generic_argument.identifier)
+            convert_generic_arguments_to_named(
+                generic_arguments=generic_arguments,
+                generic_parameters=Seq(base_type_symbol.type.generic_parameters.parameters))
 
-            for i, generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst).enumerate():
-                if len(generic_parameter_identifiers) == 1 and isinstance(Seq(base_type_symbol.type.generic_parameters.parameters)[-1], GenericParameterVariadicAst):
-                    final_generic_arguments = generic_arguments.filter_to_type(GenericArgumentNormalAst)[i:].map(lambda g: g.type)
-                    identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
-                    new_argument = GenericArgumentNamedAst(generic_argument.pos, identifier, TokenAst.dummy(TokenType.TkAssign), CommonTypes.tuple(final_generic_arguments))
-                    generic_arguments.replace(generic_argument, new_argument)
-                    break
-                else:
-                    new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifiers.pop(0).parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
-                    generic_arguments.replace(generic_argument, new_argument)
-
-            # if self.without_generics() != CommonTypes.tuple([]):
-            self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
+            if self.without_generics() != CommonTypes.tuple([]):
+                self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
             self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
             # Create a new scope and symbol for the generic version of the type.
