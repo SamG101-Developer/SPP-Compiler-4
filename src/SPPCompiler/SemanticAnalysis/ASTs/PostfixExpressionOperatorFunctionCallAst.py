@@ -77,8 +77,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # todo: function_scope.sup_scopes are empty
 
         mock_function_sup_scopes = function_scope.sup_scopes
-        for s in mock_function_sup_scopes:
-            print(s[0]._scope_name)
         function_overloads = Seq(mock_function_sup_scopes).map(lambda s: s[1].body.members).flat()
         function_overload_errors = []
         valid_overloads = []
@@ -148,9 +146,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 if missing_arguments := required_parameter_identifiers.set_subtract(argument_identifiers):
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "function call", "parameter")
 
+                owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
                 self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
                     Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).value,
-                    Seq(self.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    Seq(self.generic_arguments.arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
                     scope_handler))

@@ -111,7 +111,7 @@ class TypeAst(Ast, SemanticAnalyser):
             this_type_scope_name = copy.deepcopy(base_type_scope._scope_name)
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
             this_type_scope = Scope(this_type_scope_name, scope_handler.global_scope)
-            this_type_scope._sup_scopes = base_type_scope._sup_scopes.copy()
+            this_type_scope._sup_scopes = base_type_scope._sup_scopes
             this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 

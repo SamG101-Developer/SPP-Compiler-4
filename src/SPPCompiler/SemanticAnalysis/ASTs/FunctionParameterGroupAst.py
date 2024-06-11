@@ -56,9 +56,10 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "parameter")
 
+        # todo: this doesn't work (creates false positives)
         # Ensure that this function is a class method if a "self" parameter is present.
-        if self.get_self() and scope_handler.at_global_scope(parent_level=2):
-            raise SemanticErrors.SELF_PARAMETER_OUTSIDE_CLASS(self.get_self().identifier)
+        # if self.get_self() and scope_handler.at_global_scope(parent_level=2):
+        #     raise SemanticErrors.SELF_PARAMETER_OUTSIDE_CLASS(self.get_self().identifier)
 
         # Ensure there is a maximum of 1 variadic parameter.
         variadic_parameters = Seq(self.parameters).filter_to_type(FunctionParameterVariadicAst)
