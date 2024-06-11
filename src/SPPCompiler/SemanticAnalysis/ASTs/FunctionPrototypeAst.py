@@ -7,7 +7,6 @@ from typing import List, Optional
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -29,7 +28,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
 
     Attributes:
         annotations: The annotations for the function.
-        fun_token: The "fun" keyword token.
+        function_token: The "fun" keyword token.
         identifier: The identifier for the function.
         generic_parameters: The generic parameters for the function.
         parameters: The parameters for the function.
@@ -45,7 +44,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     """
 
     annotations: List["AnnotationAst"]
-    fun_token: "TokenAst"
+    function_token: "TokenAst"
     identifier: "IdentifierAst"
     generic_parameters: Optional["GenericParameterGroupAst"]
     parameters: "FunctionParameterGroupAst"
@@ -58,7 +57,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     _orig: "IdentifierAst" = field(default=None, kw_only=True)
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True)
     _specializations: List["FunctionPrototypeAst"] = field(default_factory=list, kw_only=True)
-    _is_coro: bool = field(default=False, init=False)  # todo: assign this somewhere
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
@@ -69,7 +67,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionPrototypeAst.
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}{self.fun_token.print(printer)}{self.identifier.print(printer)}"
+        s += f"{Seq(self.annotations).print(printer, "\n")}{self.function_token.print(printer)}{self.identifier.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
         s += f"{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
@@ -193,8 +191,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ReturnStatementAst
-
         scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters, the function parameters and the return type, in this order. This allows
@@ -202,22 +198,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Add the "target-return-type" to the kwargs, so other ASTs can use the function's return type is required.
-        # Analyse the body of the function, and then pop the return type from the kwargs.
-        kwargs |= {"target-return-type": self.return_type}
-        self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
-        kwargs.pop("target-return-type")
-
-        # Check a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
-        # return type.
-        if (not self._is_coro
-                and not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
-                and self.body.members
-                and not isinstance(self.body.members[-1], ReturnStatementAst)):
-            raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token)
-
-        scope_handler.exit_cur_scope()
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where

@@ -85,6 +85,7 @@ class TokenType(Enum):
     KwCls = "cls"
     KwSup = "sup"
     KwFun = "fun"
+    KwCor = "cor"
     KwUse = "use"
 
     # Variable declarations

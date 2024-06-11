@@ -166,13 +166,20 @@ class Parser:
 
     @parser_rule
     def parse_sup_method_prototype(self) -> SupMethodPrototypeAst:
-        p1 = self.parse_function_prototype().parse_once()
+        p1 = self.parse_subroutine_prototype().parse_once()
         return SupMethodPrototypeAst(**p1.__dict__)
 
     # ===== FUNCTIONS =====
 
     @parser_rule
     def parse_function_prototype(self) -> FunctionPrototypeAst:
+        p1 = self.parse_subroutine_prototype().for_alt()
+        p2 = self.parse_coroutine_prototype().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_subroutine_prototype(self) -> SubroutinePrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
         p2 = self.parse_token(TokenType.KwFun).parse_once()
@@ -183,7 +190,21 @@ class Parser:
         p7 = self.parse_type().parse_once()
         p8 = self.parse_where_block().parse_optional()
         p9 = self.parse_inner_scope(self.parse_statement).parse_once()
-        return FunctionPrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9)
+        return SubroutinePrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9)
+
+    @parser_rule
+    def parse_coroutine_prototype(self) -> CoroutinePrototypeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_annotation().parse_zero_or_more()
+        p2 = self.parse_token(TokenType.KwCor).parse_once()
+        p3 = self.parse_identifier().parse_once()
+        p4 = self.parse_generic_parameters().parse_optional()
+        p5 = self.parse_function_parameters().parse_once()
+        p6 = self.parse_token(TokenType.TkArrowR).parse_once()
+        p7 = self.parse_type().parse_once()
+        p8 = self.parse_where_block().parse_optional()
+        p9 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return CoroutinePrototypeAst(c1, p1, p2, p3, p4, p5, p6, p7, p8, p9)
 
     @parser_rule
     def parse_function_call_arguments(self) -> FunctionArgumentGroupAst:
