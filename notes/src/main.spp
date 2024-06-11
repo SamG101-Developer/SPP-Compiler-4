@@ -2,31 +2,44 @@ mod main
 
 
 cls Point {
-    x: std.U32
-    y: std.U32
-    z: std.U32
+    x: std.BigInt
+    y: std.BigInt
+    z: std.BigInt
 }
-
 
 cls Vector {
-    pos: Point
-    dir: std.BigDec
+    point: Point
+    angle: std.BigInt
 }
 
 
-cls A { }
-
-
-fun test(a: std.Str) -> std.Bool { }
-
-
-fun func(v: Vector) -> std.Void {
-    case v == then
-        Vector(pos=Point(y, ..), ..) { }
-        Vector(pos=Point(x, y=1, z), ..) { }
-        Vector(pos=Point(x, y, z=1), ..) { }
+cls Type[T] {
+    a: T
+    b: T
 }
 
 
-# let Vector(pos=A(), ..) = v
-# let A() = v.pos
+sup [T] Type[T] {
+    fun func[U](&self) -> U { }
+    fun g(&self, a: T) -> std.Bool { }
+}
+
+sup Type[std.Bool] {
+    fun bool_func(&self) -> std.Bool { }
+}
+
+
+sup Point {
+    fun func(&self) -> Point { }
+    fun func(&self, a: std.Bool) -> std.Bool { }
+}
+
+
+fun a() -> std.Void { }
+
+
+fun main() -> std.Void {
+    let t = Type(a=1, b=2)
+    let mut x = t.bool_func()
+    x = 1
+}
