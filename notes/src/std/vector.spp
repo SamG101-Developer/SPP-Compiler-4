@@ -2,3 +2,6 @@ mod std.vector
 
 
 cls Vec[T] { }
+
+
+sup [T] Vec [T] { }

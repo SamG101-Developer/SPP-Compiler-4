@@ -40,6 +40,11 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
         # Generate the module's members.
         Seq(self.module.body.members).for_each(lambda m: m.generate(scope_handler))
 
+    def sup_scope_gen(self, scope_handler: ScopeHandler) -> None:
+        # Generate the module's members.
+        from SPPCompiler.SemanticAnalysis.ASTs import SupPrototypeInheritanceAst, SupPrototypeNormalAst
+        Seq(self.module.body.members).filter_to_type(SupPrototypeInheritanceAst, SupPrototypeNormalAst).for_each(lambda m: m.sup_scope_gen(scope_handler))
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Semantically analyse the module.
         self.module.do_semantic_analysis(scope_handler, **kwargs)

@@ -69,6 +69,8 @@ class TokenType(Enum):
     TkColon = ":"
 
     TkDot = "."
+    TkDoubleColon = "::"
+
     TkComma = ","
     TkAssign = "="
     TkArrowR = "->"

@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_postfix_members_accesses_to_identifiers
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -15,18 +17,18 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
     The PostfixExpressionOperatorMemberAccessAst node represents the member access operator of some expression.
 
     Attributes:
-        dot_token: The dot token that represents the member access operator.
+        access_token: The dot token that represents the member access operator.
         identifier: The identifier or numeric token that represents the member being accessed.
     """
 
-    dot_token: "TokenAst"
+    access_token: "TokenAst"
     identifier: "PostfixMemberPartAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the member access operator.
         s = ""
-        s += f"{self.dot_token.print(printer)}"
+        s += f"{self.access_token.print(printer)}"
         s += f"{self.identifier.print(printer)}"
         return s
 
@@ -46,7 +48,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Identifier member access.
         if isinstance(self.identifier, IdentifierAst):
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
+            match self.access_token.token.token_type:
+                case TokenType.TkDot: lhs_type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
+                case TokenType.TkDoubleColon: lhs_type_scope = scope_handler.get_namespaced_scope(convert_postfix_members_accesses_to_identifiers(lhs))
 
             # Check if the left side is a generic type.
             if not lhs_type_scope:
@@ -54,7 +58,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check if the member being accessed exists on the left side type.
             if not lhs_type_scope.has_symbol(self.identifier):
-                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type)
+                print(lhs_type_scope._scope_name)
+                print([f"{s.name}" for s in lhs_type_scope.all_symbols()])
+                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "attribute/item")
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst

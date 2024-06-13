@@ -69,7 +69,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             if isinstance(current_local_variable, LocalVariableSingleAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
-                    dot_token=TokenAst.dummy(TokenType.TkDot),
+                    access_token=TokenAst.dummy(TokenType.TkDot),
                     identifier=current_local_variable.identifier)
 
                 ast_1 = PostfixExpressionAst(
@@ -90,7 +90,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             elif isinstance(current_local_variable, LocalVariableAssignmentAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
-                    dot_token=TokenAst.dummy(TokenType.TkDot),
+                    access_token=TokenAst.dummy(TokenType.TkDot),
                     identifier=current_local_variable.identifier)
 
                 ast_1 = PostfixExpressionAst(

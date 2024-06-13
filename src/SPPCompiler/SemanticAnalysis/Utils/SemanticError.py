@@ -449,7 +449,7 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def MEMBER_ACCESS_NON_EXISTENT(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+    def MEMBER_ACCESS_NON_EXISTENT(lhs: Ast, rhs: Ast, lhs_ty: InferredType, what: str) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
@@ -457,9 +457,9 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Attribute '{rhs}' accessed here",
-            message="Undefined attribute",
-            tip="Check for typos or define the attribute")
+            tag_message=f"{what.title()} '{rhs}' accessed here",
+            message=f"Undefined {what}",
+            tip=f"Check for typos or define the {what}")
         return exception
 
     @staticmethod

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, List
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -7,6 +7,19 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.Utils.Sequence import Seq
+
+
+def convert_postfix_members_accesses_to_identifiers(postfix_expression: "PostfixExpressionAst") -> List["IdentifierAst"]:
+    from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst, IdentifierAst
+
+    if isinstance(postfix_expression, IdentifierAst):
+        return [postfix_expression]
+
+    identifiers = []
+    while isinstance(postfix_expression, PostfixExpressionAst) and isinstance(postfix_expression.op, PostfixExpressionOperatorMemberAccessAst):
+        identifiers.append(postfix_expression.op.identifier)
+        postfix_expression = postfix_expression.lhs
+    return identifiers
 
 
 def infer_generics_types(

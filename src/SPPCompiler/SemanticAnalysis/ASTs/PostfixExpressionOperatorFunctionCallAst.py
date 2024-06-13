@@ -7,7 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnal
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, convert_postfix_members_accesses_to_identifiers
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -68,8 +68,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         match function_name:
             case IdentifierAst():
                 function_scope = scope_handler.current_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.value}").lex(), "").parse_type().parse_once()).associated_scope
-            case PostfixExpressionAst():
+            case PostfixExpressionAst() if function_name.op.access_token.token.token_type == TokenType.TkDot:
                 owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
+                function_scope = owner_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.op.identifier}").lex(), "").parse_type().parse_once()).associated_scope
+            case PostfixExpressionAst() if function_name.op.access_token.token.token_type == TokenType.TkDoubleColon:
+                owner_scope = scope_handler.get_namespaced_scope(convert_postfix_members_accesses_to_identifiers(function_name.lhs))
                 function_scope = owner_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.op.identifier}").lex(), "").parse_type().parse_once()).associated_scope
             case _:
                 raise SemanticErrors.UNCALLABLE_TYPE(function_name)
@@ -125,7 +128,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
 
                 # Inherit any generics from the owner scope into the function's generics.
-                if isinstance(function_name, PostfixExpressionAst):
+                if isinstance(function_name, PostfixExpressionAst) and function_name.op.access_token.token.token_type == TokenType.TkDot:
                     owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
                 else:
                     owner_scope_generic_arguments = []

@@ -1,3 +1,6 @@
 mod inner.file
 
 cls MyType { }
+
+
+fun function(a: inner::file::MyType) -> inner::file::MyType { }

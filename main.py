@@ -8,7 +8,7 @@ import cProfile
 
 def main():
     colorama.init()
-    file_path = os.path.abspath("../notes/src")
+    file_path = os.path.abspath("notes/src")
     compiler = Compiler(file_path)
 
 

@@ -24,4 +24,5 @@ class SubroutinePrototypeAst(FunctionPrototypeAst):
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
             raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token)
 
+        scope_handler.temp_scope = scope_handler.current_scope
         scope_handler.exit_cur_scope()

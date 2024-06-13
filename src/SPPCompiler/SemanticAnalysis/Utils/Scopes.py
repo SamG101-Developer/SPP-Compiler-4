@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Final, Optional, Iterator, List, Reversible, Tuple
+from typing import Any, Final, Optional, Iterator, List, Tuple
 
+from SPPCompiler.SemanticAnalysis.ASTs.Meta import Ast
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -136,15 +137,6 @@ class Scope:
     def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
         return self._sup_scopes
 
-    @property
-    def scopes_as_namespace(self) -> List[IdentifierAst]:
-        scope = self._parent_scope
-        namespace = []
-        while scope._parent_scope:
-            namespace.insert(0, scope._scope_name)
-            scope = scope._parent_scope
-        return namespace
-
 
 class ScopeIterator:
     _iterator: Iterator[Scope]
@@ -174,18 +166,18 @@ class ScopeHandler:
     _current_scope: Scope
     _iterator: ScopeIterator
 
-    def __init__(self, global_scope: Optional[Scope] = None):
+    def __init__(self, global_scope: Optional[Scope] = None) -> None:
         self._global_scope = global_scope or Scope("Global")
         self._current_scope = self._global_scope
         self._iterator = iter(self)
 
-    def into_new_scope(self, name: Any):
+    def into_new_scope(self, name: Any) -> None:
         new_scope = Scope(name, self._current_scope)
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
         next(self._iterator)
 
-    def exit_cur_scope(self):
+    def exit_cur_scope(self) -> None:
         self._current_scope = self._current_scope._parent_scope
 
     def reset(self, scope: Optional[Scope] = None) -> None:

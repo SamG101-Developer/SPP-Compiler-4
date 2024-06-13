@@ -166,8 +166,8 @@ class Parser:
 
     @parser_rule
     def parse_sup_method_prototype(self) -> SupMethodPrototypeAst:
-        p1 = self.parse_subroutine_prototype().parse_once()
-        return SupMethodPrototypeAst(**p1.__dict__)
+        p1 = self.parse_function_prototype().parse_once()
+        return p1
 
     # ===== FUNCTIONS =====
 
@@ -973,11 +973,18 @@ class Parser:
     @parser_rule
     def parse_postfix_op_member_access(self) -> PostfixExpressionOperatorMemberAccessAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkDot).parse_once()
+        p1 = self.parse_postfix_op_member_access_token().parse_once()
         p2 = self.parse_identifier().for_alt()
         p3 = self.parse_token(TokenType.LxDecInteger).for_alt()
         p4 = (p2 | p3).parse_once()
         return PostfixExpressionOperatorMemberAccessAst(c1, p1, p4)
+
+    @parser_rule
+    def parse_postfix_op_member_access_token(self) -> TokenAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkDot).for_alt()
+        p2 = self.parse_token(TokenType.TkDoubleColon).for_alt()
+        return (p1 | p2).parse_once()
 
     @parser_rule
     def parse_postfix_op_early_return(self) -> PostfixExpressionOperatorEarlyReturnAst:
@@ -1177,7 +1184,7 @@ class Parser:
     @parser_rule
     def parse_type_namespace(self) -> TypedefStatementOldNamespaceAst:
         c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDot)
+        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDoubleColon)
         return TypedefStatementOldNamespaceAst(c1, p1)
 
     @parser_rule

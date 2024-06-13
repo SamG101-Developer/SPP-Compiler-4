@@ -5,16 +5,14 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -52,6 +50,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser)
     return_type: "TypeAst"
     where_block: Optional["WhereBlockAst"]
     body: InnerScopeAst["StatementAst"]
+
+    X = 0
 
     _fn_type: "TypeAst" = field(default=None, kw_only=True)
     _orig: "IdentifierAst" = field(default=None, kw_only=True)

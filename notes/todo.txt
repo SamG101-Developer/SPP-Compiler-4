@@ -46,3 +46,4 @@ Other:
 -- Reject assignments with a `Void` type
 -- What about a param like: "fn func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
 -- Re-add the "cannot use self in module function" check (removed for false positives)
+-- Non-standard parameters: split into single parameter + destructure inside function.

@@ -58,7 +58,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
         for i, current_local_variable in cur_let_statements.enumerate():
             ast_0 = PostfixExpressionOperatorMemberAccessAst(
                 pos=self.pos,
-                dot_token=TokenAst.dummy(TokenType.TkDot),
+                access_token=TokenAst.dummy(TokenType.TkDot),
                 identifier=TokenAst.dummy(TokenType.LxDecInteger, info=f"{i}"))
 
             ast_1 = PostfixExpressionAst(

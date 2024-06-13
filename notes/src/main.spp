@@ -1,17 +1,11 @@
 mod main
 
 
-cls A {
-    x: std.BigInt
-    y: std.BigInt
-}
+fun radiator() -> std::void::Void { }
 
 
-fun func(p0: &A, p1: &mut A) -> std.Void { }
-
-
-fun main() -> std.Void {
-    let mut a = A(x=1, y=2)
-    let x = a.x
-    func(&a, &mut a)
+fun main() -> std::void::Void {
+    radiator()
+    let t = inner::file::MyType()
+    inner::file::function(t)
 }

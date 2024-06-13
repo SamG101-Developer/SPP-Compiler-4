@@ -31,6 +31,9 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        if scope_handler.current_scope.has_symbol(self) or scope_handler.get_namespaced_scope([self]):
+            return
+
         # Check the identifier exists in the current or parent scopes.
         if not scope_handler.current_scope.has_symbol(self):
 
@@ -41,11 +44,18 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
             # closest match if one exists.
             raise SemanticErrors.UNKNOWN_IDENTIFIER(self, similar.value, "identifier")
 
+        elif not scope_handler.get_namespaced_scope([self]):
+            # Raise an exception if the identifier does not exist in the current or parent scopes, and include the
+            # closest match if one exists.
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, [], "namespace")
+
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionRefAst, ConventionMutAst, ConventionMovAst
 
         # Get the symbol for the identifier.
         sym = scope_handler.current_scope.get_symbol(self)
+        if not scope_handler.current_scope.has_symbol(self):
+            return InferredType(convention=ConventionMovAst, type=self)
 
         # Determine the convention of the identifier based on the MemoryStatus object tied to the identifier.
         if sym.memory_info.is_borrow_mut: convention = ConventionMutAst

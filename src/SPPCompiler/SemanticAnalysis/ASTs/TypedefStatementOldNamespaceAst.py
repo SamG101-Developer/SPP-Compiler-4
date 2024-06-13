@@ -16,13 +16,13 @@ class TypedefStatementOldNamespaceAst(Ast):
         items: The items being used from the namespace.
     """
 
-    items: List["TypePartAst"]
+    items: List["Identifier"]
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the TypedefStatementOldNamespaceAst.
         s = ""
-        s += f"{Seq(self.items).print(printer, ".")}"
+        s += f"{Seq(self.items).print(printer, "::")}"
         return s
 
 

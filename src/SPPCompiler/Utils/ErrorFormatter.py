@@ -12,7 +12,7 @@ class ErrorFormatter:
 
     def __init__(self, tokens: List[Token], file_path: str) -> None:
         self._tokens = tokens
-        self._file_path = file_path[file_path.rfind("src\\") + 4:]
+        self._file_path = file_path[file_path.rfind("src\\") + 4:].replace("\\", "/")
 
     # def error_ast(self, ast, **kwargs) -> str:
     #     from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst

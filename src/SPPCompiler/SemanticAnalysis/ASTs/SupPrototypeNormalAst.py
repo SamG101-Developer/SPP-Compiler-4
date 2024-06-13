@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
@@ -7,7 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenera
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -31,6 +31,8 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     identifier: "TypeAst"
     where_block: Optional["WhereBlockAst"]
     body: "InnerScopeAst[SupMemberAst]"
+
+    _associated_scope: Optional[Scope] = field(default=None, init=False)
 
     def __post_init__(self):
         # Set the default values for the optional attributes
@@ -64,9 +66,22 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        self._associated_scope = scope_handler.current_scope
 
         # Exit the new scope.
         scope_handler.exit_cur_scope()
+
+    def sup_scope_gen(self, scope_handler: ScopeHandler) -> None:
+        # Add the superimposition scope to the class scope.
+        restore = scope_handler.current_scope
+        scope_handler._current_scope = self._associated_scope
+
+        self.identifier.do_semantic_analysis(scope_handler, dont_fill_generics=True)
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        scope_handler.exit_cur_scope()
+
+        scope_handler._current_scope = restore
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
@@ -79,11 +94,6 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # Make sure the identifier (the type being superimposed over), exists. If it does, analyse each member of the
         # body.
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         scope_handler.exit_cur_scope()
