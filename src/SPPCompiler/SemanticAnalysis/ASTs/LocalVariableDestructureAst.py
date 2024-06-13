@@ -51,7 +51,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
 
         # Check the RHS is the same type as the class type.
         value_type = kwargs["value"].infer_type(scope_handler, **kwargs)
-        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(value_type, scope_handler):
+        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(value_type, scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
         nested_destructures = []
@@ -108,7 +108,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                 if not type(current_local_variable.value).__name__.startswith("Local"):
                     value_type = current_local_variable.value.infer_type(scope_handler, **kwargs)
                     target_type = ast_1.infer_type(scope_handler, **kwargs)
-                    if not value_type.symbolic_eq(target_type, scope_handler):
+                    if not value_type.symbolic_eq(target_type, scope_handler.current_scope):
                         raise SemanticErrors.TYPE_MISMATCH(current_local_variable, target_type, value_type)
 
                 nested_destructures.append(ast_2)

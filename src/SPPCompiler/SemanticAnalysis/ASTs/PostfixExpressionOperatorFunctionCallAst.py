@@ -233,7 +233,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     if is_variadic_function and j == parameter_identifiers.length - 1:
                         for variadic_argument in argument.value.items:
                             tuple_element_type = variadic_argument.infer_type(scope_handler, **kwargs)
-                            if not tuple_element_type.symbolic_eq(parameter_type, scope_handler):
+                            if not tuple_element_type.symbolic_eq(parameter_type, scope_handler.current_scope):
                                 raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.value}'")
 
                     # Skip the "self" argument (the type is guaranteed to be correct).
@@ -241,7 +241,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         continue
 
                     # Otherwise, check the argument type directly matches the parameter type.
-                    elif not argument_type.symbolic_eq(parameter_type, scope_handler):
+                    elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope):
                         raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.value}'")
 
                 # If the function call is valid, then add it to the list of valid overloads.
