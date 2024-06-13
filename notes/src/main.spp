@@ -2,16 +2,17 @@ mod main
 
 
 cls A {
-    x: std.BigInt
-    y: std.BigInt
+    x: std::BigInt
+    y: std::BigInt
 }
 
 
-fun func(p0: &A, p1: &mut A) -> std.Void { }
+fun func(p0: &A, p1: &mut A) -> std::Void { }
 
 
-fun main() -> std.Void {
+fun main() -> std::Void {
     let mut a = A(x=1, y=2)
     let x = a.x
     func(&a, &mut a)
+    let x = inner::function_test(a)
 }

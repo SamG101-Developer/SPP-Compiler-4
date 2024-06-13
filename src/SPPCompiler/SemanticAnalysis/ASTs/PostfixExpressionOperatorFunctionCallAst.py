@@ -58,8 +58,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
             IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst,
-            FunctionArgumentNormalAst, GenericArgumentNormalAst, GenericArgumentNamedAst, FunctionParameterVariadicAst,
-            TupleLiteralAst)
+            FunctionParameterVariadicAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope

@@ -12,10 +12,6 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 @dataclass
 class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
-    The UnaryExpressionAst node represents a unary expression. This is an expression that has a unary operator and a
-    right-hand side expression. As S++ doesn't have unary expressions, the only unary operator is the 'async' function
-    call prefix.
-
     Attributes:
         op: The unary operator.
         rhs: The right-hand side expression.
@@ -40,7 +36,7 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             raise SemanticErrors.INVALID_ASYNC_CALL(self, self.rhs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, ConventionMovAst
 
         # The type is a Fut[T] where T is the return type of the function call.
         # TODO: this will cause an error, because the RHS hasn't been analysed yet

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -31,7 +32,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst, PostfixExpressionAst
         lhs_type = lhs.infer_type(scope_handler, **kwargs).type
 
         # Numeric member access.
@@ -45,7 +46,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                 raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs, self.identifier, lhs_type)
 
         # Identifier member access.
-        if isinstance(self.identifier, IdentifierAst):
+        if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDot:
             lhs_type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
 
             # Check if the left side is a generic type.
@@ -55,6 +56,14 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
             # Check if the member being accessed exists on the left side type.
             if not lhs_type_scope.has_symbol(self.identifier):
                 raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type)
+
+        # Namespaced member access.
+        if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
+            # Collect the namespace parts. a.b.c.d = ((a.b).c).b => keep collecting until the last part is found.
+            namespace = [lhs]
+            while isinstance(lhs, PostfixExpressionAst) and isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
+                namespace.append(lhs.lhs)
+                lhs = lhs.lhs
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst

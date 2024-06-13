@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Final, Optional, Iterator, List, Reversible, Tuple
+from typing import Any, Final, Optional, Iterator, List, Tuple
 
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -22,7 +22,7 @@ class Scope:
         self._symbol_table = SymbolTable()
         self._sup_scopes = []
 
-    def add_symbol(self, symbol: TypeSymbol | VariableSymbol) -> TypeSymbol | VariableSymbol:
+    def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         scope = self
@@ -60,7 +60,7 @@ class Scope:
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
-        assert isinstance(name, IdentifierAst) or isinstance(name, TypeAst), f"Expected IdentifierAst or TypeAst, got {type(name)}"
+        assert type(name) in [IdentifierAst, TypeAst], f"Expected IdentifierAst or TypeAst, got {type(name)}"
         scope = self
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
@@ -179,11 +179,12 @@ class ScopeHandler:
         self._current_scope = self._global_scope
         self._iterator = iter(self)
 
-    def into_new_scope(self, name: Any):
+    def into_new_scope(self, name: Any) -> Scope:
         new_scope = Scope(name, self._current_scope)
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
         next(self._iterator)
+        return new_scope
 
     def exit_cur_scope(self):
         self._current_scope = self._current_scope._parent_scope

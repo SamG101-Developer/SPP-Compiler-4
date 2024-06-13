@@ -6,6 +6,7 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, Sema
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTs import ProgramAst
 from SPPCompiler.Utils.ErrorFormatter import ErrorFormatter
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import NamespaceSymbol
 
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -76,7 +77,9 @@ class Analyser:
                 scope_handler.reset(scope)
 
             else:
-                scope_handler.into_new_scope(part)
+                scope_handler.current_scope.add_symbol(namespace_symbol := NamespaceSymbol(name=part))
+                namespace_scope = scope_handler.into_new_scope(part)
+                namespace_symbol.associated_scope = namespace_scope
 
     def move_scope_handler_to_end_of_scope(self, scope_handler: ScopeHandler, shift_count: int):
         # This method takes a given scope and shifts the iterator and current scope to whatever "shift_count" is. This

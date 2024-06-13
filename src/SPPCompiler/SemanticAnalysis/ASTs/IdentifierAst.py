@@ -8,7 +8,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -19,7 +19,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
     start with a lowercase letter.
 
     Attributes:
-        value: The value of the generic identifier.
+        value: The value of the identifier.
     """
 
     value: str
@@ -45,15 +45,21 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionRefAst, ConventionMutAst, ConventionMovAst
 
         # Get the symbol for the identifier.
-        sym = scope_handler.current_scope.get_symbol(self)
+        symbol = scope_handler.current_scope.get_symbol(self)
 
-        # Determine the convention of the identifier based on the MemoryStatus object tied to the identifier.
-        if sym.memory_info.is_borrow_mut: convention = ConventionMutAst
-        elif sym.memory_info.is_borrow_ref: convention = ConventionRefAst
-        else: convention = ConventionMovAst
+        match symbol:
+            case VariableSymbol():
+                # Determine the convention of the identifier based on the MemoryStatus object tied to the identifier.
+                if symbol.memory_info.is_borrow_mut: convention = ConventionMutAst
+                elif symbol.memory_info.is_borrow_ref: convention = ConventionRefAst
+                else: convention = ConventionMovAst
 
-        # Return the convention and the type of the identifier.
-        return InferredType(convention=convention, type=sym.type)
+                # Return the convention and the identifier's type.
+                return InferredType(convention=convention, type=symbol.type)
+
+            case NamespaceSymbol():
+                # Namespaces are not types, so return the namespace symbol itself.
+                return InferredType(convention=ConventionMovAst, type=self)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value.

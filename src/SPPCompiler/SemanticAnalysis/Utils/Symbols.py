@@ -38,6 +38,22 @@ class Symbol:
 
 
 @dataclass(kw_only=True)
+class NamespaceSymbol(Symbol):
+    name: IdentifierAst
+    associated_scope: Optional[Scope] = dataclasses.field(default=None)
+
+    def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+        assert isinstance(self.name, IdentifierAst), f"Got namespace symbol with name: {self.name} ({type(self.name)})"
+
+    def __json__(self) -> dict:
+        return {
+            "what": "namespace",
+            "name": self.name,
+        }
+
+
+@dataclass(kw_only=True)
 class VariableSymbol(Symbol):
     name: IdentifierAst
     type: TypeAst

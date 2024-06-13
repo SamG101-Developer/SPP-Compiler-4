@@ -972,12 +972,26 @@ class Parser:
 
     @parser_rule
     def parse_postfix_op_member_access(self) -> PostfixExpressionOperatorMemberAccessAst:
+        p1 = self.parse_postfix_op_member_access_runtime().for_alt()
+        p2 = self.parse_postfix_op_member_access_static().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_postfix_op_member_access_runtime(self) -> PostfixExpressionOperatorMemberAccessAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkDot).parse_once()
         p2 = self.parse_identifier().for_alt()
         p3 = self.parse_token(TokenType.LxDecInteger).for_alt()
         p4 = (p2 | p3).parse_once()
         return PostfixExpressionOperatorMemberAccessAst(c1, p1, p4)
+
+    @parser_rule
+    def parse_postfix_op_member_access_static(self) -> PostfixExpressionOperatorMemberAccessAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkDblColon).parse_once()
+        p2 = self.parse_identifier().parse_once()
+        return PostfixExpressionOperatorMemberAccessAst(c1, p1, p2)
 
     @parser_rule
     def parse_postfix_op_early_return(self) -> PostfixExpressionOperatorEarlyReturnAst:
@@ -1177,7 +1191,7 @@ class Parser:
     @parser_rule
     def parse_type_namespace(self) -> TypedefStatementOldNamespaceAst:
         c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDot)
+        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
         return TypedefStatementOldNamespaceAst(c1, p1)
 
     @parser_rule
