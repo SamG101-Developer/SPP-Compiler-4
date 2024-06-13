@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -10,7 +11,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
+class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
     """
     A ProgramAst node represents the root of the AST. It contains a module and an EOF token.
 
@@ -39,6 +40,10 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the module's members.
         Seq(self.module.body.members).for_each(lambda m: m.generate(scope_handler))
+
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        # Load the module's members.
+        Seq(self.module.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Semantically analyse the module.

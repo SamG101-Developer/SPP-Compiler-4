@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -17,7 +18,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
+class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
     """
     The ClassPrototypeAst node is used to represent the definition of a class. The class can be annotated, has an
     identifier, contains a list of attributes, and can have generic parameters and a where block.

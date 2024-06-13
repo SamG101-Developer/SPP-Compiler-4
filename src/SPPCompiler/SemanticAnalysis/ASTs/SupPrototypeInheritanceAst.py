@@ -4,12 +4,13 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
+class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     """
     The SupPrototypeInheritanceAst node represents a superimposition prototype for a class to be superimposed over
     another class.
@@ -57,6 +58,21 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # Exit the new scope.
         scope_handler.exit_cur_scope()
 
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+
+        # Add the superimposition scope to the class scope.
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
+        if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
+            cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+
+        # Skip internal functions scopes.
+        Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
+
+        scope_handler.exit_cur_scope()
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
 
@@ -69,14 +85,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst):
         # each member of the body.
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-
-        if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
-            cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
-
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         scope_handler.exit_cur_scope()

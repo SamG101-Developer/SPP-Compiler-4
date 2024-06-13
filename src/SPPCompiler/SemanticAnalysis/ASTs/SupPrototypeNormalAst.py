@@ -3,6 +3,7 @@ from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -13,7 +14,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
+class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
     """
     The SupPrototypeNormalAst node represents a superimposition prototype for methods and typedefs to be superimposed
     over a class.
@@ -68,6 +69,19 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # Exit the new scope.
         scope_handler.exit_cur_scope()
 
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+
+        # Add the superimposition scope to the class scope.
+        self.identifier.do_semantic_analysis(scope_handler)
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+
+        # Skip internal functions scopes.
+        Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
+
+        scope_handler.exit_cur_scope()
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
 
@@ -79,11 +93,6 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # Make sure the identifier (the type being superimposed over), exists. If it does, analyse each member of the
         # body.
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         scope_handler.exit_cur_scope()

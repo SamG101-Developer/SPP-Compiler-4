@@ -59,6 +59,22 @@ class Compiler:
             scope_handler.reset()
         self._write_to_file(self._src_path + os.sep + "symbols1.json", "symbols", scope_handler.global_scope)
 
+        for module, analyser in zip(modules, analysers):
+            # Count how many modules come before this module in the innermost namespace of the module. This is to ensure
+            # that the net scope inspected is the scope of this module, not the first class in the same namespace.
+            current_module = module
+            current_module_directory = os.sep.join(current_module.split(os.sep)[:-1])
+            counter = 0
+
+            for check_module, a in zip(modules, analysers):
+                check_module_directory = os.sep.join(check_module.split(os.sep)[:-1])
+                if check_module == current_module: break
+                if check_module_directory == current_module_directory: counter += a.num_children_introduced
+
+            analyser.stage_2_analysis(scope_handler, counter)
+            scope_handler.reset()
+        self._write_to_file(self._src_path + os.sep + "symbols2.json", "symbols", scope_handler.global_scope)
+
         # Stage 2 analysis is the semantic analysis, which is done on all modules. Reset scope to move out of namespace.
         for module, analyser in zip(modules, analysers):
             # Count how many modules come before this module in the innermost namespace of the module. This is to ensure
@@ -73,10 +89,9 @@ class Compiler:
                 if check_module_directory == current_module_directory: counter += a.num_children_introduced
 
             # Analyse the module.
-            analyser.stage_2_analysis(scope_handler, counter)
+            analyser.stage_3_analysis(scope_handler, counter)
             scope_handler.reset()
-
-        self._write_to_file(self._src_path + os.sep + "symbols2.json", "symbols", scope_handler.global_scope)
+        self._write_to_file(self._src_path + os.sep + "symbols3.json", "symbols", scope_handler.global_scope)
 
     def _write_to_file(self, file_path: str, section: str, what) -> None:
         if self._mode == "r":

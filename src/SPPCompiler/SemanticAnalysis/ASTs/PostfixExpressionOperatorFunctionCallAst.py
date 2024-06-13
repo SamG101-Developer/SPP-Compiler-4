@@ -124,7 +124,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
 
                 # Inherit any generics from the owner scope into the function's generics.
-                if isinstance(function_name, PostfixExpressionAst):
+                if isinstance(function_name, PostfixExpressionAst) and function_name.op.dot_token.token.token_type == TokenType.TkDot:
                     owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
                 else:
                     owner_scope_generic_arguments = []

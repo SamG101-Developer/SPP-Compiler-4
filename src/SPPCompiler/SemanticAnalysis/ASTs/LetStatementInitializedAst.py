@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
+from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
+from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
@@ -11,7 +12,7 @@ from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 
 @dataclass
-class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser):
+class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
     """
     The LetStatementInitializedAst node is used to represent a variable being initialized with a value. The variable
     could be a single variable, a tuple or a destructure. Recursive destructuring is supported.
@@ -50,6 +51,9 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         # Generate the symbol for the variable being assigned to. This is only used for function preprocessing.
         variable_symbol = VariableSymbol(name=self.assign_to.identifier, type=self._sup_let_type)
         scope_handler.current_scope.add_symbol(variable_symbol)
+
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        ...
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         if self._sup_let_type is not None: return
