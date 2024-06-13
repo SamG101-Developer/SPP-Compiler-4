@@ -1,5 +1,10 @@
 mod std.ops.add
 
+cls Random { }
+
+sup Random {
+    fun random() -> Self { }
+}
 
 cls Add {}
 
