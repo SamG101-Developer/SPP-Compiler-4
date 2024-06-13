@@ -2,13 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.GenericArgumentGroupAst import GenericArgumentGroupAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
@@ -24,9 +19,10 @@ class GenericIdentifierAst(Ast):
     """
 
     value: str
-    generic_arguments: Optional[GenericArgumentGroupAst]
+    generic_arguments: Optional["GenericArgumentGroupAst"]
 
     def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs.GenericArgumentGroupAst import GenericArgumentGroupAst
         self.generic_arguments = self.generic_arguments or GenericArgumentGroupAst.default()
 
     @ast_printer_method

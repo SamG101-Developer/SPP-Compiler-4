@@ -65,9 +65,7 @@ class TypeAst(Ast, SemanticAnalyser):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, GenericArgumentNormalAst, GenericArgumentNamedAst, TokenAst, GenericParameterVariadicAst,
-            GenericArgumentGroupAst)
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericArgumentGroupAst
 
         # Check if this type exists both with and without the generic arguments.
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
