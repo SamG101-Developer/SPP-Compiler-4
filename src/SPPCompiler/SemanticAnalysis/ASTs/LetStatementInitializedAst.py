@@ -7,7 +7,9 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenera
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 
@@ -62,6 +64,11 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         # Analyse the value being assigned to the variable.
         kwargs |= {"value": self.value, "let_ast": self}
         self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Check the type being assigned is not std::Void.
+        value_type = self.value.infer_type(scope_handler).type
+        if value_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
+            raise SemanticErrors.VOID_USAGE(self.value)
 
 
 __all__ = ["LetStatementInitializedAst"]

@@ -3,7 +3,9 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 
@@ -37,7 +39,12 @@ class LetStatementUninitializedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        # Ensure, for destructuring, that the RHS is a moved value - can't move out of a borrowed context.
+        # Ensure, for destructuring, that the RHS is a moved value (can't move out of a borrowed context).
+        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Check the type being assigned is not std::Void.
+        if self.type_declaration.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
+            raise SemanticErrors.VOID_USAGE(self.type_declaration)
 
         # Create a symbol for the variable being assigned to, and add it to the current scope.
         symbol = VariableSymbol(
