@@ -93,6 +93,9 @@ class TypeSymbol(Symbol):
 
     @property
     def fq_type(self) -> TypeAst:
+        if not self.type:
+            return self.name
+
         associated_scope = self.associated_scope._parent_scope
         fq_type = copy.deepcopy(self.name)
         while associated_scope._parent_scope is not None:

@@ -449,17 +449,17 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def MEMBER_ACCESS_NON_EXISTENT(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+    def MEMBER_ACCESS_NON_EXISTENT(lhs: Ast, rhs: Ast, lhs_ty: InferredType, what: str, item: str) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
-            tag_message=f"Type inferred as '{lhs_ty}'")
+            tag_message=f"{what.title()} inferred as '{lhs_ty}'")
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Attribute '{rhs}' accessed here",
-            message="Undefined attribute",
-            tip="Check for typos or define the attribute")
+            tag_message=f"{item.title()} '{rhs}' accessed here",
+            message=f"Undefined {item}",
+            tip=f"Check for typos or define the {item}")
         return exception
 
     @staticmethod
@@ -567,4 +567,14 @@ class SemanticErrors:
             tag_message=f"'{what}' inferred here as '{conflicting}'.",
             message="Conflicting generic inference.",
             tip="Ensure that the inferred generic arguments are unique.")
+        return exception
+
+    @staticmethod
+    def VOID_USAGE(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message="Type 'Void' used in assignment.",
+            message="Cannot assign type 'Void' to a variable.",
+            tip="Use a valid type for the assignment.")
         return exception

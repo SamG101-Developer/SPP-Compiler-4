@@ -55,7 +55,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check if the member being accessed exists on the left side type.
             if not lhs_type_scope.has_symbol(self.identifier):
-                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type)
+                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
 
         # Namespaced member access.
         if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
@@ -64,6 +64,11 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
             while isinstance(lhs, PostfixExpressionAst) and isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
                 namespace.append(lhs.lhs)
                 lhs = lhs.lhs
+
+            # Check the member exists in the namespace.
+            namespace_scope = scope_handler.get_namespaced_scope(namespace)
+            if not namespace_scope.has_symbol(self.identifier):
+                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "namespace", "member")
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst
