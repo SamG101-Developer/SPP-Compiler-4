@@ -75,7 +75,7 @@ class TypeAst(Ast, SemanticAnalyser):
         # Check the namespace exists.  todo: identify which part of the namespace is invalid + "similar" in parent scope
         namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
         if not scope_handler.get_namespaced_scope(namespace):
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[0], [], "namespace")
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[-1], [], "namespace")
 
         # Check if the base type exists.
         if not base_type_exists:

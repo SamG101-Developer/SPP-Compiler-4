@@ -67,6 +67,9 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check the member exists in the namespace.
             namespace_scope = scope_handler.get_namespaced_scope(namespace)
+            if not namespace_scope:
+                raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[-1], [], "namespace")
+
             if not namespace_scope.has_symbol(self.identifier):
                 raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "namespace", "member")
 

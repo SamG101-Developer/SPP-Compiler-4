@@ -14,7 +14,6 @@ class LambdaPrototypeAst(Ast):
     doesn't have an identifier, and it has a lambda capture block.
 
     Attributes:
-        - annotations: The annotations of the lambda function.
         - fun_token: The 'fun' keyword token.
         - generic_parameters: The generic parameters of the lambda function.
         - parameters: The parameters of the lambda function.
@@ -25,7 +24,6 @@ class LambdaPrototypeAst(Ast):
         - body: The body of the lambda function.
     """
 
-    annotations: List["AnnotationAst"]
     fun_token: "TokenAst"
     generic_parameters: "GenericParameterGroupAst"
     parameters: "FunctionParameterGroupAst"
@@ -42,7 +40,6 @@ class LambdaPrototypeAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         # Print the lambda function.
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}\n"
         s += f"{self.fun_token.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}"
         s += f"{self.parameters.print(printer)} "

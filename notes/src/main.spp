@@ -7,16 +7,32 @@ cls A {
 }
 
 
-fun func(p0: &A, p1: &mut A) -> std::Void { }
+sup A {
+    fun function2(a: std::BigInt) -> std::Str { }
+}
 
-fun b() -> std::Void { }
+
+##
+cor generator(value: std::BigInt) -> std::GenMov[Yield=std::Str] {
+    gen "hello"
+    gen "world"
+}
+##
+
+
+fun function1(a: std::BigInt) -> std::BigInt { }
 
 
 fun main() -> std::Void {
-    let mut a = A(x=1, y=2)
-    b()
-    let i = inner::MyType()
-    let x = inner::function_test(i)
-    # let x = a.x
-    func(&a, &mut a)
+    # let g = generator(10)
+
+    let m = inner::MyType()
+    let mut x = inner::function_test(m)
+    x = inner::MyType()
+
+    ##
+    let a = A(x=1, y=2)
+    let mut b = a.function2(10)
+    b = "123"
+    ##
 }

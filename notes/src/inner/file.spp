@@ -3,4 +3,4 @@ mod inner.file
 cls MyType { }
 
 
-fun function_test(a: inner::MyType) -> std::Void { }
+fun function_test(a: MyType) -> MyType { }

@@ -1,11 +1,11 @@
 mod std.generator
 
 
-cls GenMov[Yield, Return=std::Void, Send=std::Void] { }
+cls GenMov[Yield, Return=Void, Send=Void] { }
 
-cls GenRef[Yield, Return=std::Void, Send=std::Void] { }
+cls GenRef[Yield, Return=Void, Send=Void] { }
 
-cls GenMut[Yield, Return=std::Void, Send=std::Void] { }
+cls GenMut[Yield, Return=Void, Send=Void] { }
 
 
 # sup [Yield, Return=Void, Send=Void] GenMov[Yield, Return, Send] on GenRef[Yield, Return, Send] { }
