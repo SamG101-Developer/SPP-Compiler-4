@@ -5,6 +5,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototype
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -61,11 +62,17 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
 
+        if not scope_handler.current_scope.get_symbol(self.identifier):
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self.identifier, [], "type")
+
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
+            if not scope_handler.current_scope.get_symbol(self.super_class):
+                raise SemanticErrors.UNKNOWN_IDENTIFIER(self.super_class.parts[-1], [], "type")
+
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
 
         # Skip internal functions scopes.

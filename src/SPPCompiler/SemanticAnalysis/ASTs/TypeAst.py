@@ -33,7 +33,7 @@ class TypeAst(Ast, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the TypeSingleAst.
         s = ""
-        s += f"{Seq(self.parts).print(printer, '.')}"
+        s += f"{Seq(self.parts).print(printer, '::')}"
         return s
 
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> TypeAst:

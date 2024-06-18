@@ -22,7 +22,7 @@ class TypedefStatementOldNamespaceAst(Ast):
     def print(self, printer: AstPrinter) -> str:
         # Print the TypedefStatementOldNamespaceAst.
         s = ""
-        s += f"{Seq(self.items).print(printer, ".")}"
+        s += f"{Seq(self.items).print(printer, "::")}"
         return s
 
 

@@ -51,7 +51,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
 
             # Check if the left side is a generic type.
             if not lhs_type_scope:
-                raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints
+                raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints / intersection types
 
             # Check if the member being accessed exists on the left side type.
             if not lhs_type_scope.has_symbol(self.identifier):
