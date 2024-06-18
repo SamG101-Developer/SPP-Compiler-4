@@ -1,4 +1,4 @@
-mod std.residuals
+mod std::residual
 
 
 cls Opt[T] {

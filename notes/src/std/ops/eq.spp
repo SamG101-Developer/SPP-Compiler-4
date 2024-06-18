@@ -1,4 +1,4 @@
-mod std.ops.eq
+mod std::ops::eq
 
 
 cls Eq { }

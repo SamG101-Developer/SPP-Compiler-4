@@ -1,4 +1,4 @@
-mod std.sub
+mod std::ops::sub
 
 
 cls Sub { }

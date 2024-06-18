@@ -578,3 +578,15 @@ class SemanticErrors:
             message="Cannot assign type 'Void' to a variable.",
             tip="Use a valid type for the assignment.")
         return exception
+
+    @staticmethod
+    def MODULE_NS(ast: Ast, ns: str) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=-1, tag_message=f"In file '{ns.replace("::", "/")}'")
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Module declared as '{ast}'.",
+            message="Module namespace does not match the file path.",
+            tip="Ensure that the module namespace matches the file path.")
+        return exception

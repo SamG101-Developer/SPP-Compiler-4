@@ -102,7 +102,7 @@ class Parser:
     @parser_rule
     def parse_module_identifier(self) -> ModuleIdentifierAst:
         c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDot)
+        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
         return ModuleIdentifierAst(c1, p1)
 
     # ===== CLASSES =====

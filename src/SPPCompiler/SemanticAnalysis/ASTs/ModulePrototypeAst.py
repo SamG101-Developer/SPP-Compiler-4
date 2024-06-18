@@ -40,12 +40,12 @@ class ModulePrototypeAst(Ast, SemanticAnalyser, LLVMGeneration):
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Semantically analyse the module identifier and implementation.
-        # self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, **kwargs)
 
     def do_llvm_generation(self, module: llvm_ir.Module, **kwargs) -> Any:
         # Determine the module name and create the llvm module.
-        llvm_module_name = Seq(self.identifier.parts).map(lambda p: p.value).join(".")
+        llvm_module_name = Seq(self.identifier.parts).map(lambda p: p.value).join("::")
         llvm_module = llvm_ir.Module(name=llvm_module_name)
         self.body.do_llvm_generation(llvm_module, **kwargs)
         return llvm_module

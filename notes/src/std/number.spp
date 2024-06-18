@@ -1,4 +1,4 @@
-mod std.number
+mod std::number
 
 
 cls BigInt {
@@ -14,6 +14,14 @@ sup std::ops::Sub on BigInt {
 
 sup std::ops::Add on BigInt {
     fun add(self, other: BigInt) -> BigInt { }
+}
+
+sup std::ops::Mul on BigInt {
+    fun mul(self, other: BigInt) -> BigInt { }
+}
+
+sup std::ops::Div on BigInt {
+    fun div(self, other: BigInt) -> BigInt { }
 }
 
 sup BigInt {

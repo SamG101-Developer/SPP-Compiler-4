@@ -1,4 +1,4 @@
-mod std.tuple
+mod std::tuple
 
 
 cls Tup[..Items] { }

@@ -1,0 +1,8 @@
+mod std::ops::div
+
+
+cls Div { }
+
+sup Div {
+    fun div(self, other: Div) -> Div { }
+}

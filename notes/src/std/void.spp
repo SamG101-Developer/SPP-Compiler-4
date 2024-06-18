@@ -1,4 +1,4 @@
-mod std.void
+mod std::void
 
 
 cls Void { }

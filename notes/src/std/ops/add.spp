@@ -1,4 +1,4 @@
-mod std.ops.add
+mod std::ops::add
 
 cls Random { }
 

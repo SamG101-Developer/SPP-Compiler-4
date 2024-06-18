@@ -1,4 +1,4 @@
-mod std.function
+mod std::function
 
 
 cls FunRef[Ret, In] { }

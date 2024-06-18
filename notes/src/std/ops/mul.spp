@@ -1,0 +1,8 @@
+mod std::ops::mul
+
+
+cls Mul { }
+
+sup Mul {
+    fun mul(self, other: Mul) -> Mul { }
+}

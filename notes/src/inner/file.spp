@@ -1,4 +1,4 @@
-mod inner.file
+mod inner::file
 
 cls MyType { }
 
