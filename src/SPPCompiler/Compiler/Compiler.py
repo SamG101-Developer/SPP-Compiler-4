@@ -37,6 +37,7 @@ class Compiler:
             code = open(module).read()
             tokens = Lexer(code).lex()
             lexed.append(tokens)
+            self._write_to_file(module, "tokens", [dataclasses.asdict(token) for token in tokens])
 
         # Create a list of the parsed asts.
         parsed = []
