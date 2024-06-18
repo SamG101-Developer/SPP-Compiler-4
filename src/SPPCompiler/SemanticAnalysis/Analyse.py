@@ -68,7 +68,8 @@ class Analyser:
 
         # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
-            self._ast.do_semantic_analysis(scope_handler)
+            kwargs = {"file-name": self._file_name}
+            self._ast.do_semantic_analysis(scope_handler, **kwargs)
         except SemanticError as e:
             handle_semantic_error(err_fmt, e)
 
