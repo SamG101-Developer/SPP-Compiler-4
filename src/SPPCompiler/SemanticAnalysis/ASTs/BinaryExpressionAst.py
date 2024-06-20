@@ -155,7 +155,7 @@ class BinaryExpressionAstUtils:
         # Transform the binary expression to a function call.
         func_name = BIN_OP_FUNCS[ast.op.token.token_type]
         code = f"{ast.lhs}.{func_name}({ast.rhs})"
-        mock_function_call = Parser(Lexer(code).lex(), "").parse_expression().parse_once()
+        mock_function_call = Parser(Lexer(code).lex(), "", pos_shift=ast.pos).parse_expression().parse_once()
         return mock_function_call
 
     @staticmethod
@@ -165,7 +165,10 @@ class BinaryExpressionAstUtils:
 
         ast.lhs = BinaryExpressionAstUtils.convert_all_to_function(ast.lhs)
         ast.rhs = BinaryExpressionAstUtils.convert_all_to_function(ast.rhs)
-        return BinaryExpressionAstUtils.convert_to_function(ast)
+        ast = BinaryExpressionAstUtils.convert_to_function(ast)
+
+        # print(ast)
+        return ast
 
 
 __all__ = ["BinaryExpressionAst"]

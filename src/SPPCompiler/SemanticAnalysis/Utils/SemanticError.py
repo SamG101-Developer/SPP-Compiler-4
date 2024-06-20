@@ -370,7 +370,7 @@ class SemanticErrors:
             error_type=SemanticErrorType.ORDER_ERROR,
             tag_message=f"Missing {item} '{arg}' in {what}",
             message=f"{what.title()} declared here",
-            tip=f"Give the missing {item} a value")
+            tip=f"Give the missing {item} '{arg}' a value")
         return exception
 
     @staticmethod
