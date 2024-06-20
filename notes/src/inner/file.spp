@@ -2,5 +2,9 @@ mod inner::file
 
 cls MyType { }
 
+sup MyType {
+    fun static_function(a: std::BigInt) -> MyType { }
+}
+
 
 fun function_test(a: MyType) -> MyType { }

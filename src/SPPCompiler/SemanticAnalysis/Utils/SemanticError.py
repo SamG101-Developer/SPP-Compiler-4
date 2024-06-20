@@ -263,7 +263,9 @@ class SemanticErrors:
 
     @staticmethod
     def UNKNOWN_IDENTIFIER(ast: Ast, similar: list, what: str) -> SemanticError:
-        closest = difflib.get_close_matches(ast.value, similar, n=1, cutoff=0)
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        value = ast.parts[-1].value if isinstance(ast, TypeAst) else ast.value
+        closest = difflib.get_close_matches(value, similar, n=1, cutoff=0)
         closest = f" Did you mean '{closest[0]}'?" if closest else ""
 
         exception = SemanticError()
@@ -379,9 +381,9 @@ class SemanticErrors:
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Object '{ast}' is not callable.",
-            message=f"Uncallable object",
-            tip="Only identifiers can be called.")
+            tag_message=f"'{ast}' is not callable as a function.",
+            message=f"Non-function type is being called.",
+            tip="Call (postfix-) identifiers.")
         return exception
 
     @staticmethod
@@ -589,4 +591,42 @@ class SemanticErrors:
             tag_message=f"Module declared as '{ast}'.",
             message="Module namespace does not match the file path.",
             tip="Ensure that the module namespace matches the file path.")
+        return exception
+
+    @staticmethod
+    def STATIC_MEMBER_TYPE_ACCESS(ast: Ast, op: Ast, what: str) -> SemanticError:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        value = ast.parts[-1] if isinstance(ast, TypeAst) else ast
+        exception = SemanticError()
+        exception.add_info(
+            pos=value.pos, tag_message=f"'{ast}' is a {what}.")
+        exception.add_error(
+            pos=op.pos, error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Runtime member access found here.",
+            message=f"Runtime member access on {what}s is not allowed.",
+            tip="Use '::' instead of '.' for static member access.")
+        return exception
+
+    @staticmethod
+    def RUNTIME_MEMBER_TYPE_ACCESS(ast: Ast, op: Ast, what: str) -> SemanticError:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        value = ast.parts[-1] if isinstance(ast, TypeAst) else ast
+        exception = SemanticError()
+        exception.add_info(
+            pos=value.pos, tag_message=f"'{ast}' is a {what}.")
+        exception.add_error(
+            pos=op.pos, error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Static member access found here.",
+            message=f"Static member access on {what}s is not allowed.",
+            tip="Use '.' instead of '::' for runtime member access.")
+        return exception
+
+    @staticmethod
+    def INVALID_USE_OF_TYPE_AS_EXPR(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message="Type cannot be used here.",
+            message="Cannot use a type as an expression in this context.",
+            tip="Use a valid non-type expression.")
         return exception

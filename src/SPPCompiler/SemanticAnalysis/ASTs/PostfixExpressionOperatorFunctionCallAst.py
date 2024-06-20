@@ -267,7 +267,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index("("):]}"
                 signatures += f"\n\t{function_overload_string} {error.additional_info[-1][1]}\n"
 
-            raise SemanticErrors.NO_VALID_OVERLOADS(function_name, signatures)
+            match function_name:
+                case PostfixExpressionAst(): ast = function_name.op.identifier
+                case _: ast = function_name
+            raise SemanticErrors.NO_VALID_OVERLOADS(ast, signatures)
 
         # Todo: handle multiple valid overloads. Use most precise, error for equal precision (ambiguous call).
         # Return the valid overload

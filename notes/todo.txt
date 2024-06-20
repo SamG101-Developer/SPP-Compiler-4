@@ -36,13 +36,13 @@ Tuples:
 -- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Check memory rules apply to multiple values inside tuples
 
-Other:
+Functions:
 -- The `Self` type needs to change for parameter types.
--- Global constants move semantics (not movable). Add a GlobalConstantAst?
--- Static methods not callable from class type (parsing issue)
--- Suggest similar namespaces for undefined namespaces
--- Special `Copy` type that doesn't "move" the value
--- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
--- Reject assignments with a `Void` type
 -- What about a param like: "fn func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
+-- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
 -- Re-add the "cannot use self in module function" check (removed for false positives)
+-- The `self` argument is not generated for non-identifier functions: generate a `self` for any lhs except TypeAst (static functions).
+
+Other:
+-- Global constants move semantics (not movable). Add a GlobalConstantAst?
+-- Special `Copy` type that doesn't "move" the value

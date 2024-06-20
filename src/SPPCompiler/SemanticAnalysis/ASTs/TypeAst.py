@@ -6,18 +6,19 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_generic_arguments_to_named, infer_generics_types
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class TypeAst(Ast, SemanticAnalyser):
+class TypeAst(Ast, SemanticAnalyser, TypeInfer):
     """
     A TypeSingleIdentifier is a single type, ie `std.Vec[T]`. It is made up of a sequence of TypePartAst's, which can be
     either IdentifierAsts (namespace parts), GenericIdentifierAsts (type parts), or TokenAsts (numbers for tuple
@@ -143,6 +144,31 @@ class TypeAst(Ast, SemanticAnalyser):
                     Seq(self.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     {}, {}, scope_handler))
 
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        return InferredType(convention=ConventionMovAst, type=self)
+
+    def without_generics(self) -> TypeAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+
+        parts = []
+        for part in self.parts:
+            parts.append(GenericIdentifierAst(part.pos, part.value, None) if isinstance(part, GenericIdentifierAst) else part)
+        return TypeAst(self.pos, parts)
+
+    def symbolic_eq(self, that, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
+        # Special cases for union types.  todo: re-check this
+        if that.without_generics() == CommonTypes.var([]):
+            for generic_argument in that.parts[-1].generic_arguments.arguments:
+                if generic_argument.type.symbolic_eq(self, this_scope, that_scope):
+                    return True
+
+        # Allows for generics and aliases to match base types etc.
+        that_scope = that_scope or this_scope
+        this_type = this_scope.get_symbol(self).type
+        that_type = that_scope.get_symbol(that).type
+        return this_type is that_type
+
     def __iter__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
@@ -158,30 +184,9 @@ class TypeAst(Ast, SemanticAnalyser):
 
         return iterate(self)
 
-    def without_generics(self) -> TypeAst:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
-
-        parts = []
-        for part in self.parts:
-            parts.append(GenericIdentifierAst(part.pos, part.value, None) if isinstance(part, GenericIdentifierAst) else part)
-        return TypeAst(self.pos, parts)
-
     def __eq__(self, that):
         # Check both ASTs are the same type and have the same parts.
         return isinstance(that, TypeAst) and self.parts == that.parts
-
-    def symbolic_eq(self, that, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
-        # Special cases for union types.  todo: re-check this
-        if that.without_generics() == CommonTypes.var([]):
-            for generic_argument in that.parts[-1].generic_arguments.arguments:
-                if generic_argument.type.symbolic_eq(self, this_scope, that_scope):
-                    return True
-
-        # Allows for generics and aliases to match base types etc.
-        that_scope = that_scope or this_scope
-        this_type = this_scope.get_symbol(self).type
-        that_type = that_scope.get_symbol(that).type
-        return this_type is that_type
 
     def __hash__(self):
         return int.from_bytes(hashlib.md5("".join([str(p) for p in self.parts]).encode()).digest())

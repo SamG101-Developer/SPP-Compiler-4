@@ -8,6 +8,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import NamespaceSymbol, VariableSymbol
 
 
 @dataclass
@@ -32,46 +33,71 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst, PostfixExpressionAst
-        lhs_type = lhs.infer_type(scope_handler, **kwargs).type
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst, PostfixExpressionAst, TypeAst
 
-        # Numeric member access.
-        if isinstance(self.identifier, TokenAst):
-            # Check if the left side is a tuple; this is the only type supported for index access.
-            if not lhs_type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
-                raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_TYPE(lhs, self.identifier, lhs_type)
+        # Handle static member access from types
+        match lhs:
+            case TypeAst():
+                # Ensure static member access is being used on the type.
+                if self.dot_token.token.token_type != TokenType.TkDblColon:
+                    raise SemanticErrors.STATIC_MEMBER_TYPE_ACCESS(lhs, self.dot_token, "type")
 
-            # Check if the index is within bounds, i.e. it is less than the number of elements in the tuple.
-            if int(self.identifier.token.token_metadata) >= len(lhs_type.parts[-1].generic_arguments.arguments):
-                raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs, self.identifier, lhs_type)
+                # Ensure the symbol exists on the type.
+                type_scope = scope_handler.current_scope.get_symbol(lhs).associated_scope
+                if not type_scope.has_symbol(self.identifier):
+                    raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs.infer_type(scope_handler), "type", "attribute")
 
-        # Identifier member access.
-        if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDot:
-            lhs_type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
+                # Ensure the method is static (no "self" parameter). todo
+                return
 
-            # Check if the left side is a generic type.
-            if not lhs_type_scope:
-                raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints / intersection types
+            case IdentifierAst():
+                lhs_type = lhs.infer_type(scope_handler, **kwargs).type
 
-            # Check if the member being accessed exists on the left side type.
-            if not lhs_type_scope.has_symbol(self.identifier):
-                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
+                # Numeric member access.
+                if isinstance(self.identifier, TokenAst):
+                    # Check if the left side is a tuple; this is the only type supported for index access.
+                    if not lhs_type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+                        raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_TYPE(lhs, self.identifier, lhs_type)
 
-        # Namespaced member access.
-        if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
-            # Collect the namespace parts. a.b.c.d = ((a.b).c).b => keep collecting until the last part is found.
-            namespace = [lhs]
-            while isinstance(lhs, PostfixExpressionAst) and isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
-                namespace.append(lhs.lhs)
-                lhs = lhs.lhs
+                    # Check if the index is within bounds, i.e. it is less than the number of elements in the tuple.
+                    if int(self.identifier.token.token_metadata) >= len(lhs_type.parts[-1].generic_arguments.arguments):
+                        raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs, self.identifier, lhs_type)
 
-            # Check the member exists in the namespace.
-            namespace_scope = scope_handler.get_namespaced_scope(namespace)
-            if not namespace_scope:
-                raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[-1], [], "namespace")
+                # Identifier member access.
+                if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDot:
+                    lhs_symbol = scope_handler.current_scope.get_symbol(lhs_type)
+                    lhs_type_scope = lhs_symbol.associated_scope
 
-            if not namespace_scope.has_symbol(self.identifier):
-                raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "namespace", "member")
+                    # Check if the left side is a generic type.
+                    if not lhs_type_scope:
+                        raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints / intersection types
+
+                    # Check the identifier is a variable and not a namespace.
+                    if isinstance(lhs_symbol, NamespaceSymbol):
+                        raise SemanticErrors.STATIC_MEMBER_TYPE_ACCESS(lhs, self.dot_token, "namespace")
+
+                    # Check if the member being accessed exists on the left side type.
+                    if not lhs_type_scope.has_symbol(self.identifier):
+                        raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
+
+                # Namespaced member access.
+                if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
+                    # Collect the namespace parts. (Keep collecting until the last part is found).
+                    namespace = [lhs]
+                    while isinstance(lhs, PostfixExpressionAst) and isinstance(lhs.op, PostfixExpressionOperatorMemberAccessAst):
+                        namespace.append(lhs.lhs)
+                        lhs = lhs.lhs
+
+                    lhs_symbol = scope_handler.current_scope.get_symbol(lhs)
+                    namespace_scope = scope_handler.get_namespaced_scope(namespace)
+
+                    # Check the identifier is a namespace and not a variable.
+                    if isinstance(lhs_symbol, VariableSymbol):
+                        raise SemanticErrors.RUNTIME_MEMBER_TYPE_ACCESS(lhs, self.dot_token, "variable")
+
+                    # Check if the member being accessed exists on the namespace.
+                    if not namespace_scope.has_symbol(self.identifier):
+                        raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "namespace", "member")
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst

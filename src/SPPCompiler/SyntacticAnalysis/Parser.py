@@ -425,43 +425,43 @@ class Parser:
         p2 = self.parse_binary_expression_precedence_level_n_rhs(op, rhs).parse_optional()
         return BinaryExpressionAst(c1, p1, p2[0], p2[1]) if p2 else p1
 
-    def parse_binary_expression_precedence_level_1(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_1(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_2,
             self.parse_binary_op_precedence_level_1,
             self.parse_binary_expression_precedence_level_1)
 
-    def parse_binary_expression_precedence_level_2(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_2(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_3,
             self.parse_binary_op_precedence_level_2,
             self.parse_binary_expression_precedence_level_2)
 
-    def parse_binary_expression_precedence_level_3(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_3(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_4,
             self.parse_binary_op_precedence_level_3,
             self.parse_binary_expression_precedence_level_3)
 
-    def parse_binary_expression_precedence_level_4(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_4(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_5,
             self.parse_binary_op_precedence_level_4,
             self.parse_binary_expression_precedence_level_4)
 
-    def parse_binary_expression_precedence_level_5(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_5(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_6,
             self.parse_binary_op_precedence_level_5,
             self.parse_binary_expression_precedence_level_5)
 
-    def parse_binary_expression_precedence_level_6(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_6(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_7,
             self.parse_binary_op_precedence_level_6,
             self.parse_binary_expression_precedence_level_6)
 
-    def parse_binary_expression_precedence_level_7(self) -> ExpressionAst:
+    def parse_binary_expression_precedence_level_7(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_unary_expression,
             self.parse_binary_op_precedence_level_7,
@@ -485,18 +485,19 @@ class Parser:
     def parse_primary_expression(self) -> ExpressionAst:
         p1 = self.parse_literal().for_alt()
         p2 = self.parse_object_initialization().for_alt()
-        p3 = self.parse_lambda_prototype().for_alt()
-        p4 = self.parse_parenthesized_expression().for_alt()
-        p5 = self.parse_identifier().for_alt()
-        p6 = self.parse_if_expression().for_alt()
-        p7 = self.parse_while_expression().for_alt()
-        p8 = self.parse_yield_expression().for_alt()
-        p9 = self.parse_with_expression().for_alt()
-        p10 = self.parse_inner_scope(self.parse_statement).for_alt()
-        p11 = self.parse_self_keyword().for_alt()
-        p12 = self.parse_token(TokenType.TkVariadic).for_alt()
-        p13 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12).parse_once()
-        return p13
+        p3 = self.parse_type_single().for_alt()
+        p4 = self.parse_lambda_prototype().for_alt()
+        p5 = self.parse_parenthesized_expression().for_alt()
+        p6 = self.parse_identifier().for_alt()
+        p7 = self.parse_if_expression().for_alt()
+        p8 = self.parse_while_expression().for_alt()
+        p9 = self.parse_yield_expression().for_alt()
+        p10 = self.parse_with_expression().for_alt()
+        p11 = self.parse_inner_scope(self.parse_statement).for_alt()
+        p12 = self.parse_self_keyword().for_alt()
+        p13 = self.parse_token(TokenType.TkVariadic).for_alt()
+        p14 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13).parse_once()
+        return p14
 
     @parser_rule
     def parse_parenthesized_expression(self) -> ParenthesizedExpressionAst:
