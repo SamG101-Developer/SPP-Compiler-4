@@ -4,6 +4,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnal
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
@@ -31,7 +32,11 @@ class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
         # Analyse the value of the named argument.
+        if isinstance(self.value, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.value)
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 

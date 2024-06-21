@@ -33,9 +33,11 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
 
         # Check the value being turned is an owned type.
+        if isinstance(self.expression, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         if self.expression:
             ensure_memory_integrity(self, self.expression, self.return_keyword, scope_handler)
 

@@ -1110,14 +1110,14 @@ class Parser:
         return p3
 
     @parser_rule
-    def parse_lambda_capture_item_normal(self):
+    def parse_lambda_capture_item_normal(self) -> LambdaCaptureItemNormalAst:
         c1 = self.current_pos()
         p1 = self.parse_convention().parse_once()
         p2 = self.parse_expression().parse_once()
         return LambdaCaptureItemNormalAst(c1, p1, p2)
 
     @parser_rule
-    def parse_lambda_capture_item_named(self):
+    def parse_lambda_capture_item_named(self) -> LambdaCaptureItemNamedAst:
         c1 = self.current_pos()
         p1 = self.parse_identifier().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()

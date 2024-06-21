@@ -58,8 +58,14 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         ...
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
         if self._sup_let_type is not None: return
         ensure_memory_integrity(self, self.value, self.assign_token, scope_handler)
+
+        # Check the value being assigned is not a type.
+        if isinstance(self.value, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.value)
 
         # Analyse the value being assigned to the variable.
         kwargs |= {"value": self.value, "let_ast": self}

@@ -35,7 +35,7 @@ fun main() -> std::Void {
 
     let z = inner::MyType::static_function(10)
 
-    let mut a = inner::MyType
+    let mut a = false
     a = 1
 
     # let c = 1.add(2)

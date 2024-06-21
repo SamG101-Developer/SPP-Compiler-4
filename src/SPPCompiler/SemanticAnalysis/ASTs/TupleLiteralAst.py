@@ -37,9 +37,15 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        
         for item in self.items:
             # Analyse the item in the tuple
+            if isinstance(item, TypeAst):
+                raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(item)
             item.do_semantic_analysis(scope_handler, **kwargs)
+
+            # Get the symbol of the item.
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(item)
 
             # Make sure the item is not uninitialised.

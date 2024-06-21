@@ -23,10 +23,10 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
     how the convention of coroutine yielding is enforced.
 
     Attributes:
-        - yield_keyword: The "gen" keyword.
-        - with_keyword: The "with" keyword.
-        - convention: The optional convention of the yield expression.
-        - expression: The optional expression of the yield expression.
+        yield_keyword: The "gen" keyword.
+        with_keyword: The "with" keyword.
+        convention: The optional convention of the yield expression.
+        expression: The optional expression of the yield expression.
     """
 
     yield_keyword: "TokenAst"
@@ -45,13 +45,15 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
 
         # Ensure the yield expression is in a coroutine.
         if "is-coroutine" not in kwargs:
             raise SemanticErrors.YIELD_OUTSIDE_COROUTINE(self, kwargs["is-subroutine"])
 
         # Analyse the expression.
+        if isinstance(self.expression, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
         coroutine_ret_type = kwargs["target-return-type"]
 

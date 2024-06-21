@@ -39,7 +39,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, TypeAst
 
         lhs_symbols = []
 
@@ -53,7 +53,11 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             if not symbol:
                 raise SemanticErrors.INVALID_LHS_EXPR(lhs)
 
+        # Analyse the rhs of the assignment.
+        if isinstance(self.rhs, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.rhs)
         self.rhs.do_semantic_analysis(scope_handler, **kwargs)
+
         for i, lhs_symbol in Seq(lhs_symbols).enumerate():
             # Mutation requires either a mutable identifier, or an outermost mutable value. This can be an "&mut"
             # borrow, or a "mut" value. The const-ness of a borrow trumps the value's mutability for attributes:

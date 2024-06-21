@@ -5,6 +5,7 @@ from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, Inferred
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
@@ -32,11 +33,16 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
         # Analyse the expression inside the parentheses.
+        # Todo: effects of not having this check for ParenthesizedExpressionAst?
+        if isinstance(self.expression, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        # Infer the type of the expression inside the parentheses.
+        # Infer the inner expression's type.
         return self.expression.infer_type(scope_handler, **kwargs)
 
 

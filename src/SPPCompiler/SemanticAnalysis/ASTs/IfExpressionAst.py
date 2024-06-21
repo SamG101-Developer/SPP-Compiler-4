@@ -43,10 +43,14 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst
+        from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst, TypeAst
 
-        # Move into a new scope, and analyse the condition.
+        # Move into a new scope.
         scope_handler.into_new_scope("<if-expression>")
+
+        # Analyse the condition.
+        if isinstance(self.condition, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is

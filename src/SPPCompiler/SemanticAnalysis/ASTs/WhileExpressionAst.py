@@ -39,12 +39,14 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+
         # Analyse the condition
+        if isinstance(self.condition, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
     
-        # Ensure the condition it evaluates to a Bool type.
+        # Ensure the condition evaluates to a Bool type.
         condition_type = self.condition.infer_type(scope_handler, **kwargs)
         target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
         if not condition_type.symbolic_eq(target_type, scope_handler.current_scope):

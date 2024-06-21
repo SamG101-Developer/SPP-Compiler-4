@@ -42,7 +42,7 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LetStatementUninitializedAst, TokenAst, ConventionMovAst, ConventionRefAst, ConventionMutAst)
+            LetStatementUninitializedAst, TokenAst, ConventionMovAst, ConventionRefAst, ConventionMutAst, TypeAst)
 
         self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -66,6 +66,10 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
         # Check the convention is not a borrow convention.
         if not isinstance(self.convention, ConventionMovAst):
             raise SemanticErrors.OPTIONAL_PARAM_REQUIRES_MOV_CONVENTION(self.convention)
+
+        # Check the default value is not a type.
+        if isinstance(self.default_value, TypeAst):
+            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.default_value)
 
         # Analyse the default value
         self.default_value.do_semantic_analysis(scope_handler, **kwargs)
