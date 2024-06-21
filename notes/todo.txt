@@ -38,11 +38,13 @@ Tuples:
 
 Functions:
 -- The `Self` type needs to change for parameter types.
--- What about a param like: "fn func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
+-- Non-single variable parameters, like `fun func(Point(x, y): Point)`
+-- What about a param like: "fun func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
 -- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- The `self` argument is not generated for non-identifier functions: generate a `self` for any lhs except TypeAst (static functions).
 
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
--- Special `Copy` type that doesn't "move" the value
+-- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
+-- Special `Copy` type that doesn't "move" the value.

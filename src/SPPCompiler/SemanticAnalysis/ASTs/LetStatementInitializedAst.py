@@ -68,7 +68,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.value)
 
         # Analyse the value being assigned to the variable.
-        kwargs |= {"value": self.value, "let_ast": self}
+        kwargs |= {"value": self.value}
         self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the type being assigned is not std::Void.

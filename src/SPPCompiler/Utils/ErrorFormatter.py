@@ -70,7 +70,7 @@ class ErrorFormatter:
         left_padding = " " * len(str(error_line_number))
         final_error_message = "\n".join([
             f"{Fore.LIGHTWHITE_EX}{Style.BRIGHT}",
-            f"Error in file '{self._file_path}', on line {error_line_number}:" if not minimal else f"Info from file '{self._file_path}', on line {error_line_number}:",
+            f"Error in file '{self._file_path}', on line {error_line_number}:" if not minimal else f"Context from file '{self._file_path}', on line {error_line_number}:",
             f"{Fore.LIGHTWHITE_EX}{left_padding} |",
             f"{Fore.LIGHTRED_EX if not minimal else Fore.LIGHTGREEN_EX}{error_line_number} | {error_line_as_string}",
             f"{Fore.LIGHTWHITE_EX}{left_padding} | {Style.NORMAL}{Fore.LIGHTRED_EX if not minimal else Fore.LIGHTGREEN_EX}{carets_line_as_string}\n",

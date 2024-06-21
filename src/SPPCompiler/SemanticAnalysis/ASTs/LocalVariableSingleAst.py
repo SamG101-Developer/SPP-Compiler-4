@@ -47,7 +47,7 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
             name=self.identifier,
             type=value.infer_type(scope_handler, **kwargs).type,
             is_mutable=self.is_mutable is not None,
-            memory_info=MemoryStatus(ast_initialized=self))
+            memory_info=MemoryStatus(ast_initialized=self.identifier))
         scope_handler.current_scope.add_symbol(symbol)
 
 
