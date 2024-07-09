@@ -38,8 +38,9 @@ fun main() -> std::Void {
     let z = inner::MyType::static_function(10)
 
     let mut a = false
+    let b = true
 
-    std::oopa()
+    let x = a or b
 
     ##
     test(1)

@@ -13,7 +13,7 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 class PatternGuardAst(Ast, SemanticAnalyser):
     """
     The PatternGuardAst node represents a guard on a conditional branch. This is used to add a condition to a branch's
-    pattern, allowing for more precise matching. For example, "case point then == Point(x=0, y) && y > 0" would only
+    pattern, allowing for more precise matching. For example, "case point then == Point(x=0, y) and y > 0" would only
     match "point" if "x" is equal to 0 and "y" is greater than 0.
 
     Attributes:

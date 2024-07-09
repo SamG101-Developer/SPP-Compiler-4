@@ -1,10 +1,12 @@
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorFunctionCallAst import PostfixExpressionOperatorFunctionCallAst
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorMemberAccessAst import PostfixExpressionOperatorMemberAccessAst
-from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorEarlyReturnAst import PostfixExpressionOperatorEarlyReturnAst
+from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionOperatorFunctionCallAst
+from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionOperatorMemberAccessAst
+from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionOperatorEarlyReturnAst
+from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionOperatorNotKeywordAst
 
 type PostfixExpressionOperatorAst = (
         PostfixExpressionOperatorFunctionCallAst |
         PostfixExpressionOperatorMemberAccessAst |
-        PostfixExpressionOperatorEarlyReturnAst)
+        PostfixExpressionOperatorEarlyReturnAst |
+        PostfixExpressionOperatorNotKeywordAst)
 
 __all__ = ["PostfixExpressionOperatorAst"]

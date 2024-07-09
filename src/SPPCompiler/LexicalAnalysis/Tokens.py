@@ -5,11 +5,6 @@ import json_fix
 
 class TokenType(Enum):
     # Tokens
-    # Logical operations (AND, OR, NOT)
-    TkLogicalAnd = "&&"
-    TkLogicalAndAssign = "&&="
-    TkLogicalOr = "||"
-    TkLogicalOrAssign = "||="
 
     # Bitwise operations (AND, OR, XOR, NOT, SHL, SHR, ROL, ROR)
     TkBitAnd = "&"
@@ -99,7 +94,6 @@ class TokenType(Enum):
     KwElse = "else"
     KwLoop = "loop"
     KwWith = "with"
-    KwThen = "then"
 
     # Control flow exit
     KwRet = "ret"
@@ -116,9 +110,15 @@ class TokenType(Enum):
     KwSelf = "self"
     KwSelfType = "Self"
 
+    # Logical operators
+    KwAnd = "and"
+    KwOr = "or"
+    KwNot = "not"
+
     # Misc
     KwOn = "on"
     KwAsync = "async"
+    KwThen = "then"
 
     # Lexemes
     # Don't change order of these (regex are matched in this order)

@@ -2,3 +2,9 @@ mod std::boolean
 
 
 cls Bool { }
+
+
+sup std::ops::LAnd on Bool {
+    fun l_and(self, other: Bool) -> Bool { }
+}
+

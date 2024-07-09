@@ -9,8 +9,8 @@ BIN_OP_FUNCS = {
     TokenType.TkRem: "rem",
     TokenType.TkMod: "mod",
     TokenType.TkExp: "pow",
-    TokenType.TkLogicalAnd: "and",
-    TokenType.TkLogicalOr: "or",
+    TokenType.KwAnd: "l_and",
+    TokenType.KwOr: "l_ior",
     TokenType.TkBitAnd: "bit_and",
     TokenType.TkBitOr: "bit_or",
     TokenType.TkBitXor: "bit_xor",
@@ -30,8 +30,8 @@ BIN_OP_FUNCS = {
 
 OP_PREC = {
     TokenType.TkCoalesce: 1,
-    TokenType.TkLogicalOr: 2,
-    TokenType.TkLogicalAnd: 3,
+    TokenType.KwOr: 2,
+    TokenType.KwAnd: 3,
     TokenType.TkEq: 4,
     TokenType.TkNe: 4,
     TokenType.TkLt: 4,

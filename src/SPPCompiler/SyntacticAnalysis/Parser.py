@@ -775,7 +775,7 @@ class Parser:
     @parser_rule
     def parse_pattern_guard(self) -> PatternGuardAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkLogicalAnd).parse_once()
+        p1 = self.parse_token(TokenType.KwAnd).parse_once()  # todo: best choice?
         p2 = self.parse_expression().parse_once()
         return PatternGuardAst(c1, p1, p2)
 
@@ -886,17 +886,13 @@ class Parser:
 
     @parser_rule
     def parse_binary_op_precedence_level_2(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkLogicalOr).for_alt()
-        p2 = self.parse_token(TokenType.TkLogicalOrAssign).for_alt()
-        p3 = (p1 | p2).parse_once()
-        return p3
+        p1 = self.parse_token(TokenType.KwOr).parse_once()
+        return p1
 
     @parser_rule
     def parse_binary_op_precedence_level_3(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkLogicalAnd).for_alt()
-        p2 = self.parse_token(TokenType.TkLogicalAndAssign).for_alt()
-        p3 = (p1 | p2).parse_once()
-        return p3
+        p1 = self.parse_token(TokenType.KwAnd).parse_once()
+        return p1
 
     @parser_rule
     def parse_binary_op_precedence_level_4(self) -> TokenAst:
@@ -960,12 +956,13 @@ class Parser:
         return p1
 
     @parser_rule
-    def parse_postfix_op(self) -> TokenAst:
+    def parse_postfix_op(self) -> PostfixExpressionOperatorAst:
         p1 = self.parse_postfix_op_function_call().for_alt()
         p2 = self.parse_postfix_op_member_access().for_alt()
         p3 = self.parse_postfix_op_early_return().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
-        return p4
+        p4 = self.parse_postfix_op_not_keyword().for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
+        return p5
 
     @parser_rule
     def parse_postfix_op_function_call(self) -> PostfixExpressionOperatorFunctionCallAst:
@@ -1003,6 +1000,13 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkQst).parse_once()
         return PostfixExpressionOperatorEarlyReturnAst(c1, p1)
+
+    @parser_rule
+    def parse_postfix_op_not_keyword(self) -> PostfixExpressionOperatorNotKeywordAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkDot).parse_once()
+        p2 = self.parse_token(TokenType.KwNot).parse_once()
+        return PostfixExpressionOperatorNotKeywordAst(c1, p1, p2)
 
     # ===== CONVENTIONS =====
 

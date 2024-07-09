@@ -52,6 +52,7 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
         is_binary_foldl = False
         is_binary_foldr = False
@@ -128,7 +129,7 @@ class BinaryExpressionAstUtils:
 
         # A Python-borrowed feature is the combination of comparison operators, such as "a < b < c". This function
         # recursively combines comparison operators into a single binary expression, so that "a < b < c" becomes
-        # "a < b && b < c".
+        # "a < b and b < c".
 
         def is_comparison_operator(token):
             return token in {TokenType.TkEq, TokenType.TkNe, TokenType.TkLt, TokenType.TkGt, TokenType.TkLe, TokenType.TkGe}
@@ -138,12 +139,12 @@ class BinaryExpressionAstUtils:
         if not isinstance(ast.lhs, BinaryExpressionAst) or not is_comparison_operator(ast.op.token.token_type):
             return ast
 
-        # Combine the comparison into separate binary expressions, so that "a < b < c" becomes "a < b && b < c".
+        # Combine the comparison into separate binary expressions, so that "a < b < c" becomes "a < b and b < c".
         lhs = ast.lhs
         rhs = ast.rhs
         lhs = lhs.rhs
         ast.rhs = BinaryExpressionAst(ast.pos, lhs, ast.op, rhs)
-        ast.op  = TokenAst.dummy(TokenType.TkLogicalAnd)
+        ast.op  = TokenAst.dummy(TokenType.KwAnd)
         BinaryExpressionAstUtils.combine_comparison_operators(ast.lhs)
 
         return ast

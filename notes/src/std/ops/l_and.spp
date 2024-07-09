@@ -1,0 +1,8 @@
+mod std::ops::l_and
+
+
+cls LAnd {}
+
+sup LAnd {
+    fun l_and(self, rhs: Self) -> Bool { }
+}
