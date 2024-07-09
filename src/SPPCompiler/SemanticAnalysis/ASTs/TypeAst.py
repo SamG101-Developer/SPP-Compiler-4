@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -110,12 +110,13 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             this_type_scope_name = copy.deepcopy(base_type_scope._scope_name)
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
             this_type_scope = Scope(this_type_scope_name, scope_handler.global_scope)
+            this_type_scope._parent_scope = base_type_scope._parent_scope
             this_type_scope._sup_scopes = base_type_scope._sup_scopes
             this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 
             # Add the new scope and symbol to the correct parent scope.
-            scope_handler.global_scope._children_scopes.append(this_type_scope)
+            base_type_scope._parent_scope._children_scopes.append(this_type_scope)  # todo: add function like add_symbol for ns propagation from Global
             scope_handler.global_scope.add_symbol(TypeSymbol(name=self, type=this_type_cls_ast, associated_scope=this_type_scope))
 
             # Add the generic arguments mapping to the correct types into the new symbol table.
@@ -144,7 +145,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     self,
                     Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value,
                     Seq(self.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    {}, {}, scope_handler))
+                    {}, {}, scope_handler, supress_missing=True))
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst

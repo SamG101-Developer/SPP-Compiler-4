@@ -17,9 +17,17 @@ def infer_generics_types(
         explicit_generic_arguments: Dict["TypeAst", "TypeAst"],
         infer_from: Dict["IdentifierAst", "TypeAst"],
         map_to: Dict["IdentifierAst", "TypeAst"],
-        scope_handler: ScopeHandler) -> Dict["TypeAst", "TypeAst"]:
+        scope_handler: ScopeHandler,
+        supress_missing: bool = False) -> Dict["TypeAst", "TypeAst"]:
 
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+
+    # print("#" * 100)
+    # print(ast)
+    # print("Generic parameters:", [str(generic) for generic in generic_parameters])
+    # print("Explicit generic arguments:", {str(key): str(value) for key, value in explicit_generic_arguments.items()})
+    # print("Infer from:", {str(key): str(value) for key, value in infer_from.items()})
+    # print("Map to:", {str(key): str(value) for key, value in map_to.items()})
 
     """
     For the class:
@@ -62,7 +70,8 @@ def infer_generics_types(
     # Check all generic parameters have been inferred or explicitly defined.
     for generic_parameter in generic_parameters:
         if generic_parameter not in explicit_generic_arguments and generic_parameter not in inferred_generic_arguments:
-            raise SemanticErrors.MISSING_GENERIC_ARGUMENT(ast, generic_parameter)
+            if not supress_missing:
+                raise SemanticErrors.MISSING_GENERIC_ARGUMENT(ast, generic_parameter)
 
     # Return a union of the inferred and explicit generic arguments.
     return inferred_generic_arguments | explicit_generic_arguments
