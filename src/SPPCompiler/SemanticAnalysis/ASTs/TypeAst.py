@@ -72,7 +72,10 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         this_type_exists = scope_handler.current_scope.has_symbol(self)
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments.copy())
 
-        # Check the namespace exists.  todo: identify which part of the namespace is invalid + "similar" in parent scope
+        # Check the namespace exists.
+        # todo: identify which part of the namespace is invalid + "similar" in parent scope (just keep testing each par cumulatively)
+        # todo: ".parts" shouldn't combine the namespace object's items (dont use ".items" in the parser)
+        # todo: shared with TypedefStatementAst (namespace check)
         namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
         if not scope_handler.get_namespaced_scope(namespace):
             raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[-1], [], "namespace")

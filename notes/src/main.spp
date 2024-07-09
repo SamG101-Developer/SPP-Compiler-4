@@ -1,6 +1,9 @@
 mod main
 
 
+use std::Void
+
+
 cls A {
     x: std::BigInt
     y: std::BigInt
@@ -25,7 +28,7 @@ fun function1(a: std::BigInt) -> std::BigInt { }
 fun test[T](a: T) -> T { }
 
 
-fun main() -> std::Void {
+fun main() -> Void {
     # let g = generator(10)
 
     let m = inner::MyType()
@@ -39,6 +42,16 @@ fun main() -> std::Void {
 
     let mut a = false
     let b = true
+
+    use std::Bool
+    use std::(BigInt, U32 as U32Poop)
+
+    let x = std::Bool()
+    let mut y = Bool()
+    y = x
+
+    let mut k = U32Poop()
+    k = 123_u32
 
     # let x = a or b
 

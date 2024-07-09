@@ -8,9 +8,7 @@ Binary expressions:
 
 Coroutines:
 -- Check the sent objects' type against the `Send` generic parameter.
-
-Namespaced types:
--- Allowing `use` to link new type names to namespaced types' class prototypes.
+-- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between wait points.
 
 Sup classes:
 -- Ensure overridden methods exist on the `sup` class.
@@ -44,7 +42,13 @@ Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- The `self` argument is not generated for non-identifier functions: generate a `self` for any lhs except TypeAst (static functions).
 
+Typedefs:
+-- Importing typedefs (see TypedefStatementAst::generate() comments).
+-- Sup-typedefs.
+
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
 -- Special `Copy` type that doesn't "move" the value.
+-- Prevent type redeclaration in the same scope.
+

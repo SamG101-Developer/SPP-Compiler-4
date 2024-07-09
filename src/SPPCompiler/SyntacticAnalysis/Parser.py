@@ -632,7 +632,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwAs).parse_once()
         p2 = self.parse_generic_identifier().parse_once()
-        return TypedefStatementSpecificItemAliasAst(c1, p1, p2)
+        return TypedefStatementSpecificItemAliasAst(c1, p1, TypeAst(p2.pos, [p2]))
 
     # ===== LET-DECLARATIONS =====
 
@@ -1166,7 +1166,7 @@ class Parser:
     @parser_rule
     def parse_type_part(self) -> TypePartAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkDot).parse_once()
+        p1 = self.parse_token(TokenType.TkDblColon).parse_once()
         p2 = self.parse_generic_identifier().for_alt()
         p3 = self.parse_token(TokenType.LxDecInteger).for_alt()
         p4 = (p2 | p3).parse_once()
