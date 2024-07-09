@@ -24,9 +24,6 @@ sup std::ops::Div on BigInt {
     fun div(self, other: BigInt) -> BigInt { }
 }
 
-sup BigInt {
-    fun test() -> std::Void { }
-}
 
 cls U32 { }
 cls U64 { }

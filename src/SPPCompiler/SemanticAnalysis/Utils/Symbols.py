@@ -114,7 +114,7 @@ class SymbolTable[SymbolType]:
         self._internal_table[symbol.name] = symbol
 
     def get(self, name: IdentifierAst | TypeAst, default=None) -> Optional[SymbolType]:
-        return self._internal_table.get(name, default)
+        return self._internal_table[name] if name in self._internal_table else default
 
     def set(self, name: IdentifierAst | TypeAst, symbol: SymbolType) -> None:
         self._internal_table[name] = symbol

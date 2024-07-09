@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
-from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SupScopeLoader, SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes

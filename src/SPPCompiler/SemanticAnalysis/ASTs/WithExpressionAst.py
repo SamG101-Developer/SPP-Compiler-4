@@ -1,15 +1,12 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
@@ -64,6 +61,8 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+
         # Return the final expression's type, or "Void" for an empty body.
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler, **kwargs)

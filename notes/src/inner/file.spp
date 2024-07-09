@@ -7,4 +7,4 @@ sup MyType {
 }
 
 
-fun function_test(a: MyType) -> MyType { }
+# fun function_test(a: MyType) -> MyType { }

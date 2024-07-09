@@ -1,10 +1,12 @@
 from __future__ import annotations
-from typing import Dict
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Dict, Type, Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -16,6 +18,8 @@ def infer_generics_types(
         infer_from: Dict["IdentifierAst", "TypeAst"],
         map_to: Dict["IdentifierAst", "TypeAst"],
         scope_handler: ScopeHandler) -> Dict["TypeAst", "TypeAst"]:
+
+    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     """
     For the class:
@@ -70,6 +74,7 @@ def ensure_memory_integrity(
         mark_symbols: bool = True) -> None:
 
     from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     # Get the symbol, for Identifiers and PostfixExpressions. If the value isn't either of these, then the memory rules
     # don't apply, so all the checks are skipped.
@@ -174,4 +179,29 @@ def convert_function_arguments_to_named(
     return arguments
 
 
-__all__ = ["infer_generics_types"]
+class TypeInfer(ABC):
+    @abstractmethod
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        pass
+
+
+@dataclass(kw_only=True)
+class InferredType:
+    convention: Type["ConventionAst"]
+    type: "TypeAst"
+
+    def symbolic_eq(self, other: InferredType, scope: Scope, that_scope: Optional[Scope] = None) -> bool:
+        return self.convention == other.convention and self.type.symbolic_eq(other.type, scope, that_scope)
+
+    def __str__(self):
+        return f"{self.convention}{self.type}"
+
+
+__all__ = [
+    "TypeInfer",
+    "InferredType",
+    "infer_generics_types",
+    "ensure_memory_integrity",
+    "convert_generic_arguments_to_named",
+    "convert_function_arguments_to_named"
+]

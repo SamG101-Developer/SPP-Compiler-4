@@ -5,18 +5,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
-from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
-from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -38,10 +32,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         where_block: The where block for the function.
         body: The body of the function.
 
-        _fn_type: The type of the function (Fn[Mov|Mut|Ref]).
         _orig: The original identifier of the function (replaced by call_[mov|mut|ref] etc).
         _ctx: The context of the function (module or sup prototype).
-        _specializations: The specializations of the function (generic substitutions).
     """
 
     annotations: List["AnnotationAst"]
@@ -54,10 +46,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     where_block: Optional["WhereBlockAst"]
     body: InnerScopeAst["StatementAst"]
 
-    _fn_type: "TypeAst" = field(default=None, kw_only=True)
-    _orig: "IdentifierAst" = field(default=None, kw_only=True)
-    _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True)
-    _specializations: List["FunctionPrototypeAst"] = field(default_factory=list, kw_only=True)
+    _orig: "IdentifierAst" = field(default=None, kw_only=True, repr=False)
+    _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True, repr=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
@@ -119,13 +109,15 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             context.body.members.append(mock_cls_ast)
             context.body.members.append(mock_let_ast)
 
-        # At this point, either the class existed, or it exists now, so super-impose the "Fun___" type onto it. Create
+        # At this point, either the class existed, or it exists now, so superimpose the "Fun___" type onto it. Create
         # the call function, like "call_ref", and carry through the generic parameters, function parameters,
         # return type, etc.
+        self._ctx = None
         fun_ast = copy.deepcopy(self)
         fun_ast.identifier = function_call_name
         fun_ast._orig = self.identifier
         fun_ast._ctx = context
+        self._ctx = context
 
         # Create the superimposition block over the class type, which includes the "call_ref" function as a member. This
         # will allow for the type to now be callable with the parameter types and return type specified.
@@ -145,7 +137,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # Append the "sup" block to the module or sup prototype ("context" will be either one).
         context.body.members.append(sup_block_ast)
-        self._fn_type = function_class_type
 
     def _deduce_function_class_type(self, context: "ModulePrototypeAst | SupPrototypeAst") -> "TypeAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
@@ -203,12 +194,26 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where
         # block.
+
         return all([
             self.identifier == other.identifier,
             self.generic_parameters == other.generic_parameters,
             self.parameters == other.parameters,
             self.return_type == other.return_type,
             self.where_block == other.where_block])
+
+    def ___deepcopy__(self, memodict) -> FunctionPrototypeAst:
+        return FunctionPrototypeAst(
+            pos=self.pos,
+            annotations=self.annotations,
+            function_token=copy.deepcopy(self.function_token),
+            identifier=copy.deepcopy(self.identifier),
+            generic_parameters=copy.deepcopy(self.generic_parameters),
+            parameters=copy.deepcopy(self.parameters),
+            arrow_token=copy.deepcopy(self.arrow_token),
+            return_type=copy.deepcopy(self.return_type),
+            where_block=copy.deepcopy(self.where_block),
+            body=self.body)
 
 
 __all__ = ["FunctionPrototypeAst"]

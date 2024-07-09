@@ -2,8 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -23,10 +23,10 @@ class ClassAttributeAst(Ast, SemanticAnalyser):
         type_declaration: The attribute's type.
     """
 
-    annotations: List[AnnotationAst]
-    identifier: IdentifierAst
-    colon_token: TokenAst
-    type_declaration: TypeAst
+    annotations: List["AnnotationAst"]
+    identifier: "IdentifierAst"
+    colon_token: "TokenAst"
+    type_declaration: "TypeAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

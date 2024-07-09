@@ -3,7 +3,6 @@ from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 

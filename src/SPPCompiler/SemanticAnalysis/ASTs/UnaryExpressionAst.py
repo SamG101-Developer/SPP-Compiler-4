@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -30,6 +31,10 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorFunctionCallAst
+
+        # Ensure that the LHS is the "async" keyword.
+        if not self.op.token.token_type == TokenType.KwAsync:
+            raise SemanticErrors.INVALID_ASYNC_CALL(self, self.op)  # todo
 
         # This is only used for the "async" function calls, so ensure that the RHS is a function call.
         if not isinstance(self.rhs, PostfixExpressionAst) or not isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst):

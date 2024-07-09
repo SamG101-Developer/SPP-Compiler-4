@@ -2,11 +2,7 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
-from SPPCompiler.SemanticAnalysis.ASTs.AnnotationAst import AnnotationAst
-from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeAst import SupPrototypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAst import TypedefStatementAst
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -20,7 +16,7 @@ class SupTypedefAst(TypedefStatementAst):
         annotations: The annotations attached to the typedef.
     """
 
-    annotations: List[AnnotationAst]
+    annotations: List["AnnotationAst"]
 
     def __post_init__(self):
         raise NotImplementedError("SupTypedefAst is not implemented yet.")
@@ -33,7 +29,7 @@ class SupTypedefAst(TypedefStatementAst):
         s += super().print(printer)
         return s
 
-    def pre_process(self, context: SupPrototypeAst) -> None:
+    def pre_process(self, context: "SupPrototypeAst") -> None:
         ...
 
 

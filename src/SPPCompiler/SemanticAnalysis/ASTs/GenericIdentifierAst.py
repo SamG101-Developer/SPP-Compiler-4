@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -39,7 +40,7 @@ class GenericIdentifierAst(Ast):
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value and generic arguments.
-        return isinstance(other, GenericIdentifierAst) and self.value == other.value and self.generic_arguments == other.generic_arguments
+        return self.value == other.value and self.generic_arguments == other.generic_arguments
 
 
 __all__ = ["GenericIdentifierAst"]

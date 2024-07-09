@@ -2,10 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
-from SPPCompiler.SemanticAnalysis.ASTMixins.SymbolGeneration import SymbolGenerator
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SymbolGenerator, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors

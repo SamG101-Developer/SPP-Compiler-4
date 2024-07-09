@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.ASTMixins.SupScopeLoader import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq

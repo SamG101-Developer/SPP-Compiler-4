@@ -1,10 +1,8 @@
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import convert_generic_arguments_to_named
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler

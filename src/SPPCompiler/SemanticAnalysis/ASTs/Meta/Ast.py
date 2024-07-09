@@ -26,7 +26,7 @@ class Ast(ABC):
 class Default(ABC):
     @staticmethod
     @abstractmethod
-    def default():
+    def default() -> Default:
         ...
 
 

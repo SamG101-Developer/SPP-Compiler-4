@@ -1,13 +1,4 @@
-from abc import ABC, abstractmethod
-
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-
-
-class SemanticAnalyser(ABC):
-    @abstractmethod
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        pass
 
 
 BIN_OP_FUNCS = {
@@ -36,6 +27,7 @@ BIN_OP_FUNCS = {
     TokenType.TkSs: "cmp",
 }
 
+
 OP_PREC = {
     TokenType.TkCoalesce: 1,
     TokenType.TkLogicalOr: 2,
@@ -62,3 +54,6 @@ OP_PREC = {
     TokenType.TkExp: 7,
     TokenType.TkBitAnd: 7,
 }
+
+
+__all__ = ["BIN_OP_FUNCS", "OP_PREC"]

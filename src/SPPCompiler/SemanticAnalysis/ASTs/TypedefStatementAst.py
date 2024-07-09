@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from SPPCompiler.SemanticAnalysis.ASTMixins.PreProcessor import PreProcessor
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes

@@ -5,7 +5,6 @@ from typing import List
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-
 from SPPCompiler.Utils.Sequence import Seq
 
 

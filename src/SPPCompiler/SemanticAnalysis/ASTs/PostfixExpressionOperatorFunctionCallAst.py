@@ -3,11 +3,10 @@ from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -118,7 +117,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 self.generic_arguments.arguments = convert_generic_arguments_to_named(generic_arguments, Seq(function_overload.generic_parameters.parameters)).value
 
                 # Check all the required parameters have been assigned a value.
-                argument_identifiers = Seq(arguments).map(lambda a: a.identifier)
+                argument_identifiers = arguments.map(lambda a: a.identifier)
                 required_parameter_identifiers = Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
                 if missing_parameters := required_parameter_identifiers.set_subtract(argument_identifiers):
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
@@ -137,85 +136,56 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
                     scope_handler))
 
-                # If there are generic arguments, then create a new function overload with the generic arguments filled in.
-                # Add this to the scopes with the FunctionPrototypeAST's methods.
+                # If there are generic arguments, create a new function overload, giving the generic parameters' symbols
+                # their associated types, from the generic arguments.
                 new_scope = False
                 if self.generic_arguments.arguments:
-                    # Copy the current overload, because a new one will be created with the generic parameters being
-                    # substituted with their corresponding generic arguments in the parameter and return types.
-                    non_generic_function_overload = copy.deepcopy(function_overload)
-                    non_generic_function_overload.generic_parameters.parameters = []
+                    # The body of the function won't be copied, but will be linked (much faster).
+                    restore_body = function_overload.body
+                    function_overload.body = None
+
+                    # Copy the current overload, and remove the generic parameters.
+                    specialized_function_overload = copy.deepcopy(function_overload)
+                    specialized_function_overload.generic_parameters.parameters = []
+                    specialized_function_overload.body = restore_body
+                    function_overload.body = restore_body
                     for generic_argument in self.generic_arguments.arguments:
-                        Seq(non_generic_function_overload.parameters.parameters).map(lambda p: p.type_declaration).for_each(lambda t: t.substitute_generics(generic_argument.identifier, generic_argument.type))
-                        non_generic_function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                        Seq(specialized_function_overload.parameters.parameters).map(lambda p: p.type_declaration).for_each(lambda t: t.substitute_generics(generic_argument.identifier, generic_argument.type))
+                        specialized_function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
 
-                    # If this function doesn't have the newly created specialization already stored as a scope, then create
-                    # a new function scope for it. It will be stored alongside the original function scope in a sup block.
-                    # This is ONLY done to reduce the copies being made if a specialization is required > 1 time.
-                    if non_generic_function_overload not in function_overload._specializations:
+                    # Register the specialisation to the "parent" method, and add it to the module/sup-block.
+                    function_overload._ctx.body.members.append(specialized_function_overload)
+                    specialized_function_overload.pre_process(function_overload._ctx)
 
-                        # Save the substituted overload (specialization) into the original function's specialisation list.
-                        # This is to ensure that the same specialization isn't created twice.
-                        function_overload._specializations.append(non_generic_function_overload)
-                        function_overload._ctx.body.members.append(non_generic_function_overload)
-                        non_generic_function_overload.pre_process(function_overload._ctx)
+                    # Generate a scope for the specialisation in the correct place (end of the module/sup-block).
+                    restore_scope = scope_handler.current_scope
+                    scope_handler.current_scope = function_overload_scope._parent_scope
+                    specialized_function_overload.generate(scope_handler)
+                    non_generic_function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[-1]
 
-                        # Save the current scope in the scope handler. Set the current scope to the parent scope of the
-                        # current (non-substituted) function overload, and generate the substituted function overload. This
-                        # will create the scope in the correct place. Get the newly created scope (end of child scope list)
-                        restore_scope = scope_handler.current_scope
-                        scope_handler.current_scope = function_overload_scope._parent_scope
-                        non_generic_function_overload.generate(scope_handler)
-                        non_generic_function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[-1]
+                    # Set the current scope to the specialization's Fun sup-block scope, creating the inner symbols.
+                    scope_handler.current_scope = non_generic_function_overload_scope
+                    specialized_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
 
-                        # Set the current scope to the substituted function overload's scope, and analyse the substituted
-                        # function overload. This will re-create the inner symbols of the correct types.
-                        scope_handler.current_scope = non_generic_function_overload_scope
-                        non_generic_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
+                    # Restore the current scope of the scope handler
+                    scope_handler.current_scope = restore_scope
 
-                        # Restore the current scope of the scope handler
-                        scope_handler.current_scope = restore_scope
+                    # Set the values of the generic parameters' type symbols to the types of the generic arguments.
+                    for generic_argument in self.generic_arguments.arguments:
+                        type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
+                        non_generic_function_overload_scope.add_symbol(TypeSymbol(name=generic_argument.identifier, type=type_sym.type))
+                        non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
 
-                        # Next, create type symbols mapping the generic parameters to their generic arguments, in the scope
-                        # of the substituted functions. This is because the generic parameters might still be used inside
-                        # the function as a type (let x: T), so they need to map to their correct type.
-                        for generic_argument in self.generic_arguments.arguments:
-                            type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
-                            non_generic_function_overload_scope.add_symbol(TypeSymbol(name=generic_argument.identifier, type=type_sym.type))
-                            non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
+                    # Mark that a new scope has been created.
+                    new_scope = True
 
-                        # Mark that a new scope has been created, and provide a mechanism to remove it if the type checking
-                        # fails and this substituted overload is no longer needed.
-                        new_scope = True
+                    # Provide a removal mechanism should type-checking fail; the specialisation becomes unnecessary.
+                    def remove_scope():
+                        function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
 
-                        def remove_scope():
-                            function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
-
-                        # Overwrite the function overload & its scope being considered with the substituted function
-                        # overload.
-                        function_overload = non_generic_function_overload
-                        function_overload_scope = non_generic_function_overload_scope
-
-                    else:
-                        # Otherwise, the specialization exists. Find it in the function overloads list by using a structural
-                        # comparison.
-                        non_generic_function_overload = Seq(function_overload._specializations).find(lambda s: s == non_generic_function_overload)
-
-                        # Next, the scope of this specialization is required. Because there will be multiple "call_ref" etc
-                        # scopes inside the "sup" scope, the only way to get the correct scope, is to check that the generic
-                        # types being stored in the scope match the generic arguments being considered. Given that the
-                        # specialization exists, it stands that there must be 1 scope with matching generic type symbols.
-                        non_generic_function_overload_scope = None
-                        for scope in mock_function_sup_scopes[i][0]._children_scopes:
-                            type_symbols = Seq(scope.all_symbols(True)).filter_to_type(TypeSymbol)
-                            if all([type_symbol.name in Seq(self.generic_arguments.arguments).map(lambda a: a.identifier) and type_symbol.type == scope_handler.current_scope.get_symbol(Seq(self.generic_arguments.arguments).find(lambda a: a.identifier == type_symbol.name).type).type for type_symbol in type_symbols]):
-                                non_generic_function_overload_scope = scope
-                                break
-
-                        # Overwrite the function overload & its scope being considered with the substituted function
-                        # overload.
-                        function_overload = non_generic_function_overload
-                        function_overload_scope = non_generic_function_overload_scope
+                    # Overwrite the current function overload & its scope with the specialisation.
+                    function_overload = specialized_function_overload
+                    function_overload_scope = non_generic_function_overload_scope
 
                 # Check the types of the arguments match the types of the parameters. Sort the arguments by the
                 # parameter order for easy comparison. Parameters identifiers were removed from earlier to recreate the
@@ -261,10 +231,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         if not valid_overloads:
             signatures = ""
 
+            match function_name:
+                case PostfixExpressionAst():
+                    owner_type = str(function_name.lhs.infer_type(scope_handler, **kwargs).type) + "::"
+                    function_name_raw = function_name.op.identifier
+                case _:
+                    owner_type = ""
+                    function_name_raw = function_name
+
             for function_overload, error in function_overload_errors:
                 function_overload_string = f"{function_overload}"
-                function_overload_string = function_overload_string[:function_overload_string.index("{") - 1]
-                function_overload_string = f"{function_name}{function_overload_string[function_overload_string.index("("):]}"
+                function_overload_string = f"{function_overload_string[:function_overload_string.index("{") - 1]}"
+                function_overload_string = f"{owner_type}{function_name_raw}{function_overload_string[function_overload_string.index("("):]}"
                 signatures += f"\n\t{function_overload_string} {error.additional_info[-1][1]}\n"
 
             match function_name:

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
+from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
 
 
 @dataclass

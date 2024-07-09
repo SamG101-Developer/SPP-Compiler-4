@@ -28,9 +28,9 @@ class Scope:
         scope = self
         if isinstance(symbol.name, TypeAst):
             name = copy.deepcopy(symbol.name)
-            namespace = copy.deepcopy(name.parts[:-1])
+            namespace = name.parts[:-1].copy()
 
-            for part in copy.deepcopy(namespace):
+            for part in namespace.copy():
                 if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
                     scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
                     namespace.pop(0)
@@ -66,11 +66,11 @@ class Scope:
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
         if isinstance(name, TypeAst):
             name = copy.deepcopy(name)
-            namespace = copy.deepcopy(name.parts[:-1])  # TODO: for now (will need to consider typedefs on sup blocks)
+            namespace = name.parts[:-1].copy()
 
             # For each part in the namespace, enter the child scope if it exists.
             # print("NS", namespace)
-            for part in copy.deepcopy(namespace):
+            for part in namespace.copy():
                 # print("P", part)
                 if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
                     scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()

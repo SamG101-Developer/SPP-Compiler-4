@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -72,7 +72,7 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
-        return isinstance(other, GenericArgumentGroupAst) and self.arguments == other.arguments
+        return self.arguments == other.arguments
 
     @staticmethod
     def from_dict(dictionary: Dict["TypeAst", "TypeAst"]) -> GenericArgumentGroupAst:

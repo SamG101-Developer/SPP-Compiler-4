@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.ASTMixins.SemanticAnalyser import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -38,7 +37,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
     def do_semantic_pre_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
-        attribute_identifiers = kwargs.get("attributes")
+        attribute_identifiers = kwargs["attributes"]
 
         # Analyse the arguments of the object initializer.
         Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
@@ -86,7 +85,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ObjectInitializerArgumentNamedAst
 
-        class_type = kwargs.get("class-type")
+        class_type = kwargs["class-type"]
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
         attributes = type_symbol.type.body.members
 

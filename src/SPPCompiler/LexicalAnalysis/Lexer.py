@@ -12,9 +12,9 @@ class Lexer:
         current = 0
         output = []
 
-        tokens   = [t for t in TokenType.__dict__["_member_names_"] if t.startswith("Tk")]
-        keywords = [t for t in TokenType.__dict__["_member_names_"] if t.startswith("Kw")]
-        lexemes  = [t for t in TokenType.__dict__["_member_names_"] if t.startswith("Lx")]
+        tokens   = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Tk"]
+        keywords = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Kw"]
+        lexemes  = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Lx"]
 
         tokens.sort(key=lambda t: len(TokenType[t].value), reverse=True)
         keywords.sort(key=lambda t: len(TokenType[t].value), reverse=True)
@@ -27,13 +27,13 @@ class Lexer:
                 upper = current + len(value)
 
                 # Keywords: Match the keyword, and check that the next character isn't [A-Za-z_] (identifier).
-                if token.startswith("Kw") and self._code[current:upper] == value and not (self._code[upper].isalpha() or self._code[upper] == "_"):
+                if token[:2] == "Kw" and self._code[current:upper] == value and not (self._code[upper].isalpha() or self._code[upper] == "_"):
                     output.append(Token(value, TokenType[token]))
                     current += len(value)
                     break
 
                 # Lexemes: Match a lexeme by attempting to get a regex match against the current code. Discard comments.
-                elif token.startswith("Lx") and (matched := re.match(value, self._code[current:])):
+                elif token[:2] == "Lx" and (matched := re.match(value, self._code[current:])):
                     if TokenType[token] not in [TokenType.LxSingleLineComment, TokenType.LxMultiLineComment]:
                         output.append(Token(matched.group(0), TokenType[token]))
                     if TokenType[token] == TokenType.LxMultiLineComment:
@@ -42,7 +42,7 @@ class Lexer:
                     break
 
                 # Tokens: Match the token and increment the counter by the length of the token.
-                elif token.startswith("Tk") and self._code[current:upper] == value:
+                elif token[:2] == "Tk" and self._code[current:upper] == value:
                     output.append(Token(value, TokenType[token]))
                     current += len(value)
                     break

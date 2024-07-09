@@ -7,9 +7,8 @@ from enum import Enum
 from typing import List, Optional, Tuple
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, TypeSymbol
-from SPPCompiler.SemanticAnalysis.ASTMixins.TypeInfer import InferredType
-from SPPCompiler.Utils.Sequence import Seq
 
 
 class SemanticErrorStringFormatType(Enum):
