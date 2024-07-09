@@ -69,9 +69,7 @@ class Scope:
             namespace = name.parts[:-1].copy()
 
             # For each part in the namespace, enter the child scope if it exists.
-            # print("NS", namespace)
             for part in namespace.copy():
-                # print("P", part)
                 if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
                     scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
                     namespace.pop(0)

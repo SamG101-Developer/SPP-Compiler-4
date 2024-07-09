@@ -42,7 +42,7 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler, inline: bool = False, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ReturnStatementAst
 
         # Create a new scope and add the members to it.
         if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
