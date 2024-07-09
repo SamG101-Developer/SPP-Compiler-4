@@ -50,6 +50,9 @@ fun main() -> Void {
     let mut y = Bool()
     y = x
 
+    use std::(ops::Add, ops::Sub)
+    let oo = Add()
+
     let mut k = U32Poop()
     k = 123_u32
 

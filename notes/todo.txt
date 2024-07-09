@@ -45,6 +45,7 @@ Functions:
 Typedefs:
 -- Importing typedefs (see TypedefStatementAst::generate() comments).
 -- Sup-typedefs.
+-- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub)) -- make more cyclic like "let" statements.
 
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?

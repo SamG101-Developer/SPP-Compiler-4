@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from typing import Optional
 
@@ -76,11 +77,12 @@ class TypedefStatementAst(Ast, PreProcessor, SemanticAnalyser, SymbolGenerator, 
                 # Create a new type symbol with the linked type.
                 new_type = push_type.new_type if push_type else pull_type
                 new_type_symbol = TypeSymbol(
-                    name=new_type,
+                    name=TypeAst(new_type.parts[-1].pos, [new_type.parts[-1]]),
                     type=old_type_symbol.type,
                     associated_scope=old_type_symbol.associated_scope)
 
                 # Inject the new type symbol into the current scope.
+                print(json.dumps(new_type_symbol))
                 scope_handler.current_scope.add_symbol(new_type_symbol)
 
             case TypedefStatementSpecificItemsAst(_, _, items, _):
