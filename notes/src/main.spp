@@ -1,76 +1,19 @@
 mod main
 
-
+use std::BigInt
+use std::Str
+use std::Vec
 use std::Void
 
 
-cls A {
-    x: std::BigInt
-    y: std::BigInt
+cls A[T] {
+    x: Vec[T]
+    y: T
 }
 
-
-sup A {
-    fun function2(a: std::BigInt) -> std::Str { }
-}
-
-
-##
-cor generator(value: std::BigInt) -> std::GenMov[Yield=std::Str] {
-    gen "hello"
-    gen "world"
-}
-##
-
-
-fun function1(a: std::BigInt) -> std::BigInt { }
-
-fun test[T](a: T) -> T { }
 
 
 fun main() -> Void {
-    # let g = generator(10)
-
-    let m = inner::MyType()
-    # let mut x = inner::function_test(m)
-    # x = inner::MyType()
-
-    let a = 1
-    let b = 2
-
-    let z = inner::MyType::static_function(10)
-
-    let mut a = false
-    let b = true
-
-    use std::Bool
-    use std::(BigInt, U32 as U32Poop)
-
-    let x = std::Bool()
-    let mut y = Bool()
-    y = x
-
-    use std::(ops::Add, ops::Sub)
-    let oo = Add()
-
-    let mut k = U32Poop()
-    k = 123_u32
-
-    # let x = a or b
-
-    ##
-    test(1)
-    test(2)
-    test("2")
-    test(1)
-    ##
-
-    # let c = 1.add(2)
-    # let c = (2 / (1 + 2 + 3) * 4 + 5) / 6 + 4 * 7
-
-    ##
-    let a = A(x=1, y=2)
-    let mut b = a.function2(10)
-    b = "123"
-    ##
+    let b = Vec[Str]()
+    let a = A(x=b, y=2)
 }

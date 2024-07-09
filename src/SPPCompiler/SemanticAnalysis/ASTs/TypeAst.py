@@ -133,6 +133,11 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     for attribute in this_type_cls_ast.body.members:
                         attribute.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
 
+            # Do a semantic analysis of the substituted generics so generic attribute types are loaded.
+            temp_scope_handler = ScopeHandler(scope_handler.global_scope)
+            temp_scope_handler.current_scope = this_type_scope._parent_scope
+            this_type_cls_ast.do_semantic_analysis(temp_scope_handler, **kwargs)
+
         elif base_type_exists and (base_type_symbol := scope_handler.current_scope.get_symbol(self.without_generics())).type:
 
             convert_generic_arguments_to_named(
@@ -168,9 +173,20 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Allows for generics and aliases to match base types etc.
         that_scope = that_scope or this_scope
-        this_type = this_scope.get_symbol(self).type
-        that_type = that_scope.get_symbol(that).type
-        return this_type is that_type
+
+        if self.parts[-1].generic_arguments.arguments and that.parts[-1].generic_arguments.arguments:
+            if not self.without_generics().symbolic_eq(that.without_generics(), this_scope, that_scope):
+                return False
+            if len(self.parts[-1].generic_arguments.arguments) != len(that.parts[-1].generic_arguments.arguments):
+                return False
+            for this_arg, that_arg in zip(self.parts[-1].generic_arguments.arguments, that.parts[-1].generic_arguments.arguments):
+                if not this_arg.type.symbolic_eq(that_arg.type, this_scope, that_scope):
+                    return False
+            return True
+        else:
+            this_type = this_scope.get_symbol(self).type
+            that_type = that_scope.get_symbol(that).type
+            return this_type is that_type
 
     def __iter__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst

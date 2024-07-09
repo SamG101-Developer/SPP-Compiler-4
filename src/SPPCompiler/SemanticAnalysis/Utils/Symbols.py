@@ -85,11 +85,16 @@ class TypeSymbol(Symbol):
     name: TypeAst
     type: Optional[ClassPrototypeAst]  # None for generic types
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
+    # generic_map: dict[TypeAst, TypeAst] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TypeAst
         assert isinstance(self.name, TypeAst), f"Got type symbol with name: {self.name} ({type(self.name)}"  # TODO: This is not correct
         assert isinstance(self.type, ClassPrototypeAst) or self.type is None, f"Got type symbol with type: {type(self.type)}"
+
+        # generics = self.name.parts[-1].generic_arguments
+        # self.name = self.name.without_generics()
+        # self.generic_map = {generic.identifier: generic.type for generic in generics}
 
     def __json__(self) -> dict:
         return {
