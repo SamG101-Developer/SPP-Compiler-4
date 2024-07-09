@@ -54,7 +54,7 @@ class Parser:
 
             all_expected_tokens = "['" + "' | '".join(final_error.expected_tokens).replace("\n", "\\n") + "']"
             error_message = str(final_error).replace("$", all_expected_tokens)
-            error_message = self._err_fmt.error(final_error.pos, message=error_message)
+            error_message = self._err_fmt.error(final_error.pos, message=error_message, tag_message="Invalid syntax")
             raise SystemExit(error_message) from None
 
     # ===== PROGRAM =====
@@ -368,7 +368,7 @@ class Parser:
     def parse_generic_inline_constraints(self) -> GenericParameterInlineConstraintAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkColon).parse_once()
-        p2 = self.parse_type().parse_one_or_more(TokenType.TkBitAnd)
+        p2 = self.parse_type().parse_one_or_more(TokenType.TkAdd)
         return GenericParameterInlineConstraintAst(c1, p1, p2)
 
     # ===== WHERE =====
@@ -393,7 +393,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_type().parse_one_or_more(TokenType.TkComma)
         p2 = self.parse_token(TokenType.TkColon).parse_once()
-        p3 = self.parse_type().parse_one_or_more(TokenType.TkBitAnd)
+        p3 = self.parse_type().parse_one_or_more(TokenType.TkAdd)
         return WhereConstraintsAst(c1, p1, p2, p3)
 
     # ===== ANNOTATIONS =====
@@ -457,15 +457,9 @@ class Parser:
 
     def parse_binary_expression_precedence_level_6(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
-            self.parse_binary_expression_precedence_level_7,
+            self.parse_unary_expression,
             self.parse_binary_op_precedence_level_6,
             self.parse_binary_expression_precedence_level_6)
-
-    def parse_binary_expression_precedence_level_7(self) -> ParserRuleHandler:
-        return self.parse_binary_expression_precedence_level_n(
-            self.parse_unary_expression,
-            self.parse_binary_op_precedence_level_7,
-            self.parse_binary_expression_precedence_level_7)
 
     @parser_rule
     def parse_unary_expression(self) -> ExpressionAst:
@@ -755,7 +749,7 @@ class Parser:
     def parse_pattern_statement(self) -> PatternBlockAst:
         c1 = self.current_pos()
         p1 = self.parse_pattern_comp_op().parse_optional()
-        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkBitOr)
+        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkUnion)  # todo: best choice?
         p3 = self.parse_pattern_guard().parse_optional()
         p4 = self.parse_inner_scope(self.parse_statement).parse_once()
         return PatternBlockAst(c1, p1, p2, p3, p4)
@@ -909,46 +903,27 @@ class Parser:
 
     @parser_rule
     def parse_binary_op_precedence_level_5(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkBitShiftL).for_alt()
-        p2 = self.parse_token(TokenType.TkBitShiftR).for_alt()
-        p3 = self.parse_token(TokenType.TkBitRotateL).for_alt()
-        p4 = self.parse_token(TokenType.TkBitRotateR).for_alt()
-        p5 = self.parse_token(TokenType.TkBitShiftLAssign).for_alt()
-        p6 = self.parse_token(TokenType.TkBitShiftRAssign).for_alt()
-        p7 = self.parse_token(TokenType.TkBitRotateLAssign).for_alt()
-        p8 = self.parse_token(TokenType.TkBitRotateRAssign).for_alt()
-        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
-        return p9
+        p1 = self.parse_token(TokenType.TkAdd).for_alt()
+        p2 = self.parse_token(TokenType.TkSub).for_alt()
+        p3 = self.parse_token(TokenType.TkAddAssign).for_alt()
+        p4 = self.parse_token(TokenType.TkSubAssign).for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
+        return p5
 
     @parser_rule
     def parse_binary_op_precedence_level_6(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkBitOr).for_alt()
-        p2 = self.parse_token(TokenType.TkBitXor).for_alt()
-        p3 = self.parse_token(TokenType.TkAdd).for_alt()
-        p4 = self.parse_token(TokenType.TkSub).for_alt()
-        p5 = self.parse_token(TokenType.TkBitOrAssign).for_alt()
-        p6 = self.parse_token(TokenType.TkBitXorAssign).for_alt()
-        p7 = self.parse_token(TokenType.TkAddAssign).for_alt()
-        p8 = self.parse_token(TokenType.TkSubAssign).for_alt()
-        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
-        return p9
-
-    @parser_rule
-    def parse_binary_op_precedence_level_7(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkBitAnd).for_alt()
-        p2 = self.parse_token(TokenType.TkMul).for_alt()
-        p3 = self.parse_token(TokenType.TkDiv).for_alt()
-        p4 = self.parse_token(TokenType.TkRem).for_alt()
-        p5 = self.parse_token(TokenType.TkMod).for_alt()
-        p6 = self.parse_token(TokenType.TkExp).for_alt()
-        p7 = self.parse_token(TokenType.TkBitAndAssign).for_alt()
-        p8 = self.parse_token(TokenType.TkMulAssign).for_alt()
-        p9 = self.parse_token(TokenType.TkDivAssign).for_alt()
-        p10 = self.parse_token(TokenType.TkRemAssign).for_alt()
-        p11 = self.parse_token(TokenType.TkModAssign).for_alt()
-        p12 = self.parse_token(TokenType.TkExpAssign).for_alt()
-        p13 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12).parse_once()
-        return p13
+        p1 = self.parse_token(TokenType.TkMul).for_alt()
+        p2 = self.parse_token(TokenType.TkDiv).for_alt()
+        p3 = self.parse_token(TokenType.TkRem).for_alt()
+        p4 = self.parse_token(TokenType.TkMod).for_alt()
+        p5 = self.parse_token(TokenType.TkExp).for_alt()
+        p6 = self.parse_token(TokenType.TkMulAssign).for_alt()
+        p7 = self.parse_token(TokenType.TkDivAssign).for_alt()
+        p8 = self.parse_token(TokenType.TkRemAssign).for_alt()
+        p9 = self.parse_token(TokenType.TkModAssign).for_alt()
+        p10 = self.parse_token(TokenType.TkExpAssign).for_alt()
+        p11 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10).parse_once()
+        return p11
 
     @parser_rule
     def parse_unary_op(self) -> TokenAst:
@@ -1026,13 +1001,13 @@ class Parser:
     @parser_rule
     def parse_convention_ref(self) -> ConventionRefAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
+        p1 = self.parse_token(TokenType.TkBorrow).parse_once()
         return ConventionRefAst(c1, p1)
 
     @parser_rule
     def parse_convention_mut(self) -> ConventionMutAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkBitAnd).parse_once()
+        p1 = self.parse_token(TokenType.TkBorrow).parse_once()
         p2 = self.parse_token(TokenType.KwMut).parse_once()
         return ConventionMutAst(c1, p1, p2)
 
@@ -1173,7 +1148,7 @@ class Parser:
     @parser_rule
     def parse_type_union(self) -> TypeAst:
         c1 = self.current_pos()
-        p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkBitOr)
+        p1 = self.parse_type_non_union().parse_one_or_more(TokenType.TkUnion)
         return TypeUnionAst(c1, p1).as_single_type() if len(p1) > 1 else p1[0]
 
     @parser_rule

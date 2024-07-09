@@ -6,22 +6,6 @@ import json_fix
 class TokenType(Enum):
     # Tokens
 
-    # Bitwise operations (AND, OR, XOR, NOT, SHL, SHR, ROL, ROR)
-    TkBitAnd = "&"
-    TkBitAndAssign = "&="
-    TkBitOr = "|"
-    TkBitOrAssign = "|="
-    TkBitXor = "^"
-    TkBitXorAssign = "^="
-    TkBitShiftL = "<<"
-    TkBitShiftLAssign = "<<="
-    TkBitShiftR = ">>"
-    TkBitShiftRAssign = ">>="
-    TkBitRotateL = "<<<"
-    TkBitRotateLAssign = "<<<="
-    TkBitRotateR = ">>>"
-    TkBitRotateRAssign = ">>>="
-
     # Comparison operations (EQ, NE, LE, GE, LT, GT, CMP)
     TkEq = "=="
     TkNe = "!="
@@ -62,6 +46,9 @@ class TokenType(Enum):
     TkQst = "?"
     TkVariadic = ".."
     TkColon = ":"
+
+    TkBorrow = "&"
+    TkUnion = "|"
 
     TkDot = "."
     TkDblColon = "::"
