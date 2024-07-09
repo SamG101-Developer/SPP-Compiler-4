@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy, dataclasses
+import json
 from dataclasses import dataclass
 from typing import Optional, List
 
@@ -52,6 +53,9 @@ class NamespaceSymbol(Symbol):
             "name": self.name,
         }
 
+    def __str__(self) -> str:
+        return json.dumps(self)
+
 
 @dataclass(kw_only=True)
 class VariableSymbol(Symbol):
@@ -72,6 +76,9 @@ class VariableSymbol(Symbol):
             "type": self.type,
         }
 
+    def __str__(self) -> str:
+        return json.dumps(self)
+
 
 @dataclass(kw_only=True)
 class TypeSymbol(Symbol):
@@ -90,6 +97,9 @@ class TypeSymbol(Symbol):
             "name": self.name,
             "type": self.type,
         }
+
+    def __str__(self) -> str:
+        return json.dumps(self)
 
     @property
     def fq_type(self) -> TypeAst:
