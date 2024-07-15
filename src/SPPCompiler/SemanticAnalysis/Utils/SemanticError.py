@@ -568,7 +568,7 @@ class SemanticErrors:
             pos=conflicting.pos, error_type=SemanticErrorType.TYPE_ERROR,
             tag_message=f"'{what}' inferred here as '{conflicting}'.",
             message="Conflicting generic inference.",
-            tip="Ensure that the inferred generic arguments are unique.")
+            tip="Ensure that the inferred generic arguments are same.")
         return exception
 
     @staticmethod
@@ -629,4 +629,14 @@ class SemanticErrors:
             tag_message="Type cannot be used here.",
             message="Cannot use a type as an expression in this context.",
             tip="Use a valid non-type expression.")
+        return exception
+
+    @staticmethod
+    def INVALID_ITERABLE_TYPE(ast: Ast, ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.iterable.pos, error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Non-iterable type inferred as: '{ty}'.",
+            message="Loop/in expressions require an iterable type.",
+            tip="Ensure the type superimposes 'IterMov', 'IterMut' or 'IterRef'.")
         return exception

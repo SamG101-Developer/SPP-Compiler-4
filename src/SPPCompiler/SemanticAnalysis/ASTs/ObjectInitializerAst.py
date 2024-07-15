@@ -69,6 +69,8 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Type-check the arguments of the object initializer.
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
+        # Substitution for sup-scopes?
+
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 

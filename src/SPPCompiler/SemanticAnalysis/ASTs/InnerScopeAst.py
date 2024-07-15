@@ -46,7 +46,9 @@ class InnerScopeAst[T](Ast, SemanticAnalyser, TypeInfer):
 
         # Create a new scope and add the members to it.
         if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
-        Seq(self.members).for_each(lambda x: x.do_semantic_analysis(scope_handler, **kwargs))
+
+        for member in self.members:
+            member.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure code doesn't come after a return statement at the current level.
         for i, member in Seq(self.members).enumerate():
