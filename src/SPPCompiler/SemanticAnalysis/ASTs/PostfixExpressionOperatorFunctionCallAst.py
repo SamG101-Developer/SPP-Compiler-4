@@ -62,7 +62,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
         # of the owner of the function. Raise an error for non-callable types.
-        # Todo: change to check for Fun... super-impositions?
+        # Todo: change to check for Fun... super-impositions instead?
+        # Todo: only other things would be literals, and they can't be called (still, for the sake of normalisation).
         match function_name:
             case IdentifierAst():
                 function_scope = scope_handler.current_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.value}").lex(), "").parse_type().parse_once()).associated_scope
@@ -84,6 +85,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
                 parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 generic_arguments = Seq(self.generic_arguments.arguments.copy())
+
+                restore_function_arguments = Seq(self.arguments.arguments)
+                restore_generic_arguments = Seq(self.generic_arguments.arguments)
+
                 # todo: function folding: "function(tup).."
 
                 # Create a dummy "self" argument for class method calls.
@@ -97,8 +102,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     self.arguments.arguments.insert(0, self_arg)
 
                 arguments = Seq(self.arguments.arguments)
-                restore_function_arguments = Seq(self.arguments.arguments)
-                restore_generic_arguments = Seq(self.generic_arguments.arguments)
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 # Check too many arguments haven't been passed to the function.
@@ -115,7 +118,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     parameter_identifiers.remove(argument.identifier)
 
                 # Convert all anonymous arguments and generics to named counterparts.
-                self.arguments.arguments = convert_function_arguments_to_named(arguments, Seq(function_overload.parameters.parameters), is_variadic_function).value
+                self.arguments.arguments = convert_function_arguments_to_named(arguments, parameter_identifiers, is_variadic_function).value
                 self.generic_arguments.arguments = convert_generic_arguments_to_named(generic_arguments, Seq(function_overload.generic_parameters.parameters)).value
 
                 # Check all the required parameters have been assigned a value.
@@ -227,8 +230,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     self.arguments.arguments.remove(self_arg)
 
             except SemanticError as e:
-                if function_overload.parameters.get_self():
-                    self.arguments.arguments.remove(self_arg)
                 self.arguments.arguments = restore_function_arguments.value
                 self.generic_arguments.arguments = restore_generic_arguments.value
                 function_overload_errors.append((function_overload, e))
