@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import copy
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
@@ -37,3 +40,16 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
             raise SemanticErrors.MISSING_RETURN_STATEMENT(coroutine_return_type, self.body.brace_r_token)
 
         scope_handler.exit_cur_scope()
+
+    def __deepcopy__(self, memodict) -> CoroutinePrototypeAst:
+        return CoroutinePrototypeAst(
+            pos=self.pos,
+            annotations=self.annotations,
+            function_token=copy.deepcopy(self.function_token),
+            identifier=copy.deepcopy(self.identifier),
+            generic_parameters=copy.deepcopy(self.generic_parameters),
+            parameters=copy.deepcopy(self.parameters),
+            arrow_token=copy.deepcopy(self.arrow_token),
+            return_type=copy.deepcopy(self.return_type),
+            where_block=copy.deepcopy(self.where_block),
+            body=self.body)
