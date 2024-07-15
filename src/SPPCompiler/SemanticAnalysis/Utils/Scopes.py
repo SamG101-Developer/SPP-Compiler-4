@@ -131,6 +131,14 @@ class Scope:
         return all_sup_scopes
 
     @property
+    def name(self) -> Any:
+        return self._scope_name
+
+    @property
+    def parent(self) -> Optional[Scope]:
+        return self._parent_scope
+
+    @property
     def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
         return self._sup_scopes
 
