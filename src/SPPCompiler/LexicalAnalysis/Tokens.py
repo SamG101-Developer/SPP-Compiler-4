@@ -81,6 +81,8 @@ class TokenType(Enum):
     KwElse = "else"
     KwLoop = "loop"
     KwWith = "with"
+    KwSkip = "skip"
+    KwExit = "exit"
 
     # Control flow exit
     KwRet = "ret"
@@ -104,6 +106,7 @@ class TokenType(Enum):
 
     # Misc
     KwOn = "on"
+    KwIn = "in"
     KwAsync = "async"
     KwThen = "then"
 
