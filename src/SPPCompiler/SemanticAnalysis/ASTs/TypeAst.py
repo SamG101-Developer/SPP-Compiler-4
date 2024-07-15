@@ -77,7 +77,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         # todo: ".parts" shouldn't combine the namespace object's items (dont use ".items" in the parser)
         # todo: shared with TypedefStatementAst (namespace check)
         namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
-        if not scope_handler.get_namespaced_scope(namespace):
+        namespace_scope = scope_handler.get_namespaced_scope(namespace)
+        if not namespace_scope:
             raise SemanticErrors.UNKNOWN_IDENTIFIER(namespace[-1], [], "namespace")
 
         # Check if the base type exists.
@@ -90,6 +91,20 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             # Get the symbol and scope for the base type.
             base_type_symbol = scope_handler.current_scope.get_symbol(self.without_generics())
             base_type_scope  = base_type_symbol.associated_scope
+
+            # Fill the namespace.
+            true_type_namespace = base_type_scope.scopes_as_namespace
+            this_type_namespace = Seq(self.parts).filter_to_type(IdentifierAst).value.copy()
+            len_given = len(this_type_namespace)
+            if len(true_type_namespace) != len(this_type_namespace):
+                this_type_namespace.extend([IdentifierAst(-1, "") for _ in range(len(true_type_namespace) - len(this_type_namespace))])
+
+            for i, (t, r) in enumerate(zip(true_type_namespace, this_type_namespace)):
+                if t.value != r.value:
+                    this_type_namespace = true_type_namespace[:i + 1] + this_type_namespace
+                    this_type_namespace = this_type_namespace[:len(true_type_namespace)]
+                    break
+            self.parts[:len_given] = this_type_namespace
 
             # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
             convert_generic_arguments_to_named(
@@ -109,14 +124,13 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             # Create a new scope and symbol for the generic version of the type.
             this_type_scope_name = copy.deepcopy(base_type_scope._scope_name)
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
-            this_type_scope = Scope(this_type_scope_name, scope_handler.global_scope)
-            this_type_scope._parent_scope = base_type_scope._parent_scope
+            this_type_scope = Scope(this_type_scope_name, base_type_scope.parent)
             this_type_scope._sup_scopes = base_type_scope._sup_scopes
             this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 
             # Add the new scope and symbol to the correct parent scope.
-            base_type_scope._parent_scope._children_scopes.append(this_type_scope)  # todo: add function like add_symbol for ns propagation from Global
+            base_type_scope._parent_scope._children_scopes.append(this_type_scope)  # todo: add function like add_scope for ns propagation from Global
             scope_handler.global_scope.add_symbol(TypeSymbol(name=self, type=this_type_cls_ast, associated_scope=this_type_scope))
 
             # Add the generic arguments mapping to the correct types into the new symbol table.
@@ -135,8 +149,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
             # Do a semantic analysis of the substituted generics so generic attribute types are loaded.
             temp_scope_handler = ScopeHandler(scope_handler.global_scope)
-            temp_scope_handler.current_scope = this_type_scope._parent_scope
-            this_type_cls_ast.do_semantic_analysis(temp_scope_handler, **kwargs)
+            temp_scope_handler.reset(base_type_scope)  # todo: is this scope correct?
+            this_type_cls_ast.do_semantic_analysis(temp_scope_handler, **(kwargs | {"no-scope": True}))
 
         elif base_type_exists and (base_type_symbol := scope_handler.current_scope.get_symbol(self.without_generics())).type:
 
@@ -150,7 +164,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     self,
                     Seq(base_type_symbol.type.generic_parameters.parameters).map(lambda p: p.identifier).value,
                     Seq(self.parts[-1].generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    {}, {}, scope_handler, supress_missing=True))
+                    {}, {}, scope_handler, supress_missing="is-init" in kwargs.keys()))
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
