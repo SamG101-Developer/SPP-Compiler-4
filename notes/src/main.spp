@@ -2,7 +2,7 @@ mod main
 
 
 cls A {
-    x: BigInt
+    x: std::Opt[std::BigInt]
 }
 
 
@@ -10,12 +10,19 @@ sup std::IterMov[std::BigInt] on A { }
 
 sup std::IterRef[std::BigInt] on A { }
 
+cls C {
+    a: std::BigInt
+}
+
 cls B[T] {
     x: T
 }
 
+
+sup [T] C on B[T] { }
+
 sup [T] B[T] {
-    fun func(&self) -> T { }
+    fun func(&self, a: std::BigInt) -> T { }
 }
 
 
@@ -25,9 +32,7 @@ fun function_test(a: std::Bool) -> std::Void { }
 
 
 fun main() -> std::Void {
-    function_test(10, false)
-
-    let b = B(x=10)
-    let mut c = b.func()
-    c = false
+    let b = B(x=1)
+    let mut c = b.a
+    let mut x = b.func(3)
 }
