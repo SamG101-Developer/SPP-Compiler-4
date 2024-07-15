@@ -90,10 +90,11 @@ class Scope:
         # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
         # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
         # contain inherited symbols.
-        for sup_scope, _ in self._sup_scopes:
-            sym = sup_scope.get_symbol(name)
-            if sym:
-                return sym
+        if isinstance(name, IdentifierAst) or isinstance(name, TypeAst) and name.parts[-1].value.startswith("MOCK_"):
+            for sup_scope, _ in self._sup_scopes:
+                sym = sup_scope.get_symbol(name)
+                if sym:
+                    return sym
 
     def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> bool:
         return self.get_symbol(name, exclusive) is not None
