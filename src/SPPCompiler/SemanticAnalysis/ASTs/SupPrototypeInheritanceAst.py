@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
@@ -39,6 +40,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
     def pre_process(self, context: "ModulePrototypeAst") -> None:
         # Don't preprocess converted function classes, because they will infinitely generate new ones inside.
+        # TODO: Change to std::FunRef, std::FunMut, std::FunMov
         if self.super_class.parts[-1].value in ["FunRef", "FunMut", "FunMov"]:
             return
 
@@ -47,10 +49,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
-        scope_handler.into_new_scope(self.identifier.parts[-1].value + f"#SUP-{self.super_class}")
-        scope_handler.current_scope.add_symbol(TypeSymbol(
-            name=CommonTypes.self(),
-            type=scope_handler.current_scope.get_symbol(self.identifier).type))
+        scope_handler.into_new_scope(f"{self.identifier}#SUP-{self.super_class}")
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
@@ -62,22 +61,21 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
 
-        if not scope_handler.current_scope.get_symbol(self.identifier):
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(self.identifier, [], "type")
+        self.identifier.do_semantic_analysis(scope_handler)
+        scope_handler.current_scope.add_symbol(TypeSymbol(
+            name=CommonTypes.self(),
+            type=scope_handler.current_scope.get_symbol(self.identifier).type))
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
-            if not scope_handler.current_scope.get_symbol(self.super_class):
-                raise SemanticErrors.UNKNOWN_IDENTIFIER(self.super_class.parts[-1], [], "type")
-
+            self.super_class.do_semantic_analysis(scope_handler)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
 
         # Skip internal functions scopes.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
-
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:

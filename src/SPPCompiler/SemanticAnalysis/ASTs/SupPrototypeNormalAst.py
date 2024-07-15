@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -40,7 +41,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     def print(self, printer: AstPrinter) -> str:
         # Print the SupPrototypeNormalAst.
         s = ""
-        s += f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)}{self.identifier.print(printer)}"
+        s += f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)} {self.identifier.print(printer)}"
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
@@ -54,10 +55,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
-        scope_handler.into_new_scope(self.identifier.parts[-1].value + "#SUP-functions")
-        scope_handler.current_scope.add_symbol(TypeSymbol(
-            name=CommonTypes.self(),
-            type=scope_handler.current_scope.get_symbol(self.identifier.without_generics()).type))
+        scope_handler.into_new_scope(f"{self.identifier}#SUP-functions-{time.time()}")
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
@@ -71,12 +69,15 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
         # Add the superimposition scope to the class scope.
         self.identifier.do_semantic_analysis(scope_handler)
+        scope_handler.current_scope.add_symbol(TypeSymbol(
+            name=CommonTypes.self(),
+            type=scope_handler.current_scope.get_symbol(self.identifier).type))
+
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Skip internal functions scopes.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
-
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
