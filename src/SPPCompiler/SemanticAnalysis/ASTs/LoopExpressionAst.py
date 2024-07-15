@@ -11,20 +11,20 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
-class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
+class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
-    The WhileExpressionAst node is used to represent a while-loop. This is a loop that will continue to execute the body
+    The LoopExpressionAst node is used to represent a while-loop. This is a loop that will continue to execute the body
     of the loop while the condition is true. The keyword to use it is "loop".
 
     Attributes:
-        while_keyword: The "loop" keyword.
+        loop_keyword: The "loop" keyword.
         condition: The condition to check each iteration.
         body: The body of the loop.
         else_block: The optional else block of the loop.
     """
 
-    while_keyword: "TokenAst"
-    condition: "ExpressionAst"
+    loop_keyword: "TokenAst"
+    condition: "LoopExpressionConditionAst"
     body: "InnerScopeAst[StatementAst]"
     else_block: Optional["WhileElseExpressionAst"]
 
@@ -32,7 +32,7 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the WhileExpressionAst.
         s = ""
-        s += f"{self.while_keyword.print(printer)}"
+        s += f"{self.loop_keyword.print(printer)}"
         s += f"{self.condition.print(printer)} "
         s += f"{self.body.print(printer)}"
         s += f"{self.else_block.print(printer)}" if self.else_block else ""
@@ -44,13 +44,8 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Analyse the condition
         if isinstance(self.condition, TypeAst):
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
+
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
-    
-        # Ensure the condition evaluates to a Bool type.
-        condition_type = self.condition.infer_type(scope_handler, **kwargs)
-        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
-        if not condition_type.symbolic_eq(target_type, scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(self.condition, target_type, condition_type)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
@@ -59,4 +54,4 @@ class WhileExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))
 
 
-__all__ = ["WhileExpressionAst"]
+__all__ = ["LoopExpressionAst"]

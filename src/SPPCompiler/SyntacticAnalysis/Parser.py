@@ -165,9 +165,9 @@ class Parser:
         return SupTypedefAst(**p2.__dict__, annotations=p1)
 
     @parser_rule
-    def parse_sup_method_prototype(self) -> SupMethodPrototypeAst:
+    def parse_sup_method_prototype(self) -> FunctionPrototypeAst:
         p1 = self.parse_function_prototype().parse_once()
-        return SupMethodPrototypeAst(**p1.__dict__)
+        return p1
 
     # ===== FUNCTIONS =====
 
@@ -483,9 +483,9 @@ class Parser:
         p4 = self.parse_lambda_prototype().for_alt()
         p5 = self.parse_parenthesized_expression().for_alt()
         p6 = self.parse_identifier().for_alt()
-        p7 = self.parse_if_expression().for_alt()
-        p8 = self.parse_while_expression().for_alt()
-        p9 = self.parse_yield_expression().for_alt()
+        p7 = self.parse_case_expression().for_alt()
+        p8 = self.parse_loop_expression().for_alt()
+        p9 = self.parse_gen_expression().for_alt()
         p10 = self.parse_with_expression().for_alt()
         p11 = self.parse_inner_scope(self.parse_statement).for_alt()
         p12 = self.parse_self_keyword().for_alt()
@@ -510,7 +510,7 @@ class Parser:
     # ===== EXPRESSION STATEMENTS =====
 
     @parser_rule
-    def parse_if_expression(self) -> IfExpressionAst:
+    def parse_case_expression(self) -> IfExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
@@ -520,23 +520,44 @@ class Parser:
         return IfExpressionAst(c1, p1, p2, p3, p4, p5)
 
     @parser_rule
-    def parse_while_expression(self) -> WhileExpressionAst:
+    def parse_loop_expression(self) -> LoopExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwLoop).parse_once()
-        p2 = self.parse_expression().parse_once()
+        p2 = self.parse_loop_expression_condition().parse_once()
         p3 = self.parse_inner_scope(self.parse_statement).parse_once()
         p4 = self.parse_while_else_expression().parse_optional()
-        return WhileExpressionAst(c1, p1, p2, p3, p4)
+        return LoopExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
-    def parse_while_else_expression(self) -> WhileElseExpressionAst:
+    def parse_loop_expression_condition(self) -> LoopExpressionConditionAst:
+        p1 = self.parse_loop_expression_condition_iterable().for_alt()
+        p2 = self.parse_loop_expression_condition_boolean().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    @parser_rule
+    def parse_loop_expression_condition_boolean(self) -> LoopExpressionConditionBooleanAst:
+        c1 = self.current_pos()
+        p1 = self.parse_expression().parse_once()
+        return LoopExpressionConditionBooleanAst(c1, p1)
+
+    @parser_rule
+    def parse_loop_expression_condition_iterable(self) -> LoopExpressionConditionIterableAst:
+        c1 = self.current_pos()
+        p1 = self.parse_local_variable().parse_once()
+        p2 = self.parse_token(TokenType.KwIn).parse_once()
+        p3 = self.parse_expression().parse_once()
+        return LoopExpressionConditionIterableAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_while_else_expression(self) -> LoopElseExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
         p2 = self.parse_inner_scope(self.parse_statement).parse_once()
-        return WhileElseExpressionAst(c1, p1, p2)
+        return LoopElseExpressionAst(c1, p1, p2)
 
     @parser_rule
-    def parse_yield_expression(self) -> YieldExpressionAst:
+    def parse_gen_expression(self) -> YieldExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwGen).parse_once()
         p2 = self.parse_token(TokenType.KwWith).parse_optional()
