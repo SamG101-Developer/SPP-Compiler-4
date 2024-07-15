@@ -79,7 +79,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         function_overload_errors = []
         valid_overloads = []
 
-        for i, function_overload in function_overloads.enumerate():
+        for (i, function_overload), function_overload_scope in function_overloads.enumerate().zip(Seq(mock_function_sup_scopes)):
             try:
                 function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
                 parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
@@ -97,7 +97,14 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     self.arguments.arguments.insert(0, self_arg)
 
                 arguments = Seq(self.arguments.arguments)
+                restore_function_arguments = Seq(self.arguments.arguments)
+                restore_generic_arguments = Seq(self.generic_arguments.arguments)
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
+
+                # Check too many arguments haven't been passed to the function.
+                is_variadic_function = function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
+                if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
+                    raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
                 # Check there aren't any named arguments that don't match the function's parameters.
                 if invalid_arguments := named_argument_identifiers.set_subtract(parameter_identifiers):
@@ -106,11 +113,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # Remove all named arguments from the available parameters, leaving only the unnamed parameters.
                 for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
                     parameter_identifiers.remove(argument.identifier)
-
-                # Check too many arguments haven't been passed to the function.
-                is_variadic_function = function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
-                if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
-                    raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
                 # Convert all anonymous arguments and generics to named counterparts.
                 self.arguments.arguments = convert_function_arguments_to_named(arguments, Seq(function_overload.parameters.parameters), is_variadic_function).value
@@ -123,6 +125,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
 
                 # Inherit any generics from the owner scope into the function's generics.
+                # Todo: Change "function_name.lhs" to the actual object that owns the functions (inc. sup scopes)
+                # Todo: Otherwise, generics from sup-inheritance blocks aren't loaded
                 if isinstance(function_name, PostfixExpressionAst) and function_name.op.dot_token.token.token_type == TokenType.TkDot:
                     owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
                 else:
@@ -225,6 +229,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             except SemanticError as e:
                 if function_overload.parameters.get_self():
                     self.arguments.arguments.remove(self_arg)
+                self.arguments.arguments = restore_function_arguments.value
+                self.generic_arguments.arguments = restore_generic_arguments.value
                 function_overload_errors.append((function_overload, e))
 
         # If there are no valid overloads, display each overload, and why it is invalid for the arguments.
