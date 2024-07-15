@@ -8,9 +8,9 @@ from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
-class WhileElseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
+class LoopElseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
-    The WhileElseExpressionAst node represents a while-else expression. This is used to execute a block of code if the
+    The LoopElseExpressionAst node represents a while-else expression. This is used to execute a block of code if the
     condition for the WhileExpressionAst is already "false" at the first iteration.
 
     Attributes:
