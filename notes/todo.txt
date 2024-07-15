@@ -39,6 +39,7 @@ Functions:
 -- Non-single variable parameters, like `fun func(Point(x, y): Point)`
 -- What about a param like: "fun func(Point(x, y): &Point)"? Can't move "x" and "y" from "&Point"
 -- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
+-- Reject ambiguous functions calls where > 1 overload is valid
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- The `self` argument is not generated for non-identifier functions: generate a `self` for any lhs except TypeAst (static functions).
 
@@ -47,9 +48,13 @@ Typedefs:
 -- Sup-typedefs.
 -- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub)) -- make more cyclic like "let" statements.
 
+Loops
+-- New iteration-based loop (mock "for")
+-- Control flow (breaking and continuing)
+-- Loop break conditions (and assignments)
+
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope.
-

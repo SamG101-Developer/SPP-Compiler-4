@@ -1,0 +1,36 @@
+mod std::iterator
+
+use std::(GenMov, GenMut, GenRef)
+
+
+##
+cls Iterator[Item] { }
+
+sup [Item] Iterator[Item] {
+    cor next(&mut self) -> Gen[Item] { }
+
+    fun advance_by(&mut self, n: U64) -> Void {
+        loop i in std::range(0, n) {
+            case self.next() == then
+                None() { exit }
+                Some(..) { }
+        }
+    }
+}
+##
+
+
+cls IterMov[T] { }
+sup [T] IterMov[T] {
+    fun iter_mov(self) -> std::GenMov[Yield=T] { }
+}
+
+cls IterMut[T] { }
+sup [T] IterMut[T] {
+    fun iter_mut(&mut self) -> std::GenMut[Yield=T] { }
+}
+
+cls IterRef[T] { }
+sup [T] IterRef[T] {
+    fun iter_ref(&self) -> std::GenRef[Yield=T] { }
+}

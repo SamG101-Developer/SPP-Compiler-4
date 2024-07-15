@@ -1,19 +1,33 @@
 mod main
 
-use std::BigInt
-use std::Str
-use std::Vec
-use std::Void
 
-
-cls A[T] {
-    x: Vec[T]
-    y: T
+cls A {
+    x: BigInt
 }
 
 
+sup std::IterMov[std::BigInt] on A { }
 
-fun main() -> Void {
-    let b = Vec[Str]()
-    let a = A(x=b, y=2)
+sup std::IterRef[std::BigInt] on A { }
+
+cls B[T] {
+    x: T
+}
+
+sup [T] B[T] {
+    fun func(&self) -> T { }
+}
+
+
+fun function_test[T](a: T, b: T) -> std::Void { }
+
+fun function_test(a: std::Bool) -> std::Void { }
+
+
+fun main() -> std::Void {
+    function_test(10, false)
+
+    let b = B(x=10)
+    let mut c = b.func()
+    c = false
 }
