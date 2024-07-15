@@ -505,12 +505,12 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             pos=orig.pos,
-            tag_message=f"{ast} defined here")
+            tag_message=f"Generic argument '{ast}' explicitly given here")
         exception.add_error(
             pos=new.pos,
             error_type=SemanticErrorType.NAME_ERROR,
-            tag_message=f"{ast} has been inferred by an argument",
-            message="Type redeclaration",
+            tag_message=f"'{ast}' inferred by an argument here",
+            message=f"Type redeclaration",
             tip="Remove the redefined type, or re-name it.")
         return exception
 
