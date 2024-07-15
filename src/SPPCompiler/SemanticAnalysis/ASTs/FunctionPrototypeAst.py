@@ -138,6 +138,12 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Append the "sup" block to the module or sup prototype ("context" will be either one).
         context.body.members.append(sup_block_ast)
 
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+        # Load generic-version of a type in for comparisons.
+        self.return_type.do_semantic_analysis(scope_handler)
+        scope_handler.exit_cur_scope()
+
     def _deduce_function_class_type(self, context: "ModulePrototypeAst | SupPrototypeAst") -> "TypeAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
             FunctionParameterSelfAst, ConventionRefAst, ConventionMutAst, ConventionMovAst, ModulePrototypeAst)
@@ -201,19 +207,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             self.parameters == other.parameters,
             self.return_type == other.return_type,
             self.where_block == other.where_block])
-
-    def ___deepcopy__(self, memodict) -> FunctionPrototypeAst:
-        return FunctionPrototypeAst(
-            pos=self.pos,
-            annotations=self.annotations,
-            function_token=copy.deepcopy(self.function_token),
-            identifier=copy.deepcopy(self.identifier),
-            generic_parameters=copy.deepcopy(self.generic_parameters),
-            parameters=copy.deepcopy(self.parameters),
-            arrow_token=copy.deepcopy(self.arrow_token),
-            return_type=copy.deepcopy(self.return_type),
-            where_block=copy.deepcopy(self.where_block),
-            body=self.body)
 
 
 __all__ = ["FunctionPrototypeAst"]
