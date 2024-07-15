@@ -7,13 +7,13 @@ from SPPCompiler.SemanticAnalysis.ASTs.ObjectInitializerAst import ObjectInitial
 from SPPCompiler.SemanticAnalysis.ASTs.ParenthesizedExpressionAst import ParenthesizedExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.WhileExpressionAst import WhileExpressionAst
+from SPPCompiler.SemanticAnalysis.ASTs.LoopExpressionAst import LoopExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAst import WithExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpressionAst
 
 type PrimaryExpressionAst = (
         LiteralAst | IdentifierAst | ParenthesizedExpressionAst | ObjectInitializerAst | LambdaPrototypeAst |
-        IfExpressionAst | WhileExpressionAst | WithExpressionAst | YieldExpressionAst | InnerScopeAst | TypeAst |
+        IfExpressionAst | LoopExpressionAst | WithExpressionAst | YieldExpressionAst | InnerScopeAst | TypeAst |
         TokenAst)
 
 __all__ = ["PrimaryExpressionAst"]
