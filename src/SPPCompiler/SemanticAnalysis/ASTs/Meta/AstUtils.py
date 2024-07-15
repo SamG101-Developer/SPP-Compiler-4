@@ -157,13 +157,11 @@ def convert_generic_arguments_to_named(
 
 def convert_function_arguments_to_named(
         arguments: Seq["FunctionArgumentAst"],
-        parameters: Seq["FunctionParameterAst"],
+        parameter_identifiers: Seq["IdentifierAst"],
         is_variadic: bool) -> Seq["FunctionArgumentAst"]:
 
     from SPPCompiler.SemanticAnalysis.ASTs import (
         FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst)
-
-    parameter_identifiers = Seq(parameters.value.copy()).map(lambda p: p.identifier_for_param())
 
     # Loop over every unnamed argument in the list.
     for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
