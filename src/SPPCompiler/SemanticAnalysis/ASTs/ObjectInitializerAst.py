@@ -37,7 +37,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Ensure the base type (no generics) exists, and is not a generic type, as these cannot be instantiated.
         # The non-generic version of the type is checked, as the generics can be changed by inferred generic from
         # arguments, so the complete type, with generics, is analysed later.
-        self.class_type.do_semantic_analysis(scope_handler, **kwargs)
+        self.class_type.do_semantic_analysis(scope_handler, **(kwargs | {"is-init": True}))
         type_symbol = scope_handler.current_scope.get_symbol(self.class_type)
         if not type_symbol.type:
             raise SemanticErrors.NON_INSTANTIABLE_TYPE(self.class_type, type_symbol)
