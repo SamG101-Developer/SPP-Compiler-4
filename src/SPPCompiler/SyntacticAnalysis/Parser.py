@@ -753,13 +753,20 @@ class Parser:
         p2 = self.parse_local_variable_destructure().for_alt()
         p3 = self.parse_local_variable_single().for_alt()
         p4 = self.parse_local_variable_skip_arguments().for_alt()
-        p5 = (p1 | p2 | p3 | p4).parse_once()
-        return p5
+        p5 = self.parse_local_variable_skip_argument().for_alt()
+        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        return p6
 
     @parser_rule
-    def parse_local_variable_skip_arguments(self) -> LocalVariableSkipArgumentAst:
+    def parse_local_variable_skip_arguments(self) -> LocalVariableSkipArgumentsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkVariadic).parse_once()
+        return LocalVariableSkipArgumentsAst(c1, p1)
+
+    @parser_rule
+    def parse_local_variable_skip_argument(self) -> LocalVariableSkipArgumentAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkUnderscore).parse_once()
         return LocalVariableSkipArgumentAst(c1, p1)
 
     @parser_rule
@@ -838,9 +845,15 @@ class Parser:
         return p4
 
     @parser_rule
-    def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentAst:
+    def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkVariadic).parse_once()
+        return PatternVariantSkipArgumentsAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_skip_argument(self) -> PatternVariantSkipArgumentAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkUnderscore).parse_once()
         return PatternVariantSkipArgumentAst(c1, p1)
 
     @parser_rule
@@ -850,8 +863,9 @@ class Parser:
         p3 = self.parse_pattern_variant_variable().for_alt()
         p4 = self.parse_pattern_variant_literal().for_alt()
         p5 = self.parse_pattern_variant_skip_arguments().for_alt()
-        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
-        return p6
+        p6 = self.parse_pattern_variant_skip_argument().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
+        return p7
 
     @parser_rule
     def parse_pattern_variant_nested_non_assignment(self) -> PatternVariantNestedAst:
