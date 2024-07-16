@@ -61,7 +61,7 @@ class ParserRuleHandler[T]:
         new_parser_rule_handler._rule = lambda: wrapper_function(self._rule())
         return new_parser_rule_handler
 
-    def __or__(self, that: ParserRuleHandler) -> ParserAlternateRulesHandler:
+    def __or__(self, that: ParserRuleHandler) -> "ParserAlternateRulesHandler":
         from SPPCompiler.SyntacticAnalysis.ParserAlternateRulesHandler import ParserAlternateRulesHandler
 
         if not (self._for_alternate and that._for_alternate):
