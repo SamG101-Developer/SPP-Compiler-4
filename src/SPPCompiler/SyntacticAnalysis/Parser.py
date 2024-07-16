@@ -591,6 +591,29 @@ class Parser:
         return ReturnStatementAst(c1, p1, p2)
 
     @parser_rule
+    def parse_loop_control_flow_statement(self) -> LoopControlFlowStatementAst:
+        p1 = self.parse_loop_control_flow_statement_exit().for_alt()
+        p2 = self.parse_loop_control_flow_statement_skip().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
+
+    # Todo: Consider "break(2)" instead of "break break"
+    @parser_rule
+    def parse_loop_control_flow_statement_exit(self) -> LoopControlFlowStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwExit).parse_one_or_more()
+        p2 = self.parse_token(TokenType.KwSkip).for_alt()
+        p3 = self.parse_expression().for_alt()
+        p4 = (p2 | p3).parse_optional()
+        return LoopControlFlowStatementAst(c1, p1, p4)
+
+    @parser_rule
+    def parse_loop_control_flow_statement_skip(self) -> LoopControlFlowStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwSkip).parse_once()
+        return LoopControlFlowStatementAst(c1, [], p1)
+
+    @parser_rule
     def parse_inner_scope(self, rule) -> InnerScopeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBraceL).parse_once()
@@ -599,14 +622,15 @@ class Parser:
         return InnerScopeAst(c1, p1, p2, p3)
 
     @parser_rule
-    def parse_statement(self):
+    def parse_statement(self) -> StatementAst:
         p1 = self.parse_typedef_statement().for_alt()
         p2 = self.parse_let_statement().for_alt()
         p3 = self.parse_return_statement().for_alt()
-        p4 = self.parse_assignment_statement().for_alt()
-        p5 = self.parse_expression().for_alt()
-        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
-        return p6
+        p4 = self.parse_loop_control_flow_statement().for_alt()
+        p5 = self.parse_assignment_statement().for_alt()
+        p6 = self.parse_expression().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
 
     # ===== TYPEDEFS =====
 
