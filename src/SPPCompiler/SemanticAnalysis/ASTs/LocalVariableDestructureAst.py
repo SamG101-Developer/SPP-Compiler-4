@@ -37,7 +37,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableSkipArgumentAst, LocalVariableSingleAst, LocalVariableAssignmentAst, ConventionMovAst,
+            LocalVariableSkipArgumentsAst, LocalVariableSingleAst, LocalVariableAssignmentAst, ConventionMovAst,
             PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
         value = kwargs["value"]
@@ -48,7 +48,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
         attributes = Seq(scope_handler.current_scope.get_symbol(self.class_type).type.body.members)
 
         # Only allow 1 multi-skip inside a tuple.
-        skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentAst)
+        skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentsAst)
         if skips.length > 1:
             raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
 
@@ -58,7 +58,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
         nested_destructures = []
-        for current_local_variable in Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst):
+        for current_local_variable in Seq(self.items).filter_not_type(LocalVariableSkipArgumentsAst):
             # Don't allow the unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
             if isinstance(current_local_variable, LocalVariableSingleAst) and current_local_variable.unpack_token:
                 raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable.unpack_token)
@@ -120,7 +120,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             nested_destructure.do_semantic_analysis(scope_handler, **kwargs)
 
         # Make sure all the attributes have been assigned to, unless there is a ".." skip.
-        assigned_attributes = Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst)
+        assigned_attributes = Seq(self.items).filter_not_type(LocalVariableSkipArgumentsAst)
         missing_attributes = attributes.map(lambda a: a.identifier).set_subtract(assigned_attributes.map(lambda a: a.identifier))
         if missing_attributes and not skips:
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_attributes[0], "destructure", "attribute")

@@ -7,19 +7,22 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 @dataclass
 class LocalVariableSkipArgumentAst(Ast):
     """
-    The LocalVariableSkipArgumentAst node represents a placeholder variable that is skipping values. This is used inside
-    tuple and object destructuring. For example, in the statement "let Point(x, ..) = point", ".." is the skip argument,
-    skipping all other fields in the Point class.
+    The LocalVariableSkipArgumentAst node represents a placeholder variable that is skipping a value. This is used
+    inside tuple destructuring. For example, in the statement "let (a, _, b, _) = tuple", "_" is the skip argument,
+    skipping other fields in the "tuple" object".
 
     Attributes:
-        variadic_token: The ".." token.
+        underscore_token: The "_" token.
     """
 
-    variadic_token: "TokenAst"
+    underscore_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the LocalVariableSkipArgumentAst.
         s = ""
-        s += f"{self.variadic_token.print(printer)}"
+        s += f"{self.underscore_token.print(printer)}"
         return s
+
+
+__all__ = ["LocalVariableSkipArgumentAst"]
