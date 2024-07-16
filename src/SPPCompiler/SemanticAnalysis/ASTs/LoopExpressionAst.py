@@ -39,13 +39,20 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
 
         # Analyse the condition
         if isinstance(self.condition, TypeAst):
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
-
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
+
+        kwargs["loop-count"] = kwargs.get("loop-count", 0) + 1
+        kwargs["loop-types"] = kwargs.get("loop-types", {})
+        self.body.do_semantic_analysis(scope_handler, **kwargs)
+        kwargs["loop-count"] -= 1
+
+        if self.else_block:
+            self.else_block.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
