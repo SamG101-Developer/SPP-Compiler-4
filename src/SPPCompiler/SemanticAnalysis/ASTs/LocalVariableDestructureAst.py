@@ -40,6 +40,9 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             LocalVariableSkipArgumentAst, LocalVariableSingleAst, LocalVariableAssignmentAst, ConventionMovAst,
             PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
+        value = kwargs["value"]
+        value.do_semantic_analysis(scope_handler, **kwargs)
+
         # Semantically analyse the class type, to make sure it exists.
         self.class_type.do_semantic_analysis(scope_handler, **kwargs)
         attributes = Seq(scope_handler.current_scope.get_symbol(self.class_type).type.body.members)
@@ -50,7 +53,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
 
         # Check the RHS is the same type as the class type.
-        value_type = kwargs["value"].infer_type(scope_handler, **kwargs)
+        value_type = value.infer_type(scope_handler, **kwargs)
         if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(value_type, scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
@@ -74,7 +77,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
 
                 ast_1 = PostfixExpressionAst(
                     pos=self.pos,
-                    lhs=kwargs["value"],
+                    lhs=value,
                     op=ast_0)
 
                 ast_2 = LetStatementInitializedAst(
@@ -95,7 +98,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
 
                 ast_1 = PostfixExpressionAst(
                     pos=self.pos,
-                    lhs=kwargs["value"],
+                    lhs=value,
                     op=ast_0)
 
                 ast_2 = LetStatementInitializedAst(

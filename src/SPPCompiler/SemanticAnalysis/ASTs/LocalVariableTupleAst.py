@@ -41,6 +41,9 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
             LetStatementInitializedAst)
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
+        value = kwargs["value"]
+        value.do_semantic_analysis(scope_handler, **kwargs)
+
         # Only allow 1 multi-skip inside a tuple.
         skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentAst)
         if skips.length > 1:
@@ -48,9 +51,9 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
 
         # Ensure that the tuple has the same number of items as the other tuple.
         lhs_tuple_elements = self.items
-        rhs_tuple_elements = kwargs["value"].infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
+        rhs_tuple_elements = value.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
         if len(lhs_tuple_elements) < len(rhs_tuple_elements) and not skips:
-            raise SemanticErrors.TUPLE_SIZE_MISMATCH(self, kwargs["value"], len(lhs_tuple_elements), len(rhs_tuple_elements))
+            raise SemanticErrors.TUPLE_SIZE_MISMATCH(self, value, len(lhs_tuple_elements), len(rhs_tuple_elements))
 
         # Create new "let" statements for each element of the tuple.
         new_let_statements = []
@@ -63,7 +66,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
 
             ast_1 = PostfixExpressionAst(
                 pos=self.pos,
-                lhs=kwargs["value"],
+                lhs=value,
                 op=ast_0)
 
             ast_2 = LetStatementInitializedAst(
