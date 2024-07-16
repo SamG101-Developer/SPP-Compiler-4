@@ -555,8 +555,8 @@ class SemanticErrors:
         exception.add_error(
             pos=rhs.pos, error_type=SemanticErrorType.TYPE_ERROR,
             tag_message=f"Assignment value contains {rhs_c} items.",
-            message="The length of the tuple does not match the length of the other tuple.",
-            tip="Ensure that the tuple has the same number of items as the other tuple.")
+            message="Tuple length mismatch.",
+            tip="Ensure both tuples have contain an equal number of elements.")
         return exception
 
     @staticmethod
