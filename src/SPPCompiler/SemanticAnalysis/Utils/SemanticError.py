@@ -640,3 +640,27 @@ class SemanticErrors:
             message="Loop/in expressions require an iterable type.",
             tip="Ensure the type superimposes 'IterMov', 'IterMut' or 'IterRef'.")
         return exception
+
+    @staticmethod
+    def CONTROL_FLOW_TOO_MANY_LOOPS(ast: Ast, num_control: int, num_loop: int) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message=f"Too many control flow statements found.",
+            message=f"{num_control} statements where found inside {num_loop} loops",
+            tip=f"Remove {num_control - num_loop} control flow statements.")
+        return exception
+
+    @staticmethod
+    def CONTROL_FLOW_TYPE_MISMATCH(ast_cf1: Ast, ast_cf2: Ast, ty1: Ast, ty2: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast_cf1.pos,
+            tag_message=f"Control flow statement inferred as '{ty1}'.")
+        exception.add_error(
+            pos=ast_cf2.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Control flow statement inferred as '{ty2}'.",
+            message="Control flow statements must have the same type.",
+            tip="Ensure all control flow statements have the same type.")
+        return exception
