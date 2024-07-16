@@ -49,11 +49,6 @@ Typedefs:
 -- Sup-typedefs.
 -- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub)) -- make more cyclic like "let" statements.
 
-Loops
--- New iteration-based loop (mock "for")
--- Control flow (breaking and continuing)
--- Loop break conditions (and assignments)
-
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`

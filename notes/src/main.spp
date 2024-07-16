@@ -37,11 +37,10 @@ fun main() -> std::Void {
     loop true {
         exit "123"
 
-        loop true {
+        let mut x = loop true {
             exit 123
-            skip
-            exit skip
         }
+        x = false
 
         exit "false"
     }

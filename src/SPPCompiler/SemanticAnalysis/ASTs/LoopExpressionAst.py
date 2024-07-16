@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -28,6 +28,9 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     body: "InnerScopeAst[StatementAst]"
     else_block: Optional["WhileElseExpressionAst"]
 
+    _loop_type_info: dict = field(default_factory=dict, init=False, repr=False)
+    _loop_type_index: int = field(default=0, init=False, repr=False)
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the WhileExpressionAst.
@@ -48,6 +51,8 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         kwargs["loop-count"] = kwargs.get("loop-count", 0) + 1
         kwargs["loop-types"] = kwargs.get("loop-types", {})
+        self._loop_type_info = kwargs["loop-types"]
+        self._loop_type_index = kwargs["loop-count"]
         self.body.do_semantic_analysis(scope_handler, **kwargs)
         kwargs["loop-count"] -= 1
 
@@ -55,10 +60,14 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             self.else_block.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
-        # The resulting type of a loop is always "Void", because it never returns (dummy value).
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))
+        # Get the type from the dictionary, set by the do_semantic_analysis method.
+        loop_type = self._loop_type_info.get(self._loop_type_index, (None, None))[1]
+        if not loop_type:
+            loop_type = InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
+
+        return loop_type
 
 
 __all__ = ["LoopExpressionAst"]
