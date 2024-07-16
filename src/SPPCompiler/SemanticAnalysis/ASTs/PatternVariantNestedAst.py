@@ -3,7 +3,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantTupleAst import PatternVari
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantDestructureAst import PatternVariantDestructureAst
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantLiteralAst import PatternVariantLiteralAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSkipArgumentAst import PatternVariantSkipArgumentAst
+from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSkipArgumentsAst import PatternVariantSkipArgumentsAst
 
 type PatternVariantNestedAst = (
         PatternVariantVariableAssignmentAst |
@@ -11,7 +11,7 @@ type PatternVariantNestedAst = (
         PatternVariantDestructureAst |
         PatternVariantVariableAst |
         PatternVariantLiteralAst |
-        PatternVariantSkipArgumentAst)
+        PatternVariantSkipArgumentsAst)
 
 
 __all__ = ["PatternVariantNestedAst"]
