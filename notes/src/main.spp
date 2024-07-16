@@ -32,7 +32,17 @@ fun function_test(a: std::Bool) -> std::Void { }
 
 
 fun main() -> std::Void {
-    let b = B(x=1)
-    let mut c = b.a
-    let mut x = b.func(3)
+    let x = false
+
+    loop true {
+        exit "123"
+
+        loop true {
+            exit 123
+            skip
+            exit skip
+        }
+
+        exit "false"
+    }
 }
