@@ -36,13 +36,14 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
 
     def convert_to_variable(self) -> "LetStatementInitializedAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableTupleAst, PatternVariantLiteralAst, PatternVariantSkipArgumentAst,
-            PatternVariantVariableAssignmentAst, PatternVariantVariableAst)
+            LocalVariableTupleAst, PatternVariantLiteralAst, PatternVariantSkipArgumentsAst,
+            PatternVariantSkipArgumentAst, PatternVariantVariableAssignmentAst, PatternVariantVariableAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(
             PatternVariantVariableAssignmentAst,
             PatternVariantSkipArgumentAst,
+            PatternVariantSkipArgumentsAst,
             PatternVariantVariableAst,
             PatternVariantLiteralAst,
         ).map(lambda i: i.convert_to_variable())
@@ -61,6 +62,7 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
         from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
+        # Convert the tuple pattern into a variable, and analyse it.
         bindings = self.convert_to_variable()
         declaration = LetStatementInitializedAst(
             pos=self.pos,
@@ -70,6 +72,12 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
             value=kwargs["condition"])
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Put the condition variable back (re-initialise memory)
+        symbol = scope_handler.current_scope.get_symbol(kwargs["condition"])
+        if symbol is not None:
+            symbol.memory_info.ast_consumed = None
+            symbol.memory_info.ast_partial_moves = []
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

@@ -40,13 +40,13 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
     def convert_to_variable(self) -> "LocalVariableDestructureAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableDestructureAst, PatternVariantSkipArgumentAst, PatternVariantVariableAssignmentAst,
+            LocalVariableDestructureAst, PatternVariantSkipArgumentsAst, PatternVariantVariableAssignmentAst,
             PatternVariantVariableAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(
             PatternVariantVariableAssignmentAst,
-            PatternVariantSkipArgumentAst,
+            PatternVariantSkipArgumentsAst,
             PatternVariantVariableAst
         ).map(lambda i: i.convert_to_variable())
 
@@ -74,6 +74,12 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             value=kwargs["condition"])
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Put the condition variable back (re-initialise memory)
+        symbol = scope_handler.current_scope.get_symbol(kwargs["condition"])
+        if symbol is not None:
+            symbol.memory_info.ast_consumed = None
+            symbol.memory_info.ast_partial_moves = []
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The destructuring pattern's type is the class type being destructured into.

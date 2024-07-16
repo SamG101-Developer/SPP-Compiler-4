@@ -51,6 +51,7 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
         from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
+        # Convert the ??? pattern into a variable, and analyse it.
         bindings = self.convert_to_variable()
         declaration = LetStatementInitializedAst(
             pos=self.pos,
@@ -60,6 +61,12 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
             value=kwargs["condition"])
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Put the condition variable back (re-initialise memory)
+        symbol = scope_handler.current_scope.get_symbol(kwargs["condition"])
+        if symbol is not None:
+            symbol.memory_info.ast_consumed = None
+            symbol.memory_info.ast_partial_moves = []
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is "Void", as all let statements return void.
