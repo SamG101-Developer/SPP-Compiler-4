@@ -1,3 +1,10 @@
+"""
+TODO
+ - Heavy update needed
+ - Change to support more nesting
+ - Ignore implementation for now
+"""
+
 from dataclasses import dataclass
 from typing import Optional
 
