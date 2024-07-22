@@ -4,7 +4,7 @@ from typing import List
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -47,18 +47,19 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
 
             # Get the symbol of the item.
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(item)
+            ensure_memory_integrity(self, item, item, scope_handler)
 
             # Make sure the item is not uninitialised.
-            if symbol and symbol.memory_info.ast_consumed:
-                raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, symbol)
-
-            # Make sure the item is not partially moved.
-            if symbol and symbol.memory_info.ast_partial_moves:
-                raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, symbol)
-
-            # Make sure the item is not borrowed.
-            if symbol and symbol.memory_info.is_borrow:
-                raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, item, symbol)
+            # if symbol and symbol.memory_info.ast_consumed:
+            #     raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, symbol)
+            #
+            # # Make sure the item is not partially moved.
+            # if symbol and symbol.memory_info.ast_partial_moves:
+            #     raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, symbol)
+            #
+            # # Make sure the item is not borrowed.
+            # if symbol and symbol.memory_info.is_borrow:
+            #     raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, item, symbol)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

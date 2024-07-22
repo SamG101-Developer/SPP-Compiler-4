@@ -58,10 +58,12 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
             raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
         nested_destructures = []
-        for current_local_variable in Seq(self.items).filter_not_type(LocalVariableSkipArgumentsAst):
-            # Don't allow the unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
-            if isinstance(current_local_variable, LocalVariableSingleAst) and current_local_variable.unpack_token:
-                raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable.unpack_token)
+        for current_local_variable in Seq(self.items):
+            # Don't allow the binding unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
+            if isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and current_local_variable.binding:
+                raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable)
+            elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
+                continue
 
             # Check the given variable exists as an attribute on the type: "let p = Point(x, ..)" requires "x" to be an
             # attribute of "Point".

@@ -38,7 +38,7 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
             LocalVariableSkipArgumentAst, LocalVariableSkipArgumentsAst, PostfixExpressionOperatorMemberAccessAst,
-            PostfixExpressionAst, TokenAst, LetStatementInitializedAst)
+            PostfixExpressionAst, TokenAst, LetStatementInitializedAst, TupleLiteralAst)
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 
         value = kwargs["value"]
@@ -57,8 +57,52 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
 
         # Create new "let" statements for each element of the tuple.
         new_let_statements = []
-        cur_let_statements = Seq(self.items).filter_not_type(LocalVariableSkipArgumentAst, LocalVariableSkipArgumentsAst)
-        for i, current_local_variable in cur_let_statements.enumerate():
+        items = self.items.copy()
+        for i, current_local_variable in Seq(self.items).enumerate():
+            if isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
+                number_elements_skipped = len(rhs_tuple_elements) - len(lhs_tuple_elements) + 1
+                current_local_variable._num_skipped = number_elements_skipped
+                dummy_replacements = [LocalVariableSkipArgumentAst(pos=current_local_variable.pos, underscore_token=TokenAst.dummy(TokenType.TkUnderscore))] * (number_elements_skipped - 1)
+                items = items[:i] + dummy_replacements + items[i:]
+                break
+
+        for i, current_local_variable in Seq(items).enumerate():
+            if isinstance(current_local_variable, LocalVariableSkipArgumentAst):
+                continue
+            elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and current_local_variable.binding:
+
+                nested_asts = []
+                for j in range(current_local_variable._num_skipped):
+                    ast_0 = PostfixExpressionOperatorMemberAccessAst(
+                        pos=self.pos,
+                        dot_token=TokenAst.dummy(TokenType.TkDot),
+                        identifier=TokenAst.dummy(TokenType.LxDecInteger, info=f"{i - current_local_variable._num_skipped + j + 1}"))
+
+                    ast_1 = PostfixExpressionAst(
+                        pos=self.pos,
+                        lhs=value,
+                        op=ast_0)
+
+                    nested_asts.append(ast_1)
+
+                ast_0 = TupleLiteralAst(
+                    pos=self.pos,
+                    paren_l_token=TokenAst.dummy(TokenType.TkParenL),
+                    items=nested_asts,
+                    paren_r_token=TokenAst.dummy(TokenType.TkParenR))
+
+                ast_1 = LetStatementInitializedAst(
+                    pos=self.pos,
+                    let_keyword=TokenAst.dummy(TokenType.KwLet),
+                    assign_to=current_local_variable.binding,
+                    assign_token=TokenAst.dummy(TokenType.TkAssign, pos=self.pos),
+                    value=ast_0)
+
+                new_let_statements.append(ast_1)
+                continue
+            elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
+                continue
+
             ast_0 = PostfixExpressionOperatorMemberAccessAst(
                 pos=self.pos,
                 dot_token=TokenAst.dummy(TokenType.TkDot),

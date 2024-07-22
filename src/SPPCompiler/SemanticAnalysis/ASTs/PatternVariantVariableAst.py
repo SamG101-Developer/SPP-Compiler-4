@@ -16,12 +16,10 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
 
     Attributes:
         is_mutable: The mutable token.
-        unpack_token: The unpack token.
         identifier: The identifier being destructured.
     """
 
     is_mutable: Optional["TokenAst"]
-    unpack_token: Optional["TokenAst"]
     identifier: "IdentifierAst"
 
     @ast_printer_method
@@ -29,7 +27,6 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
         # Print the PatternVariantVariableAst.
         s = ""
         s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
-        s += f"{self.unpack_token.print(printer)}" if self.unpack_token else ""
         s += f"{self.identifier.print(printer)}"
         return s
 
@@ -40,7 +37,6 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
         return LocalVariableSingleAst(
             pos=self.pos,
             is_mutable=self.is_mutable,
-            unpack_token=self.unpack_token,
             identifier=self.identifier)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:

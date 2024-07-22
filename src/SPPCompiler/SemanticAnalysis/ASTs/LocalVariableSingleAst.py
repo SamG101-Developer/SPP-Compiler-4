@@ -16,12 +16,10 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
 
     Attributes:
         is_mutable: The token representing the mutability of the variable.
-        unpack_token: The optional unpacking token.
         identifier: The identifier of the variable.
     """
 
     is_mutable: Optional["TokenAst"]
-    unpack_token: Optional["TokenAst"]
     identifier: "IdentifierAst"
 
     @ast_printer_method
@@ -29,7 +27,6 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
         # Print the LocalVariableSingleAst.
         s = ""
         s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
-        s += f"{self.unpack_token.print(printer)}" if self.unpack_token else ""
         s += f"{self.identifier.print(printer)}"
         return s
 

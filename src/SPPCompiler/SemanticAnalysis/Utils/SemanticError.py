@@ -542,9 +542,9 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.ORDER_ERROR,
-            tag_message="Unpacking token in a destructure.",
-            message="Unpacking tokens are not allowed in a destructure.",
-            tip="Remove the unpacking token.")
+            tag_message="Binding unpacking token in a destructure.",
+            message="A binding uUnpacking token is not allowed in a destructure.",
+            tip="Remove the binding identifier.")
         return exception
 
     @staticmethod

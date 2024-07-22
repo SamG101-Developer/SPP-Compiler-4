@@ -69,8 +69,9 @@ class TypedefStatementAst(Ast, PreProcessor, SemanticAnalyser, SymbolGenerator, 
             case TypedefStatementSpecificItemAst(_, pull_type, push_type):
                 # Convert the expanded type (ns + type) into a TypeAst.
                 expanded_type = self.old_type_namespace.items.copy() + pull_type.parts.copy()
-                expanded_type = TypeAst(expanded_type[0].pos, expanded_type)
-                expanded_type.do_semantic_analysis(scope_handler, **kwargs)
+                expanded_type = TypeAst(expanded_type[0].pos, expanded_type).without_generics()
+                # expanded_type.do_semantic_analysis(scope_handler, **kwargs)
+                # print(expanded_type)
                 old_type_symbol = scope_handler.current_scope.get_symbol(expanded_type)
 
                 # Create a new type symbol with the linked type.

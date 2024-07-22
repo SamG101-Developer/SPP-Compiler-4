@@ -1,47 +1,33 @@
 mod main
 
 
-cls A {
-    x: std::Opt[std::BigInt]
+cls Point {
+    x: std::BigInt
+    y: std::BigInt
+    z: std::BigInt
+}
+
+cls Vec {
+    point: Point
+    dir: std::BigInt
 }
 
 
-sup std::IterMov[std::BigInt] on A { }
+fun main(y: &std::BigInt) -> std::Void {
+    let p = Point(x=100, y=100, z=100)
+    let v = Vec(point=p, dir=100)
+    let t = (0, "hello", "by", 1, 2, 3, false, 5)
 
-sup std::IterRef[std::BigInt] on A { }
+    let (..mut rest, e, ..) = t
+    rest = (0, "random", "values", 1, 2, 3, false)
 
-cls C {
-    a: std::BigInt
-}
-
-cls B[T] {
-    x: T
-}
-
-
-sup [T] C on B[T] { }
-
-sup [T] B[T] {
-    fun func(&self, a: std::BigInt) -> T { }
-}
+    case v == then
+        Vec(point=Point(x, y, z=0), dir) { }
+        Vec(point=Point(x, y, z=0), dir="ello") { }
 
 
-fun function_test[T](a: T, b: T) -> std::Void { }
-
-fun function_test(a: std::Bool) -> std::Void { }
-
-
-fun main() -> std::Void {
-    let x = false
-
-    loop true {
-        exit "123"
-
-        let mut x = loop true {
-            exit 123
-        }
-        x = false
-
-        exit "false"
-    }
+    let tuple = (1, 2, 3, 4, 5)
+    case tuple == then
+        (a, b, _, _, "10") { }
+        else {}
 }

@@ -17,12 +17,7 @@ Sup classes:
 Object initialization:
 -- Sup initialization
 
-Placeholders:
--- Placeholders in `let` and `patterns` (use the `_` character)
--- Use to shorthand partial functions? => convert into lambdas?
-
 Patterns:
--- Don't mark destructure variables as "moved" until the entire "case" expression is done (could be destructured on multiple branches)
 -- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
 -- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
@@ -31,7 +26,6 @@ Tuples:
 -- Change binary folding to create a chain of binary calls, not just first 2 ops => `1.add(2).add(3)` etc)
 -- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
 -- Tuple unpacking into parameters ie `function_call(..tuple)`
--- Tuple destructuring with ".." in the middle assigns wrong types to variables on the right of ".."
 -- Check memory rules apply to multiple values inside tuples
 
 Functions:
@@ -43,6 +37,7 @@ Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- The `self` argument is not generated for non-identifier functions: generate a `self` for any lhs except TypeAst (static functions).
 -- Generic fall-through for sup-inheritance blocks.
+-- Partial functions? Use "_" to convert functions to lambdas with some values set.
 
 Typedefs:
 -- Importing typedefs (see TypedefStatementAst::generate() comments).
@@ -55,3 +50,4 @@ Other:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope.
 -- Simplify functions calls: change obj.func(1, 2) to Type(obj, 1, 2)?
+-- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.

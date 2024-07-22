@@ -718,9 +718,8 @@ class Parser:
     def parse_local_variable_single(self) -> LocalVariableSingleAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
-        p2 = self.parse_token(TokenType.TkVariadic).parse_optional()
-        p3 = self.parse_identifier().parse_once()
-        return LocalVariableSingleAst(c1, p1, p2, p3)
+        p2 = self.parse_identifier().parse_once()
+        return LocalVariableSingleAst(c1, p1, p2)
 
     @parser_rule
     def parse_local_variable_tuple(self) -> LocalVariableTupleAst:
@@ -761,7 +760,8 @@ class Parser:
     def parse_local_variable_skip_arguments(self) -> LocalVariableSkipArgumentsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkVariadic).parse_once()
-        return LocalVariableSkipArgumentsAst(c1, p1)
+        p2 = self.parse_local_variable_single().parse_optional()
+        return LocalVariableSkipArgumentsAst(c1, p1, p2)
 
     @parser_rule
     def parse_local_variable_skip_argument(self) -> LocalVariableSkipArgumentAst:
@@ -848,7 +848,8 @@ class Parser:
     def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentsAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkVariadic).parse_once()
-        return PatternVariantSkipArgumentsAst(c1, p1)
+        p2 = self.parse_pattern_variant_variable().parse_optional()
+        return PatternVariantSkipArgumentsAst(c1, p1, p2)
 
     @parser_rule
     def parse_pattern_variant_skip_argument(self) -> PatternVariantSkipArgumentAst:
@@ -864,7 +865,7 @@ class Parser:
         p4 = self.parse_pattern_variant_literal().for_alt()
         p5 = self.parse_pattern_variant_skip_arguments().for_alt()
         p6 = self.parse_pattern_variant_skip_argument().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
         return p7
 
     @parser_rule
@@ -897,9 +898,8 @@ class Parser:
     def parse_pattern_variant_variable(self) -> PatternVariantVariableAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
-        p2 = self.parse_token(TokenType.TkVariadic).parse_optional()
-        p3 = self.parse_identifier().parse_once()
-        return PatternVariantVariableAst(c1, p1, p2, p3)
+        p2 = self.parse_identifier().parse_once()
+        return PatternVariantVariableAst(c1, p1, p2)
 
     @parser_rule
     def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
