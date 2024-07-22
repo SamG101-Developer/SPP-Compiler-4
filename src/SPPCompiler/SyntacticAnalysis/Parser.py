@@ -964,8 +964,8 @@ class Parser:
     def parse_binary_op_precedence_level_5(self) -> TokenAst:
         p1 = self.parse_token(TokenType.TkAdd).for_alt()
         p2 = self.parse_token(TokenType.TkSub).for_alt()
-        p3 = self.parse_token(TokenType.TkAddAssign).for_alt()
-        p4 = self.parse_token(TokenType.TkSubAssign).for_alt()
+        p3 = self.parse_token(TokenType.TkAddAssign).for_alt()  # todo: shouldn't be here (precedence level)
+        p4 = self.parse_token(TokenType.TkSubAssign).for_alt()  # todo: shouldn't be here (precedence level)
         p5 = (p1 | p2 | p3 | p4).parse_once()
         return p5
 
@@ -975,12 +975,12 @@ class Parser:
         p2 = self.parse_token(TokenType.TkDiv).for_alt()
         p3 = self.parse_token(TokenType.TkRem).for_alt()
         p4 = self.parse_token(TokenType.TkMod).for_alt()
-        p5 = self.parse_token(TokenType.TkExp).for_alt()
-        p6 = self.parse_token(TokenType.TkMulAssign).for_alt()
-        p7 = self.parse_token(TokenType.TkDivAssign).for_alt()
-        p8 = self.parse_token(TokenType.TkRemAssign).for_alt()
-        p9 = self.parse_token(TokenType.TkModAssign).for_alt()
-        p10 = self.parse_token(TokenType.TkExpAssign).for_alt()
+        p5 = self.parse_token(TokenType.TkExp).for_alt()  # todo: exp higher precedence than mult?
+        p6 = self.parse_token(TokenType.TkMulAssign).for_alt()  # todo: shouldn't be here (precedence level)
+        p7 = self.parse_token(TokenType.TkDivAssign).for_alt()  # todo: shouldn't be here (precedence level)
+        p8 = self.parse_token(TokenType.TkRemAssign).for_alt()  # todo: shouldn't be here (precedence level)
+        p9 = self.parse_token(TokenType.TkModAssign).for_alt()  # todo: shouldn't be here (precedence level)
+        p10 = self.parse_token(TokenType.TkExpAssign).for_alt()  # todo: shouldn't be here (precedence level)
         p11 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10).parse_once()
         return p11
 
@@ -1134,11 +1134,10 @@ class Parser:
     @parser_rule
     def parse_lambda_capture_block(self) -> LambdaCaptureBlockAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwWith).parse_once()
-        p2 = self.parse_token(TokenType.TkBrackL).parse_once()
-        p3 = self.parse_lambda_capture_item().parse_zero_or_more(TokenType.TkComma)
-        p4 = self.parse_token(TokenType.TkBrackR).parse_once()
-        return LambdaCaptureBlockAst(c1, p1, p2, p3, p4)
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p2 = self.parse_lambda_capture_item().parse_zero_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return LambdaCaptureBlockAst(c1, p1, p2, p3)
 
     @parser_rule
     def parse_lambda_capture_item(self) -> LambdaCaptureItemAst:
