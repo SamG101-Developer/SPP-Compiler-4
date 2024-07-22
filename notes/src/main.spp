@@ -18,12 +18,12 @@ fun main(y: &std::BigInt) -> std::Void {
     let v = Vec(point=p, dir=100)
     let t = (0, "hello", "by", 1, 2, 3, false, 5)
 
-    let (..mut rest, e, ..) = t
+    let (..mut rest, e) = t
     rest = (0, "random", "values", 1, 2, 3, false)
 
     case v == then
         Vec(point=Point(x, y, z=0), dir) { }
-        Vec(point=Point(x, y, z=0), dir="ello") { }
+        Vec(point=Point(x, y, z=0), dir=1) { }
 
 
     let tuple = (1, 2, 3, 4, 5)
