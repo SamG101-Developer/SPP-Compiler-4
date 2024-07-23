@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType, ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -36,11 +36,15 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_pre_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            IdentifierAst, PostfixExpressionAst, ObjectInitializerArgumentNamedAst)
+
         attribute_identifiers = kwargs["attributes"]
 
-        # Analyse the arguments of the object initializer.
-        Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
+        # Analyse the arguments of the object initializer, and ensure the memory integrity of the arguments.
+        for argument in self.arguments:
+            argument.do_semantic_analysis(scope_handler, **kwargs)
+            ensure_memory_integrity(self, self.get_argument_value(argument), argument, scope_handler)
 
         # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
         named_arguments = Seq(self.arguments).map(lambda a: a.identifier)
@@ -98,7 +102,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
             # Extract the argument being passed into the attribute. For named args, ie Point(x=1, y=1), the arguments
             # are the values, and for shorthand: "Point(x, y)", the arguments are the identifiers.
-            argument = argument.value if isinstance(argument, ObjectInitializerArgumentNamedAst) else argument.identifier
+            argument = self.get_argument_value(argument)
             argument_type = argument.infer_type(scope_handler)
             attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
 
@@ -125,6 +129,16 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         token_arguments = named_arguments.filter(lambda a: isinstance(a.identifier, TokenAst))
         default_arguments = token_arguments.filter(lambda a: a.identifier.token.token_type == TokenType.KwSup)
         return default_arguments.value
+
+    @staticmethod
+    def get_argument_value(ast: "ObjectInitializerArgumentAst") -> Ast:
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            ObjectInitializerArgumentNormalAst, ObjectInitializerArgumentNamedAst)
+
+        match ast:
+            case ObjectInitializerArgumentNormalAst(): return ast.identifier
+            case ObjectInitializerArgumentNamedAst(): return ast.value
+
 
 
 __all__ = ["ObjectInitializerArgumentGroupAst"]
