@@ -156,7 +156,7 @@ class SemanticErrors:
             pos=symbol.memory_info.ast_consumed.pos, tag_message=f"Variable '{ast}' is uninitialized/moved here.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.MEMORY_ERROR,
-            tag_message=f"{symbol.name} used here.",
+            tag_message=f"'{symbol.name}' used here.",
             message="Using a non-initialized value.",
             tip="Ensure that the value is fully initialized before being used.")
         return exception
@@ -405,7 +405,7 @@ class SemanticErrors:
             error_type=SemanticErrorType.NAME_ERROR,
             tag_message="No valid overloads found.",
             message="No valid overloads found for function with signatures.",
-            tip=f"Ensure the function is called with the correct arguments. Available Signatures:\n{signatures}")
+            tip=f"Ensure the function is called with the correct arguments:\n{signatures}")
         return exception
 
     @staticmethod
