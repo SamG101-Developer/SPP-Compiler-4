@@ -35,7 +35,17 @@ fun test[T](a: T) -> std::BigInt {
 }
 
 
-fun main(y: &std::BigInt) -> std::Void {
+cls A[T] {
+    x: T
+    y: T
+}
+
+sup [T] A[T] {
+    fun function(&self, value: std::Vec[T]) -> std::Void { }
+}
+
+
+fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
     let point = Point(x=100, y=100, z=100)
     let v = Vec(point, dir=100)
     let t = (0, "hello", "by", 1, 2, 3, false, 5)
@@ -45,6 +55,9 @@ fun main(y: &std::BigInt) -> std::Void {
     v2.point.func(&p2)
 
     let v1 = v2
+
+    let aaa = A(x=1, y=2)
+    aaa.function(v99)
 
     let mut x = test(1)
     x = 123

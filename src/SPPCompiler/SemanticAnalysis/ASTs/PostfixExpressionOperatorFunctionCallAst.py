@@ -67,7 +67,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 lhs_type = lhs.lhs
                 lhs_identifier = lhs.op.identifier
                 re_analyse = False
-                owner_scope_generic_arguments = Seq()
+                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
             case IdentifierAst():
                 lhs_type = Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
@@ -164,6 +164,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         for parameter in specialized_func_overload.parameters.parameters:
                             parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
                         specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+
+                    parameters = Seq(specialized_func_overload.parameters.parameters)
                     # todo: re-name the scope with the substituted generic types too: "MOCK_func#SUP-std::FunRef[...]".
 
                     # Register the specialization to the module or "sup" block, and pre-process the overload.
