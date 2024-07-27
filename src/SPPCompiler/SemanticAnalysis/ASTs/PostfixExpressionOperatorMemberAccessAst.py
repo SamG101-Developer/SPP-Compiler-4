@@ -50,7 +50,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                 # Ensure the method is static (no "self" parameter). todo
                 return
 
-            case IdentifierAst():
+            case _:
                 lhs_type = lhs.infer_type(scope_handler, **kwargs).type
 
                 # Numeric member access.
