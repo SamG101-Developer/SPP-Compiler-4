@@ -27,6 +27,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
     parameters: List["FunctionParameterAst"]
     paren_r_token: "TokenAst"
 
+    @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionParameterGroupAst.
         s = ""

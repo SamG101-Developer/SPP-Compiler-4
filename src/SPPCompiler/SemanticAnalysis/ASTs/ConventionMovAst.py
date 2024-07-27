@@ -17,6 +17,7 @@ class ConventionMovAst(Ast, metaclass=ConventionMovAstMeta):
     a function call. It is also used to yield an owned value out of a function.
     """
 
+    @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the ConventionMovAst.
         return f""
