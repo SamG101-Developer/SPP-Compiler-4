@@ -12,11 +12,42 @@ cls Vec {
     dir: std::BigInt
 }
 
+sup Vec {
+    fun test(&self, other: Vec) -> std::Void { }
+}
+
+sup Point {
+    fun func(&self, other: &Point) -> std::Void { }
+    fun func(&self, other: std::Bool) -> std::Void { }
+}
+
+sup Point {
+    fun func(&self, other: std::BigInt) -> std::Bool { }
+}
+
+
+fun test[T](a: T, b: T) -> std::Bool { }
+
+fun test[T](a: T) -> std::BigInt {
+    let mut x: T
+    x = a
+    ret 1
+}
+
 
 fun main(y: &std::BigInt) -> std::Void {
-    let p = Point(x=100, y=100, z=100)
-    let v = Vec(point=p, dir=100)
+    let point = Point(x=100, y=100, z=100)
+    let v = Vec(point, dir=100)
     let t = (0, "hello", "by", 1, 2, 3, false, 5)
+
+    let v2 = Vec(point=Point(x=1, y=1, z=1), dir=1)
+    let p2 = Point(x=1, y=1, z=1)
+    v2.point.func(&p2)
+
+    let v1 = v2
+
+    let mut x = test(1)
+    x = 123
 
     let (..mut rest, e) = t
     rest = (0, "random", "values", 1, 2, 3, false)
@@ -24,7 +55,6 @@ fun main(y: &std::BigInt) -> std::Void {
     case v == then
         Vec(point=Point(x, y, z=0), dir) { }
         Vec(point=Point(x, y, z=0), dir=1) { }
-
 
     let tuple = (1, 2, 3, 4, 5)
     case tuple == then
