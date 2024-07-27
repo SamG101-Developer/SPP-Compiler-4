@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -20,9 +19,9 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
     GenericArgumentGroupAst).
 
     Attributes:
-        - bracket_l_token: The left bracket token.
-        - parameters: The generic parameters of the function/class/superimposition prototype.
-        - bracket_r_token: The right bracket token.
+        bracket_l_token: The left bracket token.
+        parameters: The generic parameters of the function/class/superimposition prototype.
+        bracket_r_token: The right bracket token.
     """
 
     bracket_l_token: "TokenAst"
@@ -70,20 +69,23 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "parameter")
 
-    def get_req(self) -> List["GenericParameterRequiredAst"]:
+    def get_req(self) -> Seq["GenericParameterRequiredAst"]:
         # Get all the required generic parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterRequiredAst
-        return [p for p in self.parameters if isinstance(p, GenericParameterRequiredAst)]
+        return Seq(self.parameters).filter_to_type(GenericParameterRequiredAst)
 
-    def get_opt(self) -> List["GenericParameterOptionalAst"]:
+    def get_opt(self) -> Seq["GenericParameterOptionalAst"]:
         # Get all the optional generic parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterOptionalAst
-        return [p for p in self.parameters if isinstance(p, GenericParameterOptionalAst)]
+        return Seq(self.parameters).filter_to_type(GenericParameterOptionalAst)
 
-    def get_var(self) -> List["GenericParameterVariadicAst"]:
+    def get_var(self) -> Seq["GenericParameterVariadicAst"]:
         # Get all the variadic generic parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterVariadicAst
-        return [p for p in self.parameters if isinstance(p, GenericParameterVariadicAst)]
+        return Seq(self.parameters).filter_to_type(GenericParameterVariadicAst)
+
+    def __copy__(self):
+        return GenericParameterGroupAst(self.pos, self.bracket_l_token, self.parameters.copy(), self.bracket_r_token)
 
 
 __all__ = ["GenericParameterGroupAst"]

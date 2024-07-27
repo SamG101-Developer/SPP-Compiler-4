@@ -75,20 +75,23 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterSelfAst
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterSelfAst)).first(None)
 
-    def get_req(self) -> List["FunctionParameterRequiredAst"]:
+    def get_req(self) -> Seq["FunctionParameterRequiredAst"]:
         # Get all the required function parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterRequiredAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterRequiredAst)).value
+        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterRequiredAst))
 
-    def get_opt(self) -> List["FunctionParameterOptionalAst"]:
+    def get_opt(self) -> Seq["FunctionParameterOptionalAst"]:
         # Get all the optional function parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterOptionalAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterOptionalAst)).value
+        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterOptionalAst))
 
     def get_var(self) -> Optional["FunctionParameterVariadicAst"]:
         # Get the variadic function parameter (if it exists).
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst
         return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst)).first(None)
+
+    def __copy__(self):
+        return FunctionParameterGroupAst(self.pos, self.paren_l_token, self.parameters.copy(), self.paren_r_token)
 
 
 __all__ = ["FunctionParameterGroupAst"]

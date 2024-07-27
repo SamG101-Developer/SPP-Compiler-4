@@ -124,5 +124,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # Add the immutable borrow to the set of immutable borrows.
                     borrows_ref.add(argument.value)
 
+    def __copy__(self):
+        return FunctionArgumentGroupAst(self.pos, self.paren_l_token, self.arguments.copy(), self.paren_r_token)
+
 
 __all__ = ["FunctionArgumentGroupAst"]

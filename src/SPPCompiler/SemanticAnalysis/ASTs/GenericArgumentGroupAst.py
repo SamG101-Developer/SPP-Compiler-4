@@ -100,5 +100,8 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
             arguments=list,
             bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
 
+    def __copy__(self):
+        return GenericArgumentGroupAst(self.pos, self.bracket_l_token, self.arguments.copy(), self.bracket_r_token)
+
 
 __all__ = ["GenericArgumentGroupAst"]
