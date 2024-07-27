@@ -8,7 +8,7 @@ class Lexer:
     def __init__(self, code: str) -> None:
         self._code = code.replace("\t", "    ")
 
-    def lex(self):
+    def lex(self) -> list[Token]:
         current = 0
         output = []
 
