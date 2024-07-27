@@ -24,6 +24,7 @@ sup Point {
 sup Point {
     fun func(&self, other: std::BigInt) -> std::Bool { }
     fun static(a: std::Str) -> std::BigInt { }
+    fun rec(&self) -> Point { }
 }
 
 
@@ -66,6 +67,15 @@ fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
     let mut cccc = "hello".upper()
     let mut dddd = Point::static("false")
     let bbbb = 1.add(2)
+
+    let recursive = p2.rec().rec()
+    let mut bin_test = 1 + 2 + 3 * 4
+    bin_test = 4
+
+    let my_tup = (1, 2, 3, 4, 5)
+    let my_tuq = (1, 2, 3, 4, 5)
+    let sum = .. + my_tup
+    let sun = my_tuq + ..
 
     let (..mut rest, e) = t
     rest = (0, "random", "values", 1, 2, 3, false)
