@@ -112,8 +112,11 @@ def ensure_memory_integrity(
     # 5. Mark the symbol as consumed or partially moved.
     if mark_symbols:
         match value_ast:
-            case IdentifierAst(): symbol.memory_info.ast_consumed = move_ast
-            case PostfixExpressionAst(): symbol.memory_info.ast_partial_moves.append(value_ast)
+            case IdentifierAst():
+                symbol.memory_info.ast_consumed = move_ast
+                symbol.memory_info.ast_initialized = None
+            case PostfixExpressionAst():
+                symbol.memory_info.ast_partial_moves.append(value_ast)
 
 
 def convert_generic_arguments_to_named(
