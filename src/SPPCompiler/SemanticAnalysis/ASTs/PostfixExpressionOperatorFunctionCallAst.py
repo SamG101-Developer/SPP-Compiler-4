@@ -30,7 +30,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     arguments: "FunctionArgumentGroupAst"
     fold_token: Optional["TokenAst"]
 
-    _overload: Optional[Tuple["FunctionPrototypeAst", Scope]] = field(default=None, init=False)
+    _overload: Optional[Tuple["FunctionPrototypeAst", "FunctionArgumentGroupAst", Scope]] = field(default=None, init=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
@@ -45,220 +45,223 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         s += f"{self.fold_token.print(printer)}" if self.fold_token else ""
         return s
 
-    def _get_matching_overload(self, scope_handler: ScopeHandler, function_name: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", Scope]:
-        """
-        Determine the correct overload to select based on the arguments given to the function call.
-
-        Returns
-            The matching function prototype, the scope of the function, and the "self" argument (if applicable). The
-            "self" argument is created, and required for borrow-checking.
-        """
-
+    def _get_matching_overload(self, scope_handler: ScopeHandler, lhs: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", "FunctionArgumentGroupAst", Scope]:
+        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
+        from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
+        from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst, FunctionParameterSelfAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, PostfixExpressionAst, FunctionArgumentNamedAst, TokenAst, GenericArgumentGroupAst,
-            FunctionParameterVariadicAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
-        # Get the scope of the function. This is either in the current scope (to global), or from inside the sup scope
-        # of the owner of the function. Raise an error for non-callable types.
-        # Todo: change to check for Fun... super-impositions instead?
-        # Todo: only other things would be literals, and they can't be called (still, for the sake of normalisation).
-        match function_name:
+        # Get the LHS-type of the function call. For postfix identifiers, this is the rightmost identifier left of the
+        # function name.
+        re_analyse = False
+        match lhs:
+            case PostfixExpressionAst() if lhs.op.dot_token.token.token_type == TokenType.TkDot:
+                lhs_type = lhs.lhs.infer_type(scope_handler, **kwargs).type
+                lhs_identifier = lhs.op.identifier
+                re_analyse = True
+                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+            case PostfixExpressionAst() if lhs.op.dot_token.token.token_type == TokenType.TkDblColon:
+                lhs_type = lhs.lhs
+                lhs_identifier = lhs.op.identifier
+                re_analyse = False
+                owner_scope_generic_arguments = Seq()
+                type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
             case IdentifierAst():
-                function_scope = scope_handler.current_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.value}").lex(), "").parse_type().parse_once()).associated_scope
-            case PostfixExpressionAst():
-                owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
-                function_scope = owner_scope.get_symbol(Parser(Lexer(f"MOCK_{function_name.op.identifier}").lex(), "").parse_type().parse_once()).associated_scope
+                lhs_type = Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
+                lhs_identifier = lhs
+                re_analyse = True
+                owner_scope_generic_arguments = Seq()
             case _:
-                raise SemanticErrors.UNCALLABLE_TYPE(function_name)
+                raise SemanticErrors.UNCALLABLE_TYPE(lhs)
 
-        # todo: function_scope.sup_scopes are empty
+        # Create a new AST, using the type to form the function. For example, "vec.test(other)" becomes
+        # "Vec::test(vec, other)". This provides uniform analysis for all function calls.
+        if re_analyse:
+            # Insert the "self" argument into the argument list if the function is a method.
+            arguments = copy.copy(self.arguments)
+            if isinstance(lhs, PostfixExpressionAst) and lhs.op.dot_token.token.token_type == TokenType.TkDot:
+                ast_2 = FunctionArgumentNormalAst(lhs.pos, ConventionMovAst(lhs.pos), None, lhs.lhs)
+                arguments.arguments.insert(0, ast_2)
 
-        mock_function_sup_scopes = function_scope.sup_scopes
-        function_overloads = Seq(mock_function_sup_scopes).map(lambda s: s[1].body.members).flat()
-        function_overload_errors = []
+            # Create the new AST, and perform semantic analysis on it.
+            ast_0 = PostfixExpressionOperatorMemberAccessAst(self.pos, TokenAst.dummy(TokenType.TkDblColon), lhs_identifier)
+            ast_1 = PostfixExpressionAst(self.pos, lhs_type, ast_0)
+            ast_2 = PostfixExpressionOperatorFunctionCallAst(self.pos, copy.copy(self.generic_arguments), arguments, self.fold_token)
+            self._overload = ast_2._get_matching_overload(scope_handler, ast_1, **kwargs)
+            return ast_2._overload
+
+        # Get the function scopes from the LHS-type. These will be the "MOCK_..." classes created as type symbols inside
+        # the owner-type's scope. Their associated scopes are attached to the symbols.
+        mock_scopes = Seq(type_scope.get_all_symbols(Parser(Lexer(f"MOCK_{lhs_identifier}").lex(), "").parse_type().parse_once())).map(lambda sym: sym.associated_scope)
+        func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
+
+        # Lists to save valid overloads and func overload errors. These lists are mutually exclusive.
         valid_overloads = []
+        func_overload_errors = []
 
-        for (i, function_overload), function_overload_scope in function_overloads.enumerate().zip(Seq(mock_function_sup_scopes)):
+        for func_scope, func_overload in func_scopes:
+            # A try-except block is needed, to catch overload errors and allow the movement into the next overload.
             try:
-                function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[0]
-                parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
-                generic_arguments = Seq(self.generic_arguments.arguments.copy())
-
-                restore_function_arguments = Seq(self.arguments.arguments)
-                restore_generic_arguments = Seq(self.generic_arguments.arguments)
-
-                # todo: function folding: "function(tup).."
-
-                # Create a dummy "self" argument for class method calls.
-                if self_param := function_overload.parameters.get_self():
-                    self_arg = FunctionArgumentNamedAst(
-                        pos=function_name.lhs.pos,
-                        identifier=IdentifierAst(pos=-1, value="self"),
-                        assignment_token=TokenAst.dummy(TokenType.TkAssign),
-                        convention=self_param.convention,
-                        value=function_name.lhs)
-                    self.arguments.arguments.insert(0, self_arg)
-
-                arguments = Seq(self.arguments.arguments)
+                # Get the parameter (+ identifiers) the arguments (+ named identifiers) and the generic arguments.
+                func_overload = func_overload.body.members[-1]
+                parameters = Seq(func_overload.parameters.parameters.copy())
+                parameter_identifiers = Seq(func_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
+                parameter_identifiers_required = Seq(func_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
+                arguments = Seq(self.arguments.arguments.copy())
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
+                generic_parameters = Seq(func_overload.generic_parameters.parameters.copy())
+                generic_parameters_identifiers_required = Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier)
+                generic_arguments = Seq(self.generic_arguments.arguments.copy())
+                is_function_variadic = func_overload.parameters.parameters and isinstance(func_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
+                specialized_scope_info = {"created": False, "remove_function": None}
+
                 # Check too many arguments haven't been passed to the function.
-                is_variadic_function = function_overload.parameters.parameters and isinstance(function_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
-                if arguments.length > len(function_overload.parameters.parameters) and not is_variadic_function:
+                if arguments.length > parameters.length and not is_function_variadic:
                     raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
 
-                # Check there aren't any named arguments that don't match the function's parameters.
-                if invalid_arguments := named_argument_identifiers.set_subtract(parameter_identifiers):
-                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], parameter_identifiers.map(lambda p: p.value).value, "parameter")
+                # Check for any named arguments that don't match the function's parameters.
+                if invalid_named_argument_identifiers := named_argument_identifiers.set_subtract(parameter_identifiers):
+                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_named_argument_identifiers[0], parameter_identifiers.map(str).value, "parameter")
 
-                # Remove all named arguments from the available parameters, leaving only the unnamed parameters.
+                # Remove all named arguments from the parameter identifiers list.
                 for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
                     parameter_identifiers.remove(argument.identifier)
 
-                # Convert all anonymous arguments and generics to named counterparts.
-                self.arguments.arguments = convert_function_arguments_to_named(arguments, parameter_identifiers, is_variadic_function).value
-                self.generic_arguments.arguments = convert_generic_arguments_to_named(generic_arguments, Seq(function_overload.generic_parameters.parameters)).value
+                # Name all the anonymous function arguments and generic type arguments, and overwrite the named lists.
+                arguments = convert_function_arguments_to_named(arguments, parameters)
+                generic_arguments = convert_generic_arguments_to_named(generic_arguments, generic_parameters)
+                named_argument_identifiers = arguments.filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
-                # Check all the required parameters have been assigned a value.
-                argument_identifiers = arguments.map(lambda a: a.identifier)
-                required_parameter_identifiers = Seq(function_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
-                if missing_parameters := required_parameter_identifiers.set_subtract(argument_identifiers):
-                    raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameters[0], "function call", "parameter")
+                # Check all the required parameters have been given a corresponding named argument.
+                if missing_parameter_identifiers := parameter_identifiers_required.set_subtract(named_argument_identifiers):
+                    raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameter_identifiers[0], "function call", "parameter")
 
-                # Inherit any generics from the owner scope into the function's generics.
-                # Todo: Change "function_name.lhs" to the actual object that owns the functions (inc. sup scopes)
-                # Todo: Otherwise, generics from sup-inheritance blocks aren't loaded
-                if isinstance(function_name, PostfixExpressionAst) and function_name.op.dot_token.token.token_type == TokenType.TkDot:
-                    owner_scope_generic_arguments = function_name.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments
-                else:
-                    owner_scope_generic_arguments = []
+                # Infer generic arguments, and inherit from the lhs type.
+                generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                    ast=self,
+                    generic_parameters=generic_parameters_identifiers_required.copy().value,
+                    explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
+                    infer_from=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
+                    map_to=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
+                    scope_handler=scope_handler))
 
-                self.generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
-                    self,
-                    Seq(function_overload.generic_parameters.get_req()).map(lambda p: p.identifier).value,
-                    Seq(self.generic_arguments.arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    Seq(self.arguments.arguments).map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
-                    Seq(function_overload.parameters.parameters).map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
-                    scope_handler))
+                if generic_arguments.arguments:
+                    # Temporarily remove the body of the overload before copying it (faster).
+                    func_body = func_overload.body
+                    func_overload.body = None
 
-                # If there are generic arguments, create a new function overload, giving the generic parameters' symbols
-                # their associated types, from the generic arguments.
-                new_scope = False
-                if self.generic_arguments.arguments:
-                    # The body of the function won't be copied, but will be linked (much faster).
-                    restore_body = function_overload.body
-                    function_overload.body = None
+                    # Remove the generic arguments from the specialization, and re-link the body.
+                    specialized_func_overload = copy.deepcopy(func_overload)
+                    specialized_func_overload.generic_parameters.parameters = []
+                    specialized_func_overload.body = func_body
 
-                    # Copy the current overload, and remove the generic parameters.
-                    specialized_function_overload = copy.deepcopy(function_overload)
-                    specialized_function_overload.generic_parameters.parameters = []
-                    specialized_function_overload.body = restore_body
-                    function_overload.body = restore_body
-                    for generic_argument in self.generic_arguments.arguments:
-                        Seq(specialized_function_overload.parameters.parameters).map(lambda p: p.type_declaration).for_each(lambda t: t.substitute_generics(generic_argument.identifier, generic_argument.type))
-                        specialized_function_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                    # Substitute the generics types in the parameter and return type declarations.
+                    for generic_argument in generic_arguments.arguments:
+                        for parameter in specialized_func_overload.parameters.parameters:
+                            parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+                        specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                    # todo: re-name the scope with the substituted generic types too: "MOCK_func#SUP-std::FunRef[...]".
 
-                    # Register the specialisation to the "parent" method, and add it to the module/sup-block.
-                    function_overload._ctx.body.members.append(specialized_function_overload)
-                    specialized_function_overload.pre_process(function_overload._ctx)
+                    # Register the specialization to the module or "sup" block, and pre-process the overload.
+                    func_overload._ctx.body.members.append(specialized_func_overload)
+                    specialized_func_overload.pre_process(func_overload._ctx)
 
-                    # Generate a scope for the specialisation in the correct place (end of the module/sup-block).
-                    restore_scope = scope_handler.current_scope
-                    scope_handler.current_scope = function_overload_scope._parent_scope
-                    specialized_function_overload.generate(scope_handler)
-                    non_generic_function_overload_scope = mock_function_sup_scopes[i][0]._children_scopes[-1]
+                    # Generate a scope for the specialization at the end of the parent-scopes child scopes.
+                    temp_scope_handler = ScopeHandler(scope_handler.global_scope)
+                    temp_scope_handler.current_scope = func_scope.parent
+                    specialized_func_overload.generate(temp_scope_handler)
 
-                    # Set the current scope to the specialization's Fun sup-block scope, creating the inner symbols.
-                    scope_handler.current_scope = non_generic_function_overload_scope
-                    specialized_function_overload.do_semantic_analysis(scope_handler, override_scope=True)
+                    specialized_func_inner_scope = func_scope.parent.children[-1]
 
-                    # Restore the current scope of the scope handler
-                    scope_handler.current_scope = restore_scope
+                    # Set the type symbols for the generic types.
+                    for generic_argument in generic_arguments.arguments:
+                        type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
+                        generic_type_symbol = TypeSymbol(name=generic_argument.identifier, type=type_symbol.type, associated_scope=type_symbol.associated_scope)
+                        specialized_func_inner_scope.parent.add_symbol(generic_type_symbol)
 
-                    # Set the values of the generic parameters' type symbols to the types of the generic arguments.
-                    for generic_argument in self.generic_arguments.arguments:
-                        type_sym = scope_handler.current_scope.get_symbol(generic_argument.type)
-                        non_generic_function_overload_scope.add_symbol(TypeSymbol(name=generic_argument.identifier, type=type_sym.type))
-                        non_generic_function_overload_scope.get_symbol(generic_argument.identifier).associated_scope = type_sym.associated_scope
+                    temp_scope_handler.current_scope = specialized_func_inner_scope
+                    specialized_func_overload.do_semantic_analysis(temp_scope_handler, override_scope=True)
+                    del temp_scope_handler
 
-                    # Mark that a new scope has been created.
-                    new_scope = True
+                    # Function to unregister the scope if type-checking fails
+                    def unregister_specialized_scope():
+                        func_scope.parent.children.remove(specialized_func_inner_scope)
+                        # todo: remove from the ".ctx" too?
 
-                    # Provide a removal mechanism should type-checking fail; the specialisation becomes unnecessary.
-                    def remove_scope():
-                        function_overload_scope._parent_scope._children_scopes.remove(non_generic_function_overload_scope)
+                    # Register the information in the "specialized_scope_info"
+                    specialized_scope_info["created"] = True
+                    specialized_scope_info["remove_function"] = unregister_specialized_scope
 
-                    # Overwrite the current function overload & its scope with the specialisation.
-                    function_overload = specialized_function_overload
-                    function_overload_scope = non_generic_function_overload_scope
+                    # Override the current scope being analysed to the specialized scope.
+                    func_overload = specialized_func_overload
+                    func_scope = specialized_func_inner_scope
 
-                # Check the types of the arguments match the types of the parameters. Sort the arguments by the
-                # parameter order for easy comparison. Parameters identifiers were removed from earlier to recreate the
-                # list.
-                parameter_identifiers = Seq(function_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
-                arguments = Seq(arguments).sort(key=lambda a: parameter_identifiers.index(a.identifier))
-                for j, (argument, parameter) in arguments.zip(parameter_identifiers).enumerate():
-                    argument_type = argument.infer_type(scope_handler, **kwargs)
-                    parameter_type = InferredType(
-                        convention=type(function_overload.parameters.parameters[j].convention),
-                        type=function_overload.parameters.parameters[j].type_declaration)
-
+                # Type checking arguments against the parameters. This has to come after generic substitution.
+                sorted_arguments = arguments.sort(key=lambda a: parameter_identifiers.index(a.identifier))
+                for i, (argument, parameter) in sorted_arguments.zip(parameters).enumerate():
                     argument_symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
-                    # For the variadic parameter, check all the argument type's tuple-elements match the parameter type.
-                    if is_variadic_function and j == parameter_identifiers.length - 1:
+                    argument_type = argument.infer_type(scope_handler, **kwargs)
+                    parameter_type = InferredType(convention=type(parameter.convention), type=parameter.type_declaration)
+
+                    # Special case for the variadic parameter: check all the elements in the tuple match.
+                    if i == parameters.length - 1 and is_function_variadic:
                         for variadic_argument in argument.value.items:
                             tuple_element_type = variadic_argument.infer_type(scope_handler, **kwargs)
                             if not tuple_element_type.symbolic_eq(parameter_type, scope_handler.current_scope):
-                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.value}'")
+                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
 
-                    # Skip the "self" argument (the type is guaranteed to be correct).
-                    elif parameter.value == "self":
-                        continue
+                    elif isinstance(parameter, FunctionParameterSelfAst):
+                        argument_type.convention = parameter_type.convention
+                        argument.convention = parameter.convention
+                        # Check the argument type is a subtype of the parameter type.
+                        if not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
+                            raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
 
                     # Otherwise, check the argument type directly matches the parameter type.
-                    elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, function_overload_scope):
-                        raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.value}'")
+                    elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
+                        raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
 
-                # If the function call is valid, then add it to the list of valid overloads.
-                valid_overloads.append((function_overload, function_overload_scope))
-                if new_scope:
-                    remove_scope()
-
-                if function_overload.parameters.get_self():
-                    self.arguments.arguments.remove(self_arg)
+                # Save the overload and scope to the list of valid overloads.
+                valid_overloads.append((func_overload, arguments.copy(), func_scope))
 
             except SemanticError as e:
-                self.arguments.arguments = restore_function_arguments.value
-                self.generic_arguments.arguments = restore_generic_arguments.value
-                function_overload_errors.append((function_overload, e))
+                # Save the error to the list of overload errors.
+                func_overload_errors.append((func_overload, e))
 
-        # If there are no valid overloads, display each overload, and why it is invalid for the arguments.
+                # If a specialized scope was created for this overload, remove it.
+                if specialized_scope_info["created"]:
+                    specialized_scope_info["remove_function"]()
+
         if not valid_overloads:
-            signatures = ""
-
-            match function_name:
+            # Format the display name for the method or function.
+            match lhs:
                 case PostfixExpressionAst():
-                    owner_type = str(function_name.lhs.infer_type(scope_handler, **kwargs).type) + "::"
-                    function_name_raw = function_name.op.identifier
+                    display_name = f"{lhs_type}::{lhs.op.identifier}"
+                    display_ast = lhs.op.identifier
                 case _:
-                    owner_type = ""
-                    function_name_raw = function_name
+                    display_name = f"{lhs}"
+                    display_ast = lhs
 
-            for function_overload, error in function_overload_errors:
-                function_overload_string = f"{function_overload}"
-                function_overload_string = f"{function_overload_string[:function_overload_string.index("{") - 1]}"
-                function_overload_string = f"{owner_type}{function_name_raw}{function_overload_string[function_overload_string.index("("):]}"
-                signatures += f"\n\t{function_overload_string} {error.additional_info[-1][1]}\n"
+            # Merge all the overload errors.
+            signatures = "\nAvailable signatures:\n"
+            for func_overload, func_overload_error in func_overload_errors:
+                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+                signatures += f"  - {error_string}\n"
 
-            match function_name:
-                case PostfixExpressionAst(): ast = function_name.op.identifier
-                case _: ast = function_name
-            raise SemanticErrors.NO_VALID_OVERLOADS(ast, signatures)
+            for func_overload, func_overload_error in func_overload_errors:
+                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+                error_string += func_overload_error.additional_info[-1][1].replace("\n", "\n\t")
+                signatures += f"\n{error_string}\n"
+            raise SemanticErrors.NO_VALID_OVERLOADS(display_ast, signatures)
 
-        # Todo: handle multiple valid overloads. Use most precise, error for equal precision (ambiguous call).
-        # Return the valid overload
+        if len(valid_overloads) > 1:
+            # todo
+            ...
+
         self._overload = valid_overloads[0]
         return self._overload
 
@@ -266,6 +269,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # Check a matching overload exists for the function call. Also get the "self" argument (for analysis)
         self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
         self._get_matching_overload(scope_handler, lhs, **kwargs)
+        self.arguments.arguments = self._overload[1]
         self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -275,7 +279,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
         # owned => ConventionMovAst.
-        function_proto, function_scope = self._overload
+        function_proto, _, function_scope = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
 
         if isinstance(function_name, PostfixExpressionAst) and function_name.op.dot_token.token.token_type == TokenType.TkDblColon:
