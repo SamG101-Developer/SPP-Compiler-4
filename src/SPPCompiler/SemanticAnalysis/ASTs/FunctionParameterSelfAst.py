@@ -36,7 +36,7 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
         # Print the FunctionParameterSelfAst.
         s = ""
         s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
-        s += f"{self.convention.print(printer)} {self.identifier.print(printer)}"
+        s += f"{self.convention.print(printer)}{self.identifier.print(printer)}"
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
