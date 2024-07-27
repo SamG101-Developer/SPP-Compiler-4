@@ -96,6 +96,20 @@ class Scope:
                 if sym:
                     return sym
 
+    def get_all_symbols(self, name: TypeAst) -> List[VariableSymbol]:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        assert isinstance(name, TypeAst)
+        scope = self
+
+        syms = [scope._symbol_table.get(name)]
+        for sup_scope, _ in scope._sup_scopes:
+            syms.extend(sup_scope.get_all_symbols(name))
+
+        while None in syms:
+            syms.remove(None)
+
+        return syms
+
     def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> bool:
         return self.get_symbol(name, exclusive) is not None
 
@@ -138,6 +152,10 @@ class Scope:
     @property
     def parent(self) -> Optional[Scope]:
         return self._parent_scope
+
+    @property
+    def children(self) -> List[Scope]:
+        return self._children_scopes
 
     @property
     def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
