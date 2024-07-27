@@ -20,10 +20,9 @@ Object initialization:
 Patterns:
 -- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
--- Binary field access ie `case object then .empty() { ... } .is_value() { ... } etc`
+-- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
 Tuples:
--- Change binary folding to create a chain of binary calls, not just first 2 ops => `1.add(2).add(3)` etc)
 -- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
 -- Tuple unpacking into parameters ie `function_call(..tuple)`
 -- Check memory rules apply to multiple values inside tuples
@@ -48,6 +47,5 @@ Other:
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope.
--- Simplify functions calls: change obj.func(1, 2) to Type(obj, 1, 2)?
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Providing too many generics to a type creates an unhandled python error.

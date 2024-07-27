@@ -6,11 +6,8 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstOperators import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -52,43 +49,36 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
-        is_binary_foldl = False
-        is_binary_foldr = False
-
-        # Handle "tuple + .." binary right-folding.
-        if isinstance(self.rhs, TokenAst):
-            assert self.rhs.token.token_type == TokenType.TkVariadic
-            self.lhs, self.rhs = self.rhs, self.lhs
-            is_binary_foldr = True
-
-        # Handle ".. + tuple" binary left-folding.
         if isinstance(self.lhs, TokenAst):
-            assert self.lhs.token.token_type == TokenType.TkVariadic
-            is_binary_foldl = True
+            tuple_element_count = len(self.rhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+            ensure_memory_integrity(self, self.rhs, self.op, scope_handler, mark_symbols=False)
 
-            # Ensure the RHS is an owned tuple-type.
-            rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
-            is_tuple_type = rhs_type.type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope)
-            if rhs_type.convention != ConventionMovAst or not is_tuple_type:
-                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_TYPE(self.rhs, rhs_type)
+            # Form an expanded AST for the tuple elements.
+            unfolded_parts = []
+            for i in range(tuple_element_count):
+                tuple_access = f"{self.rhs}.{i}"
+                unfolded_parts.append(Parser(Lexer(tuple_access).lex(), "", pos_shift=self.pos).parse_expression().parse_once())
 
-            # Ensure the RHS tuple elements are all the same type.
-            tuple_element_types = Seq(rhs_type.type.parts[-1].generic_arguments.arguments)
-            if not tuple_element_types.all(lambda t: t.type.symbolic_eq(tuple_element_types[0].type, scope_handler.current_scope)):
-                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_ELEMENT_TYPE(self.rhs, rhs_type)
+            # Form the new binary tree with the unfolded parts.
+            self.lhs, self.rhs = unfolded_parts[1], unfolded_parts[0]
+            for part in unfolded_parts[2:]:
+                self.lhs, self.rhs = part, BinaryExpressionAst(self.pos, self.lhs, self.op, self.rhs)
 
-            # Ensure the tuple has at least 2 elements.
-            if tuple_element_types.length < 2:
-                raise SemanticErrors.INVALID_BINARY_FOLD_EXPR_ELEMENT_COUNT(self.rhs, tuple_element_types.length)
+        elif isinstance(self.rhs, TokenAst):
+            tuple_element_count = len(self.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+            ensure_memory_integrity(self, self.lhs, self.op, scope_handler, mark_symbols=False)
 
-            # The LHS and RHS are altered for type-checking (elements of the tuple).
-            self.lhs = Parser(Lexer(f"{self.rhs}.0").lex(), "").parse_expression(scope_handler).parse_once()
-            self.rhs = Parser(Lexer(f"{self.rhs}.1").lex(), "").parse_expression(scope_handler).parse_once()
+            # Form an expanded AST for the tuple elements.
+            unfolded_parts = []
+            for i in range(tuple_element_count):
+                tuple_access = f"{self.lhs}.{i}"
+                unfolded_parts.append(Parser(Lexer(tuple_access).lex(), "", pos_shift=self.pos).parse_expression().parse_once())
 
-        if is_binary_foldr:
-            self.lhs, self.rhs = self.rhs, self.lhs
+            # Form the new binary tree with the unfolded parts.
+            self.lhs, self.rhs = unfolded_parts[0], unfolded_parts[1]
+            for part in unfolded_parts[2:]:
+                self.lhs, self.rhs = BinaryExpressionAst(self.pos, self.lhs, self.op, self.rhs), part
 
         # Convert the binary expression to a function call. "1 + 2" becomes "1.add(2)".
         ast = BinaryExpressionAstUtils.fix_associativity(self)
