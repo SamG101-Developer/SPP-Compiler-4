@@ -1,4 +1,3 @@
-import re
 from typing import List
 
 from colorama import Fore, Style
