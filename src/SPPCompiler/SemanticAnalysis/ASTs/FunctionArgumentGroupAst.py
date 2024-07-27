@@ -60,8 +60,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         Seq(self.arguments).map(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            ConventionMovAst, ConventionRefAst, ConventionMutAst, IdentifierAst, PostfixExpressionAst)
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
 
         # Note that the memory rules here are also implemented in AstUtils.ensure_memory_integrity, but have to be split
         # here because of the multiple conventions that can be used.
@@ -76,29 +75,12 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         for argument in self.arguments:
             argument.do_semantic_analysis(scope_handler, **kwargs)
 
-            """Ownership Tracking"""
-
-            # Get the symbol for the function call. This is only gettable if the argument is an identifier or an
-            # attribute. In the case it is an attribute, use the outermost part, as long as it is an IdentifierAst. For
-            # example, "1.foo.bar.baz()" would have a "None" symbol.
-            # match argument.value:
-            #     case IdentifierAst():
-            #         symbol = scope_handler.current_scope.get_symbol(argument.value)
-            #     case PostfixExpressionAst():
-            #         temp = argument.value
-            #         while isinstance(temp, PostfixExpressionAst): temp = temp.lhs
-            #         symbol = scope_handler.current_scope.get_symbol(temp) if isinstance(temp, IdentifierAst) else None
-            #     case _:
-            #         symbol = None
-            symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
-
             # Check for uninitialized / partially-moved values.
+            symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
             ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move_from_borrowed_context=False, mark_symbols=False)
 
-            """Law of Exclusivity"""
-
-            # Check the conventions for the borrowed arguments, to ensure that the law of exclusivity is followed. This
-            # applies to overlapping borrows.
+            # Enforce the Law of Exclusivity: check the conventions for the borrowed arguments, to ensure there are no
+            # overlapping borrows.
             match argument.convention:
                 case ConventionMovAst() if symbol:
                     # mark symbols are moves / partially move, and check for moving from a borrowed context.
