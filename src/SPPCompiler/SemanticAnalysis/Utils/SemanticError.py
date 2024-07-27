@@ -409,7 +409,7 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def NUMERICAL_MEMBER_ACCESS_TYPE(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+    def NUMERICAL_MEMBER_ACCESS_TYPE(lhs: Ast, rhs: Ast, lhs_ty: "TypeAst") -> SemanticError:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
@@ -423,21 +423,21 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+    def NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs: Ast, rhs: Ast, lhs_ty: "TypeAst") -> SemanticError:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
-            tag_message=f"Type inferred as '{lhs_ty}' ({len(lhs_ty.type.parts[-1].generic_arguments.arguments)} elements)")
+            tag_message=f"Type inferred as '{lhs_ty}' ({len(lhs_ty.parts[-1].generic_arguments.arguments)} elements)")
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
             tag_message=f"Numeric member access found here to element {rhs}",
             message="Numeric member access out of bounds",
-            tip=f"Use a valid index for numeric member access (< {len(lhs_ty.type.parts[-1].generic_arguments.arguments)})")
+            tip=f"Use a valid index for numeric member access (< {len(lhs_ty.parts[-1].generic_arguments.arguments)})")
         return exception
 
     @staticmethod
-    def MEMBER_ACCESS_GENERIC_TYPE(lhs: Ast, rhs: Ast, lhs_ty: InferredType) -> SemanticError:
+    def MEMBER_ACCESS_GENERIC_TYPE(lhs: Ast, rhs: Ast, lhs_ty: "TypeAst") -> SemanticError:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
