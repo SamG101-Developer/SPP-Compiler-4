@@ -183,7 +183,7 @@ def convert_function_arguments_to_named(
             # Value is a tuple of the remaining arguments.
             final_arguments = TupleLiteralAst(argument.pos, TokenAst.dummy(TokenType.TkParenL), arguments[j:].map(lambda a: a.value).value, TokenAst.dummy(TokenType.TkParenR))
             parameter_identifier = parameter_identifiers[0]  # todo: make .pop(0)?
-            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, final_arguments)
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, None, final_arguments)
             arguments = arguments[:j]
             arguments.append(new_argument)
             break
@@ -191,7 +191,7 @@ def convert_function_arguments_to_named(
         # For a normal parameter, assign the next parameter identifier to the argument.
         else:
             parameter_identifier = parameter_identifiers.pop(0)
-            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, None, argument.value)
             arguments.replace(argument, new_argument)
 
     return arguments

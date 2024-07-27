@@ -20,12 +20,14 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalyser, TypeInfer):
         identifier: The identifier of the argument.
         assignment_token: The token representing the assignment of the argument.
         convention: The convention of the argument.
+        unpack_token: The token representing the unpacking of the argument.
         value: The value of the argument.
     """
 
     identifier: "IdentifierAst"
     assignment_token: "TokenAst"
     convention: "ConventionAst"
+    unpack_token: Optional["TokenAst"]
     value: "ExpressionAst"
 
     @ast_printer_method

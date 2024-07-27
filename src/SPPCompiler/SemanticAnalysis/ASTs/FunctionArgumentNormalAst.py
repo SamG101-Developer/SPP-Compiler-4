@@ -17,9 +17,9 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalyser, TypeInfer):
     convention (no symbol => mov), an optional unpack token if a tuple is being unpacked, and the value of the argument.
 
     Attributes:
-        - convention: The convention of the argument.
-        - unpack_token: The token that represents the unpacking of the argument.
-        - value: The value of the argument.
+        convention: The convention of the argument.
+        unpack_token: The token representing the unpacking of the argument.
+        value: The value of the argument.
     """
 
     convention: "ConventionAst"
