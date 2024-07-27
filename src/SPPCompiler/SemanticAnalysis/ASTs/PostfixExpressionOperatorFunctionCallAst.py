@@ -284,7 +284,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         function_proto, _, function_scope = self._overload
         function_return_type = copy.deepcopy(function_proto.return_type)
 
-        if isinstance(function_name, PostfixExpressionAst) and function_name.op.dot_token.token.token_type == TokenType.TkDblColon:
+        if isinstance(function_name, PostfixExpressionAst):
             owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
             function_return_type = owner_scope.get_symbol(function_return_type).fq_type
 
