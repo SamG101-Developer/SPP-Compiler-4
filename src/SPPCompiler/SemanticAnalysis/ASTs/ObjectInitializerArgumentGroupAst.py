@@ -139,6 +139,8 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             case ObjectInitializerArgumentNormalAst(): return ast.identifier
             case ObjectInitializerArgumentNamedAst(): return ast.value
 
+    def __copy__(self):
+        return ObjectInitializerArgumentGroupAst(self.pos, self.paren_l_token, self.arguments.copy(), self.paren_r_token)
 
 
 __all__ = ["ObjectInitializerArgumentGroupAst"]
