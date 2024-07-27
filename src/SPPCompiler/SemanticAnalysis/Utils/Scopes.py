@@ -200,9 +200,15 @@ class ScopeHandler:
     _iterator: ScopeIterator
 
     def __init__(self, global_scope: Optional[Scope] = None):
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TypeAst
+
         self._global_scope = global_scope or Scope("Global")
         self._current_scope = self._global_scope
         self._iterator = iter(self)
+
+        global_type = TypeAst(pos=-1, parts=[GenericIdentifierAst(pos=-1, value="GLOBAL", generic_arguments=None)])
+        global_symbol = TypeSymbol(name=global_type, type=None, associated_scope=self._global_scope)
+        self._global_scope.add_symbol(global_symbol)
 
     def into_new_scope(self, name: Any) -> Scope:
         new_scope = Scope(name, self._current_scope)
