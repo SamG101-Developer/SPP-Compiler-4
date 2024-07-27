@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import List, Callable, Iterator, Optional, Iterable, Dict
 from ordered_set import OrderedSet
 
@@ -7,8 +8,8 @@ from ordered_set import OrderedSet
 class Seq[T]:
     _value: List[T]
 
-    def __init__(self, value: Iterable[T]) -> None:
-        self._value = list(value)
+    def __init__(self, value: Iterable[T] = None) -> None:
+        self._value = list(value) if value else []
 
     def append(self, item: T) -> None:
         self._value.append(item)
@@ -170,6 +171,16 @@ class Seq[T]:
     def flat[U](self) -> Seq[U]:
         return Seq([y for x in self._value for y in x])
 
+    # Copying
+
+    def copy(self) -> Seq[T]:
+        return Seq(copy.copy(self._value))
+
+    def deepcopy(self) -> Seq[T]:
+        return Seq(copy.deepcopy(self._value))
+
+    # Operations
+
     def __iter__(self) -> Iterator[T]:
         return iter(self._value)
 
@@ -195,6 +206,8 @@ class Seq[T]:
 
     def __str__(self):
         return f"[{self.map(str).join(", ")}]" if self.not_empty() else "<empty>"
+
+    # Properties
 
     @property
     def value(self) -> List[T]:
