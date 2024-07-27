@@ -1,11 +1,11 @@
 import os.path
-from typing import NoReturn
 
 from SPPCompiler.LexicalAnalysis.Tokens import Token
-from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrorStringFormatType
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.ASTs import ProgramAst
 from SPPCompiler.Utils.ErrorFormatter import ErrorFormatter
+from SPPCompiler.Utils.ErrorPrinter import handle_semantic_error
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import NamespaceSymbol
 
 from SPPCompiler.Utils.Sequence import Seq
@@ -68,7 +68,7 @@ class Analyser:
 
         # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
-            kwargs = {"file-name": self._file_name}
+            kwargs = {"file-name": self._file_name, "err-fmt": err_fmt}
             self._ast.do_semantic_analysis(scope_handler, **kwargs)
         except SemanticError as e:
             handle_semantic_error(err_fmt, e)
@@ -120,15 +120,3 @@ class Analyser:
     @property
     def num_children_introduced(self) -> int:
         return self._num_children_introduced
-
-
-def handle_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> NoReturn:
-    final_error = ""
-    for error in exception.additional_info:
-        final_error += err_fmt.error(
-            error[0], message=error[1],
-            tag_message=error[2],
-            minimal=error[3] == SemanticErrorStringFormatType.MINIMAL,
-            no_format=error[3] == SemanticErrorStringFormatType.NO_FORMAT)
-
-    raise SystemExit(final_error) from None
