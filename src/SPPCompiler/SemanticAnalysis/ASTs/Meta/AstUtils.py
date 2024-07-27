@@ -124,6 +124,8 @@ def convert_generic_arguments_to_named(
         GenericArgumentNamedAst, GenericArgumentNormalAst, GenericParameterOptionalAst, GenericParameterVariadicAst,
         TokenAst)
 
+    is_variadic = generic_parameters and isinstance(Seq(generic_parameters)[-1], GenericParameterVariadicAst)
+
     # Remove the named generic arguments from the list of generic parameter identifiers.
     generic_parameter_identifiers = Seq(generic_parameters.value.copy()).map(lambda p: p.identifier)
     for generic_argument in generic_arguments.filter_to_type(GenericArgumentNamedAst):
@@ -133,7 +135,7 @@ def convert_generic_arguments_to_named(
     for i, generic_argument in generic_arguments.filter_to_type(GenericArgumentNormalAst).enumerate():
 
         # Check if the final generic parameter is variadic; if it is, then run separate steps.
-        if generic_parameter_identifiers.length == 1 and isinstance(Seq(generic_parameters)[-1], GenericParameterVariadicAst):
+        if generic_parameter_identifiers.length == 1 and is_variadic:
             final_generic_arguments = generic_arguments.filter_to_type(GenericArgumentNormalAst)[i:].map(lambda g: g.type)
             generic_parameter_identifier = generic_parameter_identifiers.pop(0).parts[-1].to_identifier()
             new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifier, TokenAst.dummy(TokenType.TkAssign), CommonTypes.tuple(final_generic_arguments))
@@ -157,17 +159,23 @@ def convert_generic_arguments_to_named(
 
 def convert_function_arguments_to_named(
         arguments: Seq["FunctionArgumentAst"],
-        parameter_identifiers: Seq["IdentifierAst"],
-        is_variadic: bool) -> Seq["FunctionArgumentAst"]:
+        parameters: Seq["FunctionParameterAst"]) -> Seq["FunctionArgumentAst"]:
 
     from SPPCompiler.SemanticAnalysis.ASTs import (
-        FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst)
+        FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst, FunctionParameterVariadicAst)
+
+    is_variadic = parameters and isinstance(Seq(parameters)[-1], FunctionParameterVariadicAst)
+
+    # Remove the named arguments from the list of parameter identifiers.
+    parameter_identifiers = Seq(parameters.value.copy()).map(lambda p: p.identifier_for_param())
+    for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
+        parameter_identifiers.remove(argument.identifier)
 
     # Loop over every unnamed argument in the list.
     for j, argument in arguments.filter_to_type(FunctionArgumentNormalAst).enumerate():
 
         # Check if the final parameter is variadic; if it is, then run separate steps.
-        if is_variadic and parameter_identifiers.length == 1:
+        if parameter_identifiers.length == 1 and is_variadic:
 
             # Value is a tuple of the remaining arguments.
             final_arguments = TupleLiteralAst(argument.pos, TokenAst.dummy(TokenType.TkParenL), arguments[j:].map(lambda a: a.value).value, TokenAst.dummy(TokenType.TkParenR))
