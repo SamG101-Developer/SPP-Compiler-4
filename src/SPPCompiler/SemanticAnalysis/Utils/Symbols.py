@@ -22,17 +22,6 @@ class MemoryStatus:
     def is_borrow(self) -> bool:
         return self.is_borrow_ref or self.is_borrow_mut
 
-    def as_ast(self):
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst, TokenAst
-        from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-
-        if self.is_borrow_mut:
-            return ConventionMutAst(-1, TokenAst.dummy(TokenType.TkLogicalAnd), TokenAst.dummy(TokenType.KwMut))
-        elif self.is_borrow_ref:
-            return ConventionRefAst(-1, TokenAst.dummy(TokenType.TkLogicalAnd))
-        else:
-            return ConventionMovAst(-1)
-
 
 class Symbol:
     ...
