@@ -65,6 +65,15 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         s += f"{self.body.print(printer)}"
         return s
 
+    @ast_printer_method
+    def print_signature(self, printer: AstPrinter) -> str:
+        # Print the FunctionPrototypeAst, without the body
+        s = ""
+        s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
+        s += f"{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
+        s += f" {self.where_block.print(printer)}" if self.where_block else ""
+        return s
+
     def pre_process(self, context: "ModulePrototypeAst | SupPrototypeAst") -> None:
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
