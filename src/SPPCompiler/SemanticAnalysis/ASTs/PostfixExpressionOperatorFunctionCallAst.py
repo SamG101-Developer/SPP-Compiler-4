@@ -269,11 +269,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         # Check a matching overload exists for the function call. Also get the "self" argument (for analysis)
-        self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
-        self._get_matching_overload(scope_handler, lhs, **kwargs)
-        self.arguments.arguments = self._overload[1]
-        self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-        self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+        if self._overload is None:
+            self.arguments.do_semantic_pre_analysis(scope_handler, **kwargs)
+            self._get_matching_overload(scope_handler, lhs, **kwargs)
+            self.arguments.arguments = self._overload[1]
+            self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, PostfixExpressionAst
