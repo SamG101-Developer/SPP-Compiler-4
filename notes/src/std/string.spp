@@ -2,3 +2,9 @@ mod std::string
 
 
 cls Str { }
+
+
+sup Str {
+    fun upper(&self) -> Str { }
+    fun lower(&self) -> Str { }
+}
