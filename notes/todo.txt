@@ -44,6 +44,7 @@ Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
 -- Special `Copy` type that doesn't "move" the value.
--- Prevent type redeclaration in the same scope.
+-- Prevent type redeclaration in the same scope (except `Self`)`.
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Providing too many generics to a type creates an unhandled python error.
+-- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.

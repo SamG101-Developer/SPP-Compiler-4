@@ -4,5 +4,5 @@ mod std::ops::eq
 cls Eq { }
 
 sup Eq {
-    fun eq(&self, that: &Self) -> Bool { }
+    fun eq(&self, that: Self) -> Bool { }
 }

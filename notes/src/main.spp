@@ -12,6 +12,8 @@ cls Vec {
     dir: std::BigInt
 }
 
+sup std::ops::Eq on Vec { }
+
 sup Vec {
     fun test(&self, other: Vec) -> std::Void { }
 }
@@ -65,12 +67,7 @@ fun aaaaaaaaaa(Point(x, y, z): Point) -> std::BigInt { ret 5 }
 
 
 fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
-
-    case 1 == then
-        2 { }
-        "hello" { }
-        false { }
-        else { }
+    1 + 2 + 3
 
     let point = Point(x=100, y=100, z=100)
     let v = Vec(point, dir=100)
@@ -88,8 +85,10 @@ fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
     let aaa = A(x=1, y=2)
     aaa.function(v99)
 
+    ##
     let mut x = test(1)
     x = 123
+    ##
 
     let mut cccc = "hello".upper()
     let mut dddd = Point::static("false")

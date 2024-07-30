@@ -25,7 +25,7 @@ sup std::ops::Div on BigInt {
 }
 
 sup std::ops::Eq on BigInt {
-    fun eq(&self, that: &BigInt) -> Bool { }
+    fun eq(&self, that: BigInt) -> Bool { }
 }
 
 
