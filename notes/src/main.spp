@@ -66,12 +66,18 @@ fun aaaaaaaaaa(Point(x, y, z): Point) -> std::BigInt { ret 5 }
 
 fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
 
+    case 1 == then
+        2 { }
+        "hello" { }
+        false { }
+        else { }
+
     let point = Point(x=100, y=100, z=100)
     let v = Vec(point, dir=100)
     let t = (0, "hello", "by", 1, 2, 3, false, 5)
 
     let point2 = Point(x=1, y=1, z=1)
-    let yyy = aaaaaaaaaa(a=point2)
+    let yyy = aaaaaaaaaa(point2)
 
     let v2 = Vec(point=Point(x=1, y=1, z=1), dir=1)
     let p2 = Point(x=1, y=1, z=1)

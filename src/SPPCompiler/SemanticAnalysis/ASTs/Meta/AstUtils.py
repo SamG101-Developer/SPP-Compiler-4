@@ -93,7 +93,7 @@ def ensure_memory_integrity(
 
     # 1. Check the symbol has not been consumed by another move. This prevents double moves or using uninitialized values.
     if check_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_consumed:
-        raise SemanticErrors.USING_NON_INITIALIZED_VALUE(value_ast, symbol)
+        raise SemanticErrors.USING_NON_INITIALIZED_VALUE(entire_ast, symbol)
 
     # 2. Check the symbol does not have any partial move.
     if check_partial_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_partial_moves:

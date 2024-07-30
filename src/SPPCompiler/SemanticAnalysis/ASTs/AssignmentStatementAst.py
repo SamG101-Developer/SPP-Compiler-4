@@ -57,6 +57,12 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.rhs)
         self.rhs.do_semantic_analysis(scope_handler, **kwargs)
 
+        # Check the memory status of the lhs identifi.
+        for lhs, lhs_symbol in Seq(self.lhs).zip(Seq(lhs_symbols)):
+            check_move = not isinstance(lhs, IdentifierAst)
+            ensure_memory_integrity(self, lhs_symbol.name, self.op, scope_handler, check_move=check_move, mark_symbols=False)
+        ensure_memory_integrity(self, self.rhs, self.op, scope_handler)
+
         for i, lhs_symbol in Seq(lhs_symbols).enumerate():
             # Mutation requires either a mutable identifier, or an outermost mutable value. This can be an "&mut"
             # borrow, or a "mut" value. The const-ness of a borrow trumps the value's mutability for attributes:
@@ -87,9 +93,6 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
 
                 case PostfixExpressionAst():
                     lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda x: x != self.lhs[i]).value
-
-        # Check the value being assigned is initialised.
-        ensure_memory_integrity(self, self.rhs, self.op, scope_handler)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
