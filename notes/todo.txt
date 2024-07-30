@@ -18,7 +18,6 @@ Object initialization:
 -- Sup initialization
 
 Patterns:
--- Convert operator to function + analyse function call (ie `1.eq(2)` from `1 then == 2`)
 -- Semantics for `is ...`.
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 

@@ -43,7 +43,7 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst, TypeAst, BinaryExpressionAst
 
         # Move into a new scope.
         scope_handler.into_new_scope("<if-expression>")
@@ -56,6 +56,8 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is
         # because the condition fragment is combined with the branch fragments, and "1 == == 2" is invalid.
         kwargs |= {"condition": self.condition}
+        print("-" * 100)
+        print(self.condition)
         for branch in self.branches:
             branch.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -71,7 +73,11 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             if isinstance(branch, PatternVariantElseAst) and branch != self.branches[-1]:
                 raise SemanticErrors.ELSE_BRANCH_WRONG_POSITION(branch)
 
-            # todo: convert the condition + branch into a complete binary expression and check if it's valid.
+            # Combine the condition with the branch patterns to ensure functional compatibility.
+            for pattern in branch.patterns:
+                operator = self.comp_operator or branch.comp_operator
+                binary_ast = BinaryExpressionAst(branch.pos, self.condition, operator, pattern)
+                binary_ast.do_semantic_analysis(scope_handler, **kwargs)
 
         if "assignment" in kwargs:
             # If this if-expression is being used for assignment, then all the branches must return the same type.

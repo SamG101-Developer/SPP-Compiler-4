@@ -24,6 +24,10 @@ sup std::ops::Div on BigInt {
     fun div(self, other: BigInt) -> BigInt { }
 }
 
+sup std::ops::Eq on BigInt {
+    fun eq(&self, that: &BigInt) -> Bool { }
+}
+
 
 cls U32 { }
 cls U64 { }
