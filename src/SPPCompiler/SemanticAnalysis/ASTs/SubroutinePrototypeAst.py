@@ -21,9 +21,9 @@ class SubroutinePrototypeAst(FunctionPrototypeAst):
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         # Check a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
-        # return type.
+        # return type, and contains statements.
         if (not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
-                and self.body.members
+                and self.body.members  # Todo: filter the "header" let-destructure asts from this check.
                 and not isinstance(self.body.members[-1], ReturnStatementAst)):
             raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token)
 

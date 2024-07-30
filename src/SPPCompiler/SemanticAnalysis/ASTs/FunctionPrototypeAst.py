@@ -191,10 +191,35 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             case _: raise SystemExit(f"Unknown function class type '{function_class_type}' being deduced. Report as bug.")
 
     def generate(self, scope_handler: ScopeHandler) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import (
+            LocalVariableSingleAst, FunctionParameterSelfAst, LetStatementInitializedAst, TokenAst, IdentifierAst)
+
         # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
         # for each generic parameter. Exit the newly created function scope.
         scope_handler.into_new_scope(f"<function:{self._orig}>")
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+
+        # Convert non-single parameters into single parameters, and inject the destructure operation into the body.
+        for i, parameter in Seq(self.parameters.parameters).filter_not_type(FunctionParameterSelfAst).enumerate():
+            if not isinstance(parameter.variable, LocalVariableSingleAst):
+                destructure_to = parameter.variable
+
+                # Create the mock variable and replace the parameter with it.
+                mock_single_variable = LocalVariableSingleAst(
+                    pos=parameter.pos,
+                    is_mutable=None,
+                    identifier=IdentifierAst(parameter.pos, "_param_" + str(i)))
+                self.parameters.parameters[i].variable = mock_single_variable
+
+                # Move the destructure into the function body.
+                destructure_operation = LetStatementInitializedAst(
+                    pos=parameter.pos,
+                    let_keyword=TokenAst.dummy(TokenType.KwLet),
+                    assign_to=destructure_to,
+                    assign_token=TokenAst.dummy(TokenType.TkAssign),
+                    value=mock_single_variable.identifier)
+                self.body.members.insert(0, destructure_operation)
+
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
@@ -205,6 +230,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
+
+        # The rest of the prototype (body) etc is handled in the SubroutinePrototypeAst and CoroutinePrototypeAst nodes,
+        # as they have different analysis requirements.
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where
