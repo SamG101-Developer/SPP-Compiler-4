@@ -56,8 +56,6 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is
         # because the condition fragment is combined with the branch fragments, and "1 == == 2" is invalid.
         kwargs |= {"condition": self.condition}
-        print("-" * 100)
-        print(self.condition)
         for branch in self.branches:
             branch.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -77,7 +75,8 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             for pattern in branch.patterns:
                 operator = self.comp_operator or branch.comp_operator
                 binary_ast = BinaryExpressionAst(branch.pos, self.condition, operator, pattern)
-                binary_ast.do_semantic_analysis(scope_handler, **kwargs)
+                # todo: this would only work for literal and identifiers, not for destructures (wrong ast type)
+                # todo: maybe create some sort of temporary ast that can be used for this purpose
 
         if "assignment" in kwargs:
             # If this if-expression is being used for assignment, then all the branches must return the same type.

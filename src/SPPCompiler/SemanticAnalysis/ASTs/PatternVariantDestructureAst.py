@@ -72,7 +72,6 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             assign_to=bindings,
             assign_token=TokenAst.dummy(TokenType.TkAssign),
             value=kwargs["condition"])
-
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
         # Put the condition variable back (re-initialise memory)
