@@ -1,7 +1,21 @@
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableDestructureAst import LocalVariableDestructureAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleAst import LocalVariableSingleAst
-from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableTupleAst import LocalVariableTupleAst
+from SPPCompiler.SemanticAnalysis.ASTs import (
+    LocalVariableObjectDestructureAst, LocalVariableSingleIdentifierAst, LocalVariableTupleDestructureAst,
+    LocalVariableAttributeBindingAst,
+    LocalVariableSkipArgumentAst, LocalVariableSkipArgumentsAst)
 
-type LocalVariableAst = LocalVariableDestructureAst | LocalVariableSingleAst | LocalVariableTupleAst
+type LocalVariableAst = (
+    LocalVariableObjectDestructureAst | LocalVariableSingleIdentifierAst | LocalVariableTupleDestructureAst)
 
-__all__ = ["LocalVariableAst"]
+type LocalVariableNestedForObjectDestructureAst = (
+    LocalVariableAttributeBindingAst, LocalVariableSingleIdentifierAst, LocalVariableSkipArgumentsAst)
+
+type LocalVariableNestedForTupleDestructureAst = (
+    LocalVariableTupleDestructureAst, LocalVariableNestedForObjectDestructureAst, LocalVariableSingleIdentifierAst,
+    LocalVariableSkipArgumentAst, LocalVariableSkipArgumentsAst)
+
+type LocalVariableNestedForAttributeBindingAst = (
+    LocalVariableNestedForObjectDestructureAst, LocalVariableTupleDestructureAst, LocalVariableSingleIdentifierAst)
+
+__all__ = [
+    "LocalVariableAst", "LocalVariableNestedForObjectDestructureAst", "LocalVariableNestedForTupleDestructureAst",
+    "LocalVariableNestedForAttributeBindingAst"]
