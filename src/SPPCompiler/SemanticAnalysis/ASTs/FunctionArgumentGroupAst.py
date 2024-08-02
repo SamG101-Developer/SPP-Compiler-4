@@ -1,4 +1,3 @@
-from __future__ import annotations
 from dataclasses import dataclass
 from ordered_set import OrderedSet
 from typing import List

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import copy
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -44,7 +42,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     arrow_token: "TokenAst"
     return_type: "TypeAst"
     where_block: Optional["WhereBlockAst"]
-    body: InnerScopeAst["StatementAst"]
+    body: "InnerScopeAst[StatementAst]"
 
     _orig: "IdentifierAst" = field(default=None, kw_only=True, repr=False)
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True, repr=False)
@@ -192,7 +190,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableSingleAst, FunctionParameterSelfAst, LetStatementInitializedAst, TokenAst, IdentifierAst)
+            LocalVariableSingleIdentifierAst, FunctionParameterSelfAst, LetStatementInitializedAst, TokenAst, IdentifierAst)
 
         # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
         # for each generic parameter. Exit the newly created function scope.
@@ -201,11 +199,11 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # Convert non-single parameters into single parameters, and inject the destructure operation into the body.
         for i, parameter in Seq(self.parameters.parameters).filter_not_type(FunctionParameterSelfAst).enumerate():
-            if not isinstance(parameter.variable, LocalVariableSingleAst):
+            if not isinstance(parameter.variable, LocalVariableSingleIdentifierAst):
                 destructure_to = parameter.variable
 
                 # Create the mock variable and replace the parameter with it.
-                mock_single_variable = LocalVariableSingleAst(
+                mock_single_variable = LocalVariableSingleIdentifierAst(
                     pos=parameter.pos,
                     is_mutable=None,
                     identifier=IdentifierAst(parameter.pos, "_param_" + str(i)))

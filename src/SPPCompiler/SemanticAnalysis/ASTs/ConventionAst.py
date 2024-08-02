@@ -1,6 +1,4 @@
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
 
 type ConventionAst = ConventionMovAst | ConventionRefAst | ConventionMutAst
 

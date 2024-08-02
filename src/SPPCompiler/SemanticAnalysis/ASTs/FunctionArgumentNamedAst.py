@@ -1,5 +1,5 @@
-from __future__ import annotations
 from dataclasses import dataclass
+from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
@@ -57,3 +57,6 @@ class FunctionArgumentNamedAst(Ast, SemanticAnalyser, TypeInfer):
             case self_convention, _: convention = type(self_convention)
 
         return InferredType(convention=convention, type=self.value.infer_type(scope_handler, **kwargs).type)
+
+
+__all__ = ["FunctionArgumentNamedAst"]

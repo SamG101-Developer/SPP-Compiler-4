@@ -1,7 +1,5 @@
-from __future__ import annotations
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionArgumentNamedAst import FunctionArgumentNamedAst
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionArgumentNormalAst import FunctionArgumentNormalAst
+from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNamedAst, FunctionArgumentNormalAst
 
 type FunctionArgumentAst = FunctionArgumentNamedAst | FunctionArgumentNormalAst
 
-__all__ = ['FunctionArgumentAst']
+__all__ = ["FunctionArgumentAst"]

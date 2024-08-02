@@ -1,4 +1,3 @@
-from __future__ import annotations
 from dataclasses import dataclass
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
@@ -59,9 +58,9 @@ class FunctionParameterRequiredAst(Ast, SemanticAnalyser):
             ast_initialized=self)
 
     def identifier_for_param(self) -> "IdentifierAst":
-        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleAst, IdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleIdentifierAst, IdentifierAst
         match self.variable:
-            case LocalVariableSingleAst(): return self.variable.identifier
+            case LocalVariableSingleIdentifierAst(): return self.variable.identifier
             case _: return IdentifierAst(self.pos, "UNMATCHABLE")
 
     def __eq__(self, other):
