@@ -1,12 +1,26 @@
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantBoolMemberAst import PatternVariantBoolMemberAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantDestructureAst import PatternVariantDestructureAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantElseAst import PatternVariantElseAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantLiteralAst import PatternVariantLiteralAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantTupleAst import PatternVariantTupleAst
-from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantVariableAst import PatternVariantVariableAst
+from SPPCompiler.SemanticAnalysis.ASTs import (
+    PatternVariantObjectDestructureAst, PatternVariantElseAst, PatternVariantLiteralAst,
+    PatternVariantTupleDestructureAst, PatternVariantSingleIdentifierAst, PatternVariantAttributeBindingAst,
+    PatternVariantSkipArgumentAst, PatternVariantSkipArgumentsAst, PatternVariantUnionDestructureAst)
 
 type PatternVariantAst = (
-        PatternVariantBoolMemberAst | PatternVariantDestructureAst | PatternVariantElseAst |
-        PatternVariantLiteralAst | PatternVariantTupleAst | PatternVariantVariableAst)
+    PatternVariantObjectDestructureAst | PatternVariantElseAst | PatternVariantLiteralAst |
+    PatternVariantTupleDestructureAst | PatternVariantSingleIdentifierAst)
 
-__all__ = ["PatternVariantAst"]
+type PatternVariantDestructureAst = (
+    PatternVariantTupleDestructureAst | PatternVariantObjectDestructureAst | PatternVariantUnionDestructureAst)
+
+type PatternVariantNestedForObjectDestructureAst = (
+    PatternVariantAttributeBindingAst, PatternVariantSingleIdentifierAst, PatternVariantSkipArgumentsAst)
+
+type PatternVariantNestedForTupleDestructureAst = (
+    PatternVariantTupleDestructureAst, PatternVariantObjectDestructureAst, PatternVariantSingleIdentifierAst,
+    PatternVariantLiteralAst, PatternVariantSkipArgumentsAst, PatternVariantSkipArgumentAst)
+
+type PatternVariantNestedForAttributeBindingAst = (
+    PatternVariantTupleDestructureAst, PatternVariantObjectDestructureAst, PatternVariantSingleIdentifierAst,
+    PatternVariantLiteralAst)
+
+__all__ = [
+    "PatternVariantAst", "PatternVariantDestructureAst", "PatternVariantNestedForObjectDestructureAst",
+    "PatternVariantNestedForTupleDestructureAst", "PatternVariantNestedForAttributeBindingAst"]
