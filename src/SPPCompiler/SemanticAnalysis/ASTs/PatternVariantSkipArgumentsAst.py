@@ -18,7 +18,7 @@ class PatternVariantSkipArgumentsAst(Ast):
     """
 
     variadic_token: "TokenAst"
-    binding: Optional["PatternVariantVariableAst"]
+    binding: Optional["PatternVariantSingleIdentifierAst"]
 
     def convert_to_variable(self) -> "LocalVariableSkipArgumentsAst":
         from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentsAst import LocalVariableSkipArgumentsAst

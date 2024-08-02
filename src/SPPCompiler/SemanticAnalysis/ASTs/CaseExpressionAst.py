@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -12,22 +13,20 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
+class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The IfExpressionAst node represents the unified conditional branching block, combining a standard "if", "match" and
     "?:" into one.
 
     Attributes:
-        if_keyword: The "case" keyword.
+        case_keyword: The "case" keyword.
         condition: The condition to be evaluated.
-        comp_operator: The optional comparison operator to be used in the condition.
         then_keyword: The "then" keyword.
         branches: The pattern blocks to be evaluated.
     """
 
-    if_keyword: "TokenAst"
+    case_keyword: "TokenAst"
     condition: "ExpressionAst"
-    comp_operator: Optional["TokenAst"]
     then_keyword: "TokenAst"
     branches: List["PatternBlockAst"]
 
@@ -35,9 +34,8 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the IfExpressionAst.
         s = ""
-        s += f"{self.if_keyword.print(printer)}"
+        s += f"{self.case_keyword.print(printer)}"
         s += f"{self.condition.print(printer)}"
-        s += f" {self.comp_operator.print(printer)}" if self.comp_operator else ""
         s += f" {self.then_keyword.print(printer)}\n"
         s += f"{Seq(self.branches).print(printer, "\n")}"
         return s
@@ -59,24 +57,15 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         for branch in self.branches:
             branch.do_semantic_analysis(scope_handler, **kwargs)
 
-            # Check there aren't 2 comparison operators in the condition and the branch.
-            if self.comp_operator and branch.comp_operator:
-                raise SemanticErrors.CONFLICTING_COMPARISON_OPERATORS(self.comp_operator, branch.comp_operator)
-
-            # Check there aren't 0 comparison operators in the condition and the branch.
-            if not (self.comp_operator or branch.comp_operator) and not isinstance(branch, PatternVariantElseAst):
-                raise SemanticErrors.NO_COMPARISON_OPERATOR(self.condition, branch)
-
             # Check the else branch is the final branch (this also ensures there is only 1 present)
             if isinstance(branch, PatternVariantElseAst) and branch != self.branches[-1]:
                 raise SemanticErrors.ELSE_BRANCH_WRONG_POSITION(branch)
 
-            # Combine the condition with the branch patterns to ensure functional compatibility.
-            for pattern in branch.patterns:
-                operator = self.comp_operator or branch.comp_operator
-                binary_ast = BinaryExpressionAst(branch.pos, self.condition, operator, pattern)
-                # todo: this would only work for literal and identifiers, not for destructures (wrong ast type)
-                # todo: maybe create some sort of temporary ast that can be used for this purpose
+            # Combine the condition with the non-"is" branch patterns to ensure functional compatibility.
+            if branch.comp_operator.token.token_type != TokenType.KwIs:
+                for pattern in branch.patterns:
+                    binary_ast = BinaryExpressionAst(branch.pos, self.condition, branch.comp_operator, pattern.expression)
+                    binary_ast.do_semantic_analysis(scope_handler, **kwargs)
 
         if "assignment" in kwargs:
             # If this if-expression is being used for assignment, then all the branches must return the same type.
@@ -103,4 +92,4 @@ class IfExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
 
 
-__all__ = ["IfExpressionAst"]
+__all__ = ["CaseExpressionAst"]

@@ -1,5 +1,5 @@
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.IfExpressionAst import IfExpressionAst
+from SPPCompiler.SemanticAnalysis.ASTs.CaseExpressionAst import CaseExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.InnerScopeAst import InnerScopeAst
 from SPPCompiler.SemanticAnalysis.ASTs.LambdaPrototypeAst import LambdaPrototypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.LiteralAst import LiteralAst
@@ -13,7 +13,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpression
 
 type PrimaryExpressionAst = (
         LiteralAst | IdentifierAst | ParenthesizedExpressionAst | ObjectInitializerAst | LambdaPrototypeAst |
-        IfExpressionAst | LoopExpressionAst | WithExpressionAst | YieldExpressionAst | InnerScopeAst | TypeAst |
+        CaseExpressionAst | LoopExpressionAst | WithExpressionAst | YieldExpressionAst | InnerScopeAst | TypeAst |
         TokenAst)
 
 __all__ = ["PrimaryExpressionAst"]
