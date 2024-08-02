@@ -277,34 +277,6 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def CONFLICTING_COMPARISON_OPERATORS(lhs: Ast, rhs: Ast) -> SemanticError:
-        exception = SemanticError()
-        exception.add_info(
-            pos=lhs.pos,
-            tag_message=f"Condition comparison operator '{lhs}' found here.")
-        exception.add_error(
-            pos=rhs.pos,
-            error_type=SemanticErrorType.ORDER_ERROR,
-            tag_message=f"Subsequent comparison operator '{rhs}' found here.",
-            message=f"Cannot have a comparison operator in both the case-expression and pattern block.",
-            tip=f"Remove one of the conflicting comparison operators.")
-        return exception
-
-    @staticmethod
-    def NO_COMPARISON_OPERATOR(lhs: Ast, rhs: Ast) -> SemanticError:
-        exception = SemanticError()
-        exception.add_info(
-            pos=lhs.pos,
-            tag_message=f"No comparison operator found here.")
-        exception.add_error(
-            pos=rhs.pos,
-            error_type=SemanticErrorType.ORDER_ERROR,
-            tag_message=f"Branch's pattern block declared here with no operator.",
-            message=f"No comparison operator found in case-expression or pattern block.",
-            tip=f"Add a comparison operator to either the case-expression or pattern block.")
-        return exception
-
-    @staticmethod
     def CONFLICTING_IF_BRANCH_TYPES(t1: InferredType, t2: InferredType) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
@@ -663,4 +635,15 @@ class SemanticErrors:
             tag_message=f"Control flow statement inferred as '{ty2}'.",
             message="Control flow statements must have the same type.",
             tip="Ensure all control flow statements have the same type.")
+        return exception
+
+    @staticmethod
+    def TYPE_DESTRUCTURING_NON_UNION_TYPE(ty: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ty.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message="Type is not a union type.",
+            message="Type destructuring requires a union type.",
+            tip="Ensure the type is a union type.")
         return exception
