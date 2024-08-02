@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
