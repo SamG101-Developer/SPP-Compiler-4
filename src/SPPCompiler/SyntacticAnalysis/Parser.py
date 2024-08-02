@@ -511,14 +511,13 @@ class Parser:
     # ===== EXPRESSION STATEMENTS =====
 
     @parser_rule
-    def parse_case_expression(self) -> IfExpressionAst:
+    def parse_case_expression(self) -> CaseExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
-        p3 = self.parse_pattern_comp_op().parse_optional()
-        p4 = self.parse_token(TokenType.KwThen).parse_optional()
-        p5 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
-        return IfExpressionAst(c1, p1, p2, p3, p4, p5)
+        p3 = self.parse_token(TokenType.KwThen).parse_optional()
+        p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
+        return CaseExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     def parse_loop_expression(self) -> LoopExpressionAst:
@@ -709,60 +708,11 @@ class Parser:
 
     @parser_rule
     def parse_local_variable(self) -> LocalVariableAst:
-        p1 = self.parse_local_variable_single().for_alt()
-        p2 = self.parse_local_variable_tuple().for_alt()
-        p3 = self.parse_local_variable_destructure().for_alt()
+        p1 = self.parse_local_variable_single_identifier().for_alt()
+        p2 = self.parse_local_variable_tuple_destructure().for_alt()
+        p3 = self.parse_local_variable_object_destructure().for_alt()
         p4 = (p1 | p2 | p3).parse_once()
         return p4
-
-    @parser_rule
-    def parse_local_variable_single(self) -> LocalVariableSingleAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwMut).parse_optional()
-        p2 = self.parse_identifier().parse_once()
-        return LocalVariableSingleAst(c1, p1, p2)
-
-    @parser_rule
-    def parse_local_variable_tuple(self) -> LocalVariableTupleAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_local_variable_nested_for_tuple().parse_one_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkParenR).parse_once()
-        return LocalVariableTupleAst(c1, p1, p2, p3)
-
-    @parser_rule
-    def parse_local_variable_destructure(self) -> LocalVariableDestructureAst:
-        c1 = self.current_pos()
-        p1 = self.parse_type_single().parse_once()
-        p2 = self.parse_token(TokenType.TkParenL).parse_once()
-        p3 = self.parse_local_variable_nested_for_destructure().parse_zero_or_more(TokenType.TkComma)
-        p4 = self.parse_token(TokenType.TkParenR).parse_once()
-        return LocalVariableDestructureAst(c1, p1, p2, p3, p4)
-
-    @parser_rule
-    def parse_local_variable_nested_for_destructure(self) -> LocalVariableNestedAst:
-        p1 = self.parse_local_variable_assignment().for_alt()
-        p2 = self.parse_local_variable_single().for_alt()
-        p3 = self.parse_local_variable_skip_arguments().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
-        return p4
-
-    @parser_rule
-    def parse_local_variable_nested_for_tuple(self) -> LocalVariableNestedAst:
-        p1 = self.parse_local_variable_tuple().for_alt()
-        p2 = self.parse_local_variable_destructure().for_alt()
-        p3 = self.parse_local_variable_single().for_alt()
-        p4 = self.parse_local_variable_skip_arguments().for_alt()
-        p5 = self.parse_local_variable_skip_argument().for_alt()
-        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
-        return p6
-
-    @parser_rule
-    def parse_local_variable_skip_arguments(self) -> LocalVariableSkipArgumentsAst:
-        c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
-        p2 = self.parse_local_variable_single().parse_optional()
-        return LocalVariableSkipArgumentsAst(c1, p1, p2)
 
     @parser_rule
     def parse_local_variable_skip_argument(self) -> LocalVariableSkipArgumentAst:
@@ -771,18 +721,67 @@ class Parser:
         return LocalVariableSkipArgumentAst(c1, p1)
 
     @parser_rule
-    def parse_local_variable_assignment(self) -> LocalVariableAssignmentAst:
+    def parse_local_variable_skip_arguments(self) -> LocalVariableSkipArgumentsAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
+        p2 = self.parse_local_variable_single_identifier().parse_optional()
+        return LocalVariableSkipArgumentsAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_local_variable_single_identifier(self) -> LocalVariableSingleIdentifierAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwMut).parse_optional()
+        p2 = self.parse_identifier().parse_once()
+        return LocalVariableSingleIdentifierAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_local_variable_object_destructure(self) -> LocalVariableObjectDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_token(TokenType.TkParenL).parse_once()
+        p3 = self.parse_local_variable_nested_for_object_destructure().parse_zero_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LocalVariableObjectDestructureAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_local_variable_tuple_destructure(self) -> LocalVariableTupleDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_local_variable_nested_for_tuple_destructure().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return LocalVariableTupleDestructureAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_local_variable_attribute_binding(self) -> LocalVariableAttributeBindingAst:
         c1 = self.current_pos()
         p1 = self.parse_identifier().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
-        p3 = self.parse_local_variable_non_assignment().parse_once()
-        return LocalVariableAssignmentAst(c1, p1, p2, p3)
+        p3 = self.parse_local_variable_nested_for_attribute_binding().parse_once()
+        return LocalVariableAttributeBindingAst(c1, p1, p2, p3)
 
     @parser_rule
-    def parse_local_variable_non_assignment(self) -> LocalVariableNestedAst:
-        p1 = self.parse_local_variable_destructure().for_alt()
-        p2 = self.parse_local_variable_tuple().for_alt()
-        p3 = self.parse_local_variable_single().for_alt()
+    def parse_local_variable_nested_for_object_destructure(self) -> LocalVariableNestedForObjectDestructureAst:
+        p1 = self.parse_local_variable_attribute_binding().for_alt()
+        p2 = self.parse_local_variable_single_identifier().for_alt()
+        p3 = self.parse_local_variable_skip_arguments().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_local_variable_nested_for_tuple_destructure(self) -> LocalVariableNestedForTupleDestructureAst:
+        p1 = self.parse_local_variable_tuple_destructure().for_alt()
+        p2 = self.parse_local_variable_object_destructure().for_alt()
+        p3 = self.parse_local_variable_single_identifier().for_alt()
+        p4 = self.parse_local_variable_skip_arguments().for_alt()
+        p5 = self.parse_local_variable_skip_argument().for_alt()
+        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        return p6
+
+    @parser_rule
+    def parse_local_variable_nested_for_attribute_binding(self) -> LocalVariableNestedForAttributeBindingAst:
+        p1 = self.parse_local_variable_object_destructure().for_alt()
+        p2 = self.parse_local_variable_tuple_destructure().for_alt()
+        p3 = self.parse_local_variable_single_identifier().for_alt()  # todo
         p4 = (p1 | p2 | p3).parse_once()
         return p4
 
@@ -800,57 +799,42 @@ class Parser:
 
     @parser_rule
     def parse_pattern_statement(self) -> PatternBlockAst:
+        p1 = self.parse_pattern_statement_flavour_destructuring().for_alt()
+        p2 = self.parse_pattern_statement_flavour_non_destructuring().for_alt()
+        p3 = self.parse_pattern_statement_flavour_else().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_pattern_statement_flavour_destructuring(self) -> PatternBlockAst:
         c1 = self.current_pos()
-        p1 = self.parse_pattern_comp_op().parse_optional()
-        p2 = self.parse_pattern_variant().parse_one_or_more(TokenType.TkUnion)  # todo: best choice?
+        p1 = self.parse_token(TokenType.KwIs).parse_once()
+        p2 = self.parse_pattern_variant_destructure().parse_one_or_more(TokenType.TkComma)
         p3 = self.parse_pattern_guard().parse_optional()
         p4 = self.parse_inner_scope(self.parse_statement).parse_once()
         return PatternBlockAst(c1, p1, p2, p3, p4)
 
     @parser_rule
-    def parse_pattern_comp_op(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkEq).for_alt()
-        p2 = self.parse_token(TokenType.TkNe).for_alt()
-        p3 = self.parse_token(TokenType.TkLe).for_alt()
-        p4 = self.parse_token(TokenType.TkGe).for_alt()
-        p5 = self.parse_token(TokenType.TkLt).for_alt()
-        p6 = self.parse_token(TokenType.TkGt).for_alt()
-        p7 = self.parse_token(TokenType.KwIs).for_alt()
-        p8 = (p1 | p2 | p3 | p4 | p5 | p6 | p7).parse_once()
-        return p8
-
-    @parser_rule
-    def parse_pattern_guard(self) -> PatternGuardAst:
+    def parse_pattern_statement_flavour_non_destructuring(self) -> PatternBlockAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwAnd).parse_once()  # todo: best choice?
-        p2 = self.parse_expression().parse_once()
-        return PatternGuardAst(c1, p1, p2)
+        p1 = self.parse_boolean_comparison_op().parse_once()
+        p2 = self.parse_pattern_variant_expression().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return PatternBlockAst(c1, p1, p2, None, p3)
 
     @parser_rule
-    def parse_pattern_variant(self) -> PatternVariantAst:
-        p1 = self.parse_pattern_variant_tuple().for_alt()
-        p2 = self.parse_pattern_variant_destructure().for_alt()
-        p3 = self.parse_pattern_variant_variable().for_alt()
-        p4 = self.parse_pattern_variant_literal().for_alt()
-        # p5 = self.parse_pattern_variant_bool_member().for_alt()
-        p6 = self.parse_pattern_variant_else().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
-        return p7
-
-    @parser_rule
-    def parse_pattern_variant_nested_for_destructure(self) -> PatternVariantNestedAst:
-        p1 = self.parse_pattern_variant_variable_assignment().for_alt()
-        p2 = self.parse_pattern_variant_variable().for_alt()
-        p3 = self.parse_pattern_variant_skip_arguments().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
-        return p4
-
-    @parser_rule
-    def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentsAst:
+    def parse_pattern_statement_flavour_else(self) -> PatternBlockAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
-        p2 = self.parse_pattern_variant_variable().parse_optional()
-        return PatternVariantSkipArgumentsAst(c1, p1, p2)
+        p1 = self.parse_pattern_variant_else().parse_once()
+        p2 = self.parse_inner_scope(self.parse_statement).parse_once()
+        return PatternBlockAst(c1, None, [p1], None, p2)
+
+    @parser_rule
+    def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
+        p1 = self.parse_pattern_variant_tuple_destructure().for_alt()
+        p2 = self.parse_pattern_variant_object_destructure().for_alt()
+        p3 = self.parse_pattern_variant_union_destructure().for_alt()
+        return (p1 | p2 | p3).parse_once()
 
     @parser_rule
     def parse_pattern_variant_skip_argument(self) -> PatternVariantSkipArgumentAst:
@@ -859,48 +843,49 @@ class Parser:
         return PatternVariantSkipArgumentAst(c1, p1)
 
     @parser_rule
-    def parse_pattern_variant_nested_for_tuple(self) -> PatternVariantNestedAst:
-        p1 = self.parse_pattern_variant_tuple().for_alt()
-        p2 = self.parse_pattern_variant_destructure().for_alt()
-        p3 = self.parse_pattern_variant_variable().for_alt()
-        p4 = self.parse_pattern_variant_literal().for_alt()
-        p5 = self.parse_pattern_variant_skip_arguments().for_alt()
-        p6 = self.parse_pattern_variant_skip_argument().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
-        return p7
-
-    @parser_rule
-    def parse_pattern_variant_nested_non_assignment(self) -> PatternVariantNestedAst:
-        p1 = self.parse_pattern_variant_tuple().for_alt()
-        p2 = self.parse_pattern_variant_destructure().for_alt()
-        p3 = self.parse_pattern_variant_variable().for_alt()
-        p4 = self.parse_pattern_variant_literal().for_alt()
-        p5 = (p1 | p2 | p3 | p4).parse_once()
-        return p5
-
-    @parser_rule
-    def parse_pattern_variant_tuple(self) -> PatternVariantTupleAst:
+    def parse_pattern_variant_skip_arguments(self) -> PatternVariantSkipArgumentsAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_pattern_variant_nested_for_tuple().parse_one_or_more(TokenType.TkComma)
-        p3 = self.parse_token(TokenType.TkParenR).parse_once()
-        return PatternVariantTupleAst(c1, p1, p2, p3)
+        p1 = self.parse_token(TokenType.TkVariadic).parse_once()
+        p2 = self.parse_pattern_variant_single_identifier().parse_optional()
+        return PatternVariantSkipArgumentsAst(c1, p1, p2)
 
     @parser_rule
-    def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
-        c1 = self.current_pos()
-        p1 = self.parse_type_single().parse_once()
-        p2 = self.parse_token(TokenType.TkParenL).parse_once()
-        p3 = self.parse_pattern_variant_nested_for_destructure().parse_zero_or_more(TokenType.TkComma)
-        p4 = self.parse_token(TokenType.TkParenR).parse_once()
-        return PatternVariantDestructureAst(c1, p1, p2, p3, p4)
-
-    @parser_rule
-    def parse_pattern_variant_variable(self) -> PatternVariantVariableAst:
+    def parse_pattern_variant_single_identifier(self) -> PatternVariantSingleIdentifierAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwMut).parse_optional()
         p2 = self.parse_identifier().parse_once()
-        return PatternVariantVariableAst(c1, p1, p2)
+        return PatternVariantSingleIdentifierAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_pattern_variant_object_destructure(self) -> PatternVariantObjectDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_token(TokenType.TkParenL).parse_once()
+        p3 = self.parse_pattern_variant_nested_for_object_destructure().parse_zero_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkParenR).parse_once()
+        return PatternVariantObjectDestructureAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_pattern_variant_tuple_destructure(self) -> PatternVariantTupleDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_pattern_variant_nested_for_tuple_destructure().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return PatternVariantTupleDestructureAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_pattern_variant_attribute_binding(self) -> PatternVariantAttributeBindingAst:
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_once()
+        p2 = self.parse_token(TokenType.TkAssign).parse_once()
+        p3 = self.parse_pattern_variant_nested_for_attribute_binding().parse_once()
+        return PatternVariantAttributeBindingAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_pattern_variant_union_destructure(self) -> PatternVariantUnionDestructureAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        return PatternVariantUnionDestructureAst(c1, p1)
 
     @parser_rule
     def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
@@ -912,24 +897,51 @@ class Parser:
         return PatternVariantLiteralAst(c1, p4)
 
     @parser_rule
-    def parse_pattern_variant_variable_assignment(self) -> PatternVariantVariableAssignmentAst:
+    def parse_pattern_variant_expression(self) -> PatternVariantExpressionAst:
         c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_once()
-        p2 = self.parse_token(TokenType.TkAssign).parse_once()
-        p3 = self.parse_pattern_variant_nested_non_assignment().parse_once()
-        return PatternVariantVariableAssignmentAst(c1, p1, p2, p3)
-
-    # @parser_rule
-    # def parse_pattern_variant_bool_member(self) -> PatternVariantBoolMemberAst:
-    #     c1 = self.current_pos()
-    #     p1 = self.parse_postfix_op().parse_zero_or_more()
-    #     return PatternVariantBoolMemberAst(c1, functools.reduce(lambda acc, x: PostfixExpressionAst(c1, acc, x), p1, None))
+        p1 = self.parse_expression().parse_once()
+        return PatternVariantExpressionAst(c1, p1)
 
     @parser_rule
     def parse_pattern_variant_else(self) -> PatternVariantElseAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
         return PatternVariantElseAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_nested_for_object_destructure(self) -> PatternVariantNestedForObjectDestructureAst:
+        p1 = self.parse_pattern_variant_attribute_binding().for_alt()
+        p2 = self.parse_pattern_variant_single_identifier().for_alt()
+        p3 = self.parse_pattern_variant_skip_arguments().for_alt()
+        p4 = (p1 | p2 | p3).parse_once()
+        return p4
+
+    @parser_rule
+    def parse_pattern_variant_nested_for_tuple_destructure(self) -> PatternVariantNestedForTupleDestructureAst:
+        p1 = self.parse_pattern_variant_tuple_destructure().for_alt()
+        p2 = self.parse_pattern_variant_object_destructure().for_alt()
+        p3 = self.parse_pattern_variant_single_identifier().for_alt()
+        p4 = self.parse_pattern_variant_literal().for_alt()
+        p5 = self.parse_pattern_variant_skip_arguments().for_alt()
+        p6 = self.parse_pattern_variant_skip_argument().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
+
+    @parser_rule
+    def parse_pattern_variant_nested_for_attribute_binding(self) -> PatternVariantNestedForAttributeBindingAst:
+        p1 = self.parse_pattern_variant_tuple_destructure().for_alt()
+        p2 = self.parse_pattern_variant_object_destructure().for_alt()
+        p3 = self.parse_pattern_variant_single_identifier().for_alt()
+        p4 = self.parse_pattern_variant_literal().for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
+        return p5
+
+    @parser_rule
+    def parse_pattern_guard(self) -> PatternGuardAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwAnd).parse_once()
+        p2 = self.parse_expression().parse_once()
+        return PatternGuardAst(c1, p1, p2)
 
     # ===== OPERATORS =====
 
@@ -984,6 +996,17 @@ class Parser:
         p10 = self.parse_token(TokenType.TkExpAssign).for_alt()  # todo: shouldn't be here (precedence level)
         p11 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10).parse_once()
         return p11
+
+    @parser_rule
+    def parse_boolean_comparison_op(self) -> TokenAst:
+        p1 = self.parse_token(TokenType.TkEq).for_alt()
+        p2 = self.parse_token(TokenType.TkNe).for_alt()
+        p3 = self.parse_token(TokenType.TkLe).for_alt()
+        p4 = self.parse_token(TokenType.TkGe).for_alt()
+        p5 = self.parse_token(TokenType.TkLt).for_alt()
+        p6 = self.parse_token(TokenType.TkGt).for_alt()
+        p8 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p8
 
     @parser_rule
     def parse_unary_op(self) -> TokenAst:
@@ -1465,3 +1488,6 @@ class Parser:
         r = TokenAst(c1, self.current_tok())
         self._index += 1
         return r
+
+
+__all__ = ["Parser", "parser_rule"]
