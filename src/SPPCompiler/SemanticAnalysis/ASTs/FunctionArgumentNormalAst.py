@@ -47,7 +47,7 @@ class FunctionArgumentNormalAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
         # The convention of an argument is either the given convention, or the convention of the value.
-        match self.convention, self.value.infer_type(scope_handler, **kwargs)[0]:
+        match self.convention, self.value.infer_type(scope_handler, **kwargs).convention:
             case ConventionMovAst(), that_convention: convention = that_convention
             case self_convention, _: convention = type(self_convention)
 
