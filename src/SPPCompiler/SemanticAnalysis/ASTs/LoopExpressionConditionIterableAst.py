@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.ASTs import LetStatementUninitializedAst, LocalVariableSingleAst
+from SPPCompiler.SemanticAnalysis.ASTs import LetStatementUninitializedAst, LocalVariableSingleIdentifierAst
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -82,7 +82,7 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
         # Set initialization / borrow asts for the symbol
-        if isinstance(self.variable, LocalVariableSingleAst):
+        if isinstance(self.variable, LocalVariableSingleIdentifierAst):
             variable_symbol = scope_handler.current_scope.get_symbol(self.variable.identifier)
             variable_symbol.memory_info = MemoryStatus(
                 ast_initialized=self,
