@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -15,22 +16,27 @@ class PatternBlockAst(Ast, SemanticAnalyser):
     to match a value against a pattern.
 
     Attributes:
-        comp_operator: The optional comparison operator.
+        comp_operator: The comparison operator.
         patterns: The patterns being compared.
         guard: The optional guard.
         body: The body of the pattern block.
     """
 
-    comp_operator: Optional["TokenAst"]
+    comp_operator: "TokenAst"
     patterns: List["PatternVariantAst"]
     guard: Optional["PatternGuardAst"]
     body: "InnerScopeAst[StatementAst]"
+
+    def __post_init__(self):
+        # Add a "KwIs" for the "else" pattern, for semantic analysis.
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+        self.comp_operator = self.comp_operator or TokenAst.dummy(TokenType.KwIs)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the PatternBlockAst.
         s = ""
-        s += f"{self.comp_operator.print(printer)} " if self.comp_operator else ""
+        s += f"{self.comp_operator.print(printer)}"
         s += f"{Seq(self.patterns).print(printer, ", ")}"
         s += f"{self.guard.print(printer)}" if self.guard else ""
         s += f" {self.body.print(printer)}"
