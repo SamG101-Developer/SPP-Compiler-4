@@ -10,7 +10,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
+class PatternVariantTupleDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantTupleAst node represents a tuple destructuring pattern on a conditional branch. This is used to
     match a tuple of values to a tuple of patterns. For example, "== (1, (2, 3), a)" would match a tuple of 3 elements,
@@ -23,7 +23,7 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
     """
 
     paren_l_token: "TokenAst"
-    items: List["PatternVariantNestedAst"]
+    items: List["PatternVariantNestedForTupleDestructureAst"]
     paren_r_token: "TokenAst"
 
     @ast_printer_method
@@ -34,22 +34,22 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{self.paren_r_token.print(printer)}"
         return s
 
-    def convert_to_variable(self) -> "LetStatementInitializedAst":
+    def convert_to_variable(self) -> "LocalVariableTupleDestructureAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableTupleAst, PatternVariantLiteralAst, PatternVariantSkipArgumentsAst,
-            PatternVariantSkipArgumentAst, PatternVariantVariableAssignmentAst, PatternVariantVariableAst)
+            LocalVariableTupleDestructureAst, PatternVariantLiteralAst, PatternVariantSkipArgumentsAst,
+            PatternVariantSkipArgumentAst, PatternVariantAttributeBindingAst, PatternVariantSingleIdentifierAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(
-            PatternVariantVariableAssignmentAst,
+            PatternVariantAttributeBindingAst,
             PatternVariantSkipArgumentAst,
             PatternVariantSkipArgumentsAst,
-            PatternVariantVariableAst,
+            PatternVariantSingleIdentifierAst,
             PatternVariantLiteralAst,
         ).map(lambda i: i.convert_to_variable())
 
         # Return the new LocalVariableTupleAst.
-        bindings = LocalVariableTupleAst(
+        bindings = LocalVariableTupleDestructureAst(
             pos=self.pos,
             paren_l_token=self.paren_l_token,
             items=converted_items.value,
@@ -81,3 +81,6 @@ class PatternVariantTupleAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=kwargs["condition"].infer_type(scope_handler, **kwargs).type)
+
+
+__all__ = ["PatternVariantTupleDestructureAst"]

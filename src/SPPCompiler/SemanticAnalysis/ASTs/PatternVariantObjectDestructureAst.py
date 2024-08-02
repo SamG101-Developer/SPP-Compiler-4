@@ -10,7 +10,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
+class PatternVariantObjectDestructureAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantDestructureAst node represents a destructuring pattern on a conditional branch. This is used to
     match a value to a pattern. For example, "case point then == Point(x, y)" would destructure the "point" into "x" and
@@ -25,7 +25,7 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
     class_type: "TypeAst"
     bracket_l_token: "TokenAst"
-    items: List["PatternVariantNestedAst"]
+    items: List["PatternVariantNestedForObjectDestructureAst"]
     bracket_r_token: "TokenAst"
 
     @ast_printer_method
@@ -38,20 +38,20 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{self.bracket_r_token.print(printer)}"
         return s
 
-    def convert_to_variable(self) -> "LocalVariableDestructureAst":
+    def convert_to_variable(self) -> "LocalVariableObjectDestructureAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableDestructureAst, PatternVariantSkipArgumentsAst, PatternVariantVariableAssignmentAst,
-            PatternVariantVariableAst)
+            LocalVariableObjectDestructureAst, PatternVariantSkipArgumentsAst, PatternVariantAttributeBindingAst,
+            PatternVariantSingleIdentifierAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(
-            PatternVariantVariableAssignmentAst,
+            PatternVariantAttributeBindingAst,
             PatternVariantSkipArgumentsAst,
-            PatternVariantVariableAst
+            PatternVariantSingleIdentifierAst
         ).map(lambda i: i.convert_to_variable())
 
         # Return the new LocalVariableDestructureAst.
-        bindings = LocalVariableDestructureAst(
+        bindings = LocalVariableObjectDestructureAst(
             pos=self.pos,
             class_type=self.class_type,
             bracket_l_token=self.bracket_l_token,
@@ -86,4 +86,4 @@ class PatternVariantDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         return InferredType(convention=ConventionMovAst, type=self.class_type)
 
 
-__all__ = ["PatternVariantDestructureAst"]
+__all__ = ["PatternVariantObjectDestructureAst"]

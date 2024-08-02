@@ -9,7 +9,7 @@ from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 
 @dataclass
-class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
+class PatternVariantAttributeBindingAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantLiteralAst node represents an assignment pattern on a conditional branch. This is used to match a
     value to a value whilst binding it to a variable. For example, "case point then == Point(x=0, y)" would bind
@@ -35,10 +35,10 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def convert_to_variable(self, **kwargs) -> "LocalVariableAssignmentAst":
-        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableAssignmentAst import LocalVariableAssignmentAst
+        from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableAttributeBindingAst import LocalVariableAttributeBindingAst
 
         # Return the new LocalVariableAssignmentAst.
-        bindings = LocalVariableAssignmentAst(
+        bindings = LocalVariableAttributeBindingAst(
             pos=self.pos,
             identifier=self.identifier,
             assign_token=self.assign_token,
@@ -74,4 +74,4 @@ class PatternVariantVariableAssignmentAst(Ast, SemanticAnalyser, TypeInfer):
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
 
 
-__all__ = ["PatternVariantVariableAssignmentAst"]
+__all__ = ["PatternVariantAttributeBindingAst"]
