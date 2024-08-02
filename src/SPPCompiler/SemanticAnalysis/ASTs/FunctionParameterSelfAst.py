@@ -42,13 +42,13 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LetStatementUninitializedAst, TokenAst, ConventionRefAst, ConventionMutAst, LocalVariableSingleAst)
+            LetStatementUninitializedAst, TokenAst, ConventionRefAst, ConventionMutAst, LocalVariableSingleIdentifierAst)
 
         # Convert the parameter to a "let" statement.
         let_statement = LetStatementUninitializedAst(
             pos=self.pos,
             let_keyword=TokenAst.dummy(TokenType.KwLet),
-            assign_to=LocalVariableSingleAst(self.pos, self.is_mutable, self.identifier),
+            assign_to=LocalVariableSingleIdentifierAst(self.pos, self.is_mutable, self.identifier),
             colon_token=TokenAst.dummy(TokenType.TkColon),
             type_declaration=self.type_declaration)
         let_statement.do_semantic_analysis(scope_handler, **kwargs)

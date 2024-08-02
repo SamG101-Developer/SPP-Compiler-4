@@ -78,9 +78,9 @@ class FunctionParameterOptionalAst(Ast, SemanticAnalyser):
             raise SemanticErrors.TYPE_MISMATCH(self, self.type_declaration, default_value_type, symbol)
 
     def identifier_for_param(self) -> "IdentifierAst":
-        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleAst, IdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleIdentifierAst, IdentifierAst
         match self.variable:
-            case LocalVariableSingleAst(): return self.variable.identifier
+            case LocalVariableSingleIdentifierAst(): return self.variable.identifier
             case _: return IdentifierAst(self.pos, "UNMATCHABLE")
 
     def __eq__(self, other):
