@@ -66,7 +66,7 @@ sup C on B { }
 fun aaaaaaaaaa(Point(x, y, z): Point) -> std::BigInt { ret 5 }
 
 
-fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
+fun main(y: &std::BigInt, v99: std::Vec[std::BigInt], tl: (std::U32, std::U64)) -> std::Void {
     1 + 2 + 3
 
     let point = Point(x=100, y=100, z=100)
@@ -106,12 +106,17 @@ fun main(y: &std::BigInt, v99: std::Vec[std::BigInt]) -> std::Void {
     let (..mut rest, e) = t
     rest = (0, "random", "values", 1, 2, 3, false)
 
-    case v == then
-        Vec(point=Point(x, y, z=0), dir) { }
-        Vec(point=Point(x, y, z=0), dir=1) { }
+    case v then
+        is Vec(point=Point(x, y, z=0), dir) { }
+        is Vec(point=Point(x, y, z=0), dir=1) { }
+
+    let ppp = 1
+    case ppp then
+        == 123 { }
+        == 2 { }
 
     let tuple = (1, 2, 3, 4, 5)
-    case tuple == then
-        (a, b, _, _, "10") { }
+    case tuple then
+        is (a, b, _, _, "10") { }
         else {}
 }

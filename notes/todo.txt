@@ -3,12 +3,9 @@ Generics:
 -- Sup scopes for certain generics only.
 -- Function specialization.
 
-Binary expressions:
--- Rearrange from parsed AST order to correct AST order (current implementation is bugged).
-
 Coroutines:
 -- Check the sent objects' type against the `Send` generic parameter.
--- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between wait points.
+-- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspend points.
 
 Sup classes:
 -- Ensure overridden methods exist on the `sup` class.
@@ -18,7 +15,6 @@ Object initialization:
 -- Sup initialization
 
 Patterns:
--- Semantics for `is ...`.
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
 
 Tuples:
@@ -48,3 +44,4 @@ Other:
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Providing too many generics to a type creates an unhandled python error.
 -- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
+-- Union types throw errors
