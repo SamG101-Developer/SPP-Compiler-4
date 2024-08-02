@@ -6,7 +6,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class LocalVariableAssignmentAst(Ast, SemanticAnalyser):
+class LocalVariableAttributeBindingAst(Ast, SemanticAnalyser):
     """
     The LocalVariableAssignmentAst node represents a single local variable with a pre-assigned value. This is only used
     in the pattern matching. For example, in the statement "case point == then Point(x=5, ..) { ... }", "x" is being
@@ -35,4 +35,4 @@ class LocalVariableAssignmentAst(Ast, SemanticAnalyser):
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
-__all__ = ["LocalVariableAssignmentAst"]
+__all__ = ["LocalVariableAttributeBindingAst"]

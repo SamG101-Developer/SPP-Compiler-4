@@ -11,7 +11,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class LocalVariableDestructureAst(Ast, SemanticAnalyser):
+class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
     """
     The LocalVariableDestructureAst node represents a type-destructure of local variables. This is an advanced form of a
     local variable, and is seen mostly in the "let" statement. For example, in the statement
@@ -37,7 +37,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableSkipArgumentsAst, LocalVariableSingleAst, LocalVariableAssignmentAst, ConventionMovAst,
+            LocalVariableSkipArgumentsAst, LocalVariableSingleIdentifierAst, LocalVariableAttributeBindingAst, ConventionMovAst,
             PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
         value = kwargs["value"]
@@ -71,7 +71,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).value, "attribute")
 
             # Convert the destructure into a let statement, for "let Point(x, y, z) = point".
-            if isinstance(current_local_variable, LocalVariableSingleAst):
+            if isinstance(current_local_variable, LocalVariableSingleIdentifierAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
                     dot_token=TokenAst.dummy(TokenType.TkDot),
@@ -92,7 +92,7 @@ class LocalVariableDestructureAst(Ast, SemanticAnalyser):
                 nested_destructures.append(ast_2)
 
             # Convert the destructure into a let statement, for "let Vec(point=Point(x, y, z)) = vec".
-            elif isinstance(current_local_variable, LocalVariableAssignmentAst):
+            elif isinstance(current_local_variable, LocalVariableAttributeBindingAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
                     dot_token=TokenAst.dummy(TokenType.TkDot),

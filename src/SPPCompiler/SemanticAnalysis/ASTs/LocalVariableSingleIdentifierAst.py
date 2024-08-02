@@ -8,7 +8,7 @@ from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemorySta
 
 
 @dataclass
-class LocalVariableSingleAst(Ast, SemanticAnalyser):
+class LocalVariableSingleIdentifierAst(Ast, SemanticAnalyser):
     """
     The LocalVariableSingleAst node represents a single local variable. This is the most basic form of a local variable,
     and is seen mostly in the "let" statement. For example, in the statement "let mut x = 5", "mut x" is the single
@@ -48,4 +48,4 @@ class LocalVariableSingleAst(Ast, SemanticAnalyser):
         scope_handler.current_scope.add_symbol(symbol)
 
 
-__all__ = ["LocalVariableSingleAst"]
+__all__ = ["LocalVariableSingleIdentifierAst"]

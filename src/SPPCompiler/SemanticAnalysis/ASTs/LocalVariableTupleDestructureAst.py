@@ -10,7 +10,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class LocalVariableTupleAst(Ast, SemanticAnalyser):
+class LocalVariableTupleDestructureAst(Ast, SemanticAnalyser):
     """
     The LocalVariableTupleAst node represents a tuple of local variables. This is an advanced form of a local variable,
     and is seen mostly in the "let" statement. For example, in the statement "let (mut x, y) = (5, 6)", "(mut x, y)" is
@@ -127,4 +127,4 @@ class LocalVariableTupleAst(Ast, SemanticAnalyser):
             new_let_statement.do_semantic_analysis(scope_handler, **kwargs)
 
 
-__all__ = ["LocalVariableTupleAst"]
+__all__ = ["LocalVariableTupleDestructureAst"]
