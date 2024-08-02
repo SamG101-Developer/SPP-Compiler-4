@@ -248,8 +248,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     display_name = f"{lhs}"
                     display_ast = lhs
 
+            called_signature = f"\n\nCalled signature:\n  - {display_name}("
+            for argument in self.arguments.arguments:
+                called_signature += f"{argument.infer_type(scope_handler, **kwargs).type}, "
+            called_signature = called_signature[:-2] + ")"
+
             # Merge all the overload errors.
-            signatures = "\nAvailable signatures:\n"
+            signatures = f"{called_signature}\n\nAvailable signatures:\n"
             for func_overload, func_overload_error in func_overload_errors:
                 error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
                 signatures += f"  - {error_string}\n"
