@@ -9,7 +9,7 @@ from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
-class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
+class PatternVariantSingleIdentifierAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The PatternVariantVariableAst node represents a destructuring pattern on a conditional branch. This is used to
     match a value to a single variable. For example, "let Point(x, y) = point" would destructure the "point" into "x" and "y".
@@ -31,10 +31,10 @@ class PatternVariantVariableAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def convert_to_variable(self) -> "LocalVariableSingleAst":
-        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleAst
+        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleIdentifierAst
 
         # Return the new LocalVariableSingleAst.
-        return LocalVariableSingleAst(
+        return LocalVariableSingleIdentifierAst(
             pos=self.pos,
             is_mutable=self.is_mutable,
             identifier=self.identifier)
