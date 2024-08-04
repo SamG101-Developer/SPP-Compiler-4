@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Type, Optional
+from typing import Dict, Type, Optional, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -195,6 +195,16 @@ def convert_function_arguments_to_named(
             arguments.replace(argument, new_argument)
 
     return arguments
+
+
+def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> Seq[Tuple[Scope, "SupPrototypeNormalAst"]]:
+    from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+    from SPPCompiler.SyntacticAnalysis.Parser import Parser
+
+    converted_identifier = Parser(Lexer(f"MOCK_{identifier}").lex(), "").parse_type().parse_once()
+    mock_scopes = Seq(type_scope.get_all_symbols(converted_identifier)).map(lambda sym: sym.associated_scope)
+    func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
+    return func_scopes
 
 
 class TypeInfer(ABC):
