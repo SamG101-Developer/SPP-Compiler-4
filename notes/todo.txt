@@ -24,7 +24,6 @@ Tuples:
 
 Functions:
 -- Inheriting a class requires the `self` argument type-check to match the new sub-class
--- Reject overlapping overloads ie `func()` and `func(a: U32 = 1)` are overlapping
 -- Reject ambiguous functions calls where > 1 overload is valid
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks.
