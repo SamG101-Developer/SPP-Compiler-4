@@ -6,8 +6,10 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import get_all_function_scopes
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -229,8 +231,29 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
 
+        # Check there are no conflicting function overloads.
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
+        owner_type = self._ctx.identifier.without_generics() if not isinstance(self._ctx, ModulePrototypeAst) else Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
+        type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
+        func_scopes = get_all_function_scopes(type_scope, self._orig)
+
+        for func_scope in func_scopes:
+            overload_definition = func_scope[1].body.members[0]
+            overload_scope = func_scope[0].children[0]
+            if overload_definition == self: continue
+
+            # Compare the required parameter types of the function prototypes. If they are the symbolically equal, then
+            # the function overloads are conflicting.
+            this_required_parameter_types = Seq(self.parameters.get_req()).map(lambda p: p.type_declaration)
+            that_required_parameter_types = Seq(overload_definition.parameters.get_req()).map(lambda p: p.type_declaration)
+            if this_required_parameter_types.length != that_required_parameter_types.length: continue
+            if all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).value):
+                raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, self, overload_definition)
+
         # The rest of the prototype (body) etc is handled in the SubroutinePrototypeAst and CoroutinePrototypeAst nodes,
-        # as they have different analysis requirements.
+        # as they have different analysis requirements. This includes exiting the scope.
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same generic parameters, parameters, return type, and where
