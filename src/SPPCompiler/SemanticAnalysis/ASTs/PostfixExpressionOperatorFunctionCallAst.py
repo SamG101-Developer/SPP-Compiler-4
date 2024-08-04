@@ -6,7 +6,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -57,6 +57,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # Get the LHS-type of the function call. For postfix identifiers, this is the rightmost identifier left of the
         # function name.
         re_analyse = False
+        type_scope = None
         match lhs:
             case PostfixExpressionAst() if lhs.op.dot_token.token.token_type == TokenType.TkDot:
                 lhs_type = lhs.lhs.infer_type(scope_handler, **kwargs).type
@@ -95,8 +96,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Get the function scopes from the LHS-type. These will be the "MOCK_..." classes created as type symbols inside
         # the owner-type's scope. Their associated scopes are attached to the symbols.
-        mock_scopes = Seq(type_scope.get_all_symbols(Parser(Lexer(f"MOCK_{lhs_identifier}").lex(), "").parse_type().parse_once())).map(lambda sym: sym.associated_scope)
-        func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
+        # mock_scopes = Seq(type_scope.get_all_symbols(Parser(Lexer(f"MOCK_{lhs_identifier}").lex(), "").parse_type().parse_once())).map(lambda sym: sym.associated_scope)
+        # func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
+        func_scopes = get_all_function_scopes(type_scope, lhs_identifier)
 
         # Lists to save valid overloads and func overload errors. These lists are mutually exclusive.
         valid_overloads = []
