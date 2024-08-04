@@ -57,8 +57,8 @@ cls B {
 cls C { }
 
 sup C {
-    fun upper(&self) -> std::Str { }
-    fun upper(&self, test: std::BigInt = 0) -> std::Bool { }
+    fun upper(&self, test: &std::BigInt) -> std::Str { }
+    fun upper(&self, test: std::BigInt) -> std::Bool { }
 }
 
 sup C on B { }

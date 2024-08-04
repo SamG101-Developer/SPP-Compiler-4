@@ -243,13 +243,23 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             overload_definition = func_scope[1].body.members[0]
             overload_scope = func_scope[0].children[0]
             if overload_definition == self: continue
+            that_parameters = overload_definition.parameters
 
-            # Compare the required parameter types of the function prototypes. If they are the symbolically equal, then
-            # the function overloads are conflicting.
+            # Compare the required parameter types and conventions of the function prototypes.
             this_required_parameter_types = Seq(self.parameters.get_req()).map(lambda p: p.type_declaration)
-            that_required_parameter_types = Seq(overload_definition.parameters.get_req()).map(lambda p: p.type_declaration)
+            that_required_parameter_types = Seq(that_parameters.get_req()).map(lambda p: p.type_declaration)
             if this_required_parameter_types.length != that_required_parameter_types.length: continue
-            if all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).value):
+
+            # Compare the required parameter conventions of the function prototypes.
+            this_required_conventions = Seq(self.parameters.get_req()).map(lambda p: p.convention)
+            that_required_conventions = Seq(that_parameters.get_req()).map(lambda p: p.convention)
+
+            # Check if the required parameter types and conventions are the same.
+            check_1 = all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).value)
+            check_2 = all(this_required_conventions.zip(that_required_conventions).map(lambda p: p[0] == p[1]).value)
+
+            # If the required parameter types and conventions are the same, the function prototypes are conflicting.
+            if check_1 and check_2:
                 raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, self, overload_definition)
 
         # The rest of the prototype (body) etc is handled in the SubroutinePrototypeAst and CoroutinePrototypeAst nodes,
