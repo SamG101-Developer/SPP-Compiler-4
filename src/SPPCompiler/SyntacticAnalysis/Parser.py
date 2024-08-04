@@ -525,7 +525,7 @@ class Parser:
         p1 = self.parse_token(TokenType.KwLoop).parse_once()
         p2 = self.parse_loop_expression_condition().parse_once()
         p3 = self.parse_inner_scope(self.parse_statement).parse_once()
-        p4 = self.parse_while_else_expression().parse_optional()
+        p4 = self.parse_loop_else_expression().parse_optional()
         return LoopExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
@@ -550,7 +550,7 @@ class Parser:
         return LoopExpressionConditionIterableAst(c1, p1, p2, p3)
 
     @parser_rule
-    def parse_while_else_expression(self) -> LoopElseExpressionAst:
+    def parse_loop_else_expression(self) -> LoopElseExpressionAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
         p2 = self.parse_inner_scope(self.parse_statement).parse_once()
