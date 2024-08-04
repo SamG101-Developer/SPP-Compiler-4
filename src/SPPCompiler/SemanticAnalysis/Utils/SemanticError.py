@@ -647,3 +647,17 @@ class SemanticErrors:
             message="Type destructuring requires a union type.",
             tip="Ensure the type is a union type.")
         return exception
+
+    @staticmethod
+    def CONFLICTING_FUNCTION_OVERLOADS(name: str, ast0: Ast, ast1: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast0.pos,
+            tag_message=f"1st overload of function '{name}' found here.")
+        exception.add_error(
+            pos=ast1.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Conflicting overload of function '{name}' found here.",
+            message="Conflicting function overloads.",
+            tip="Ensure that the function overloads have different signatures.")
+        return exception
