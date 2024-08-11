@@ -57,7 +57,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.rhs)
         self.rhs.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Check the memory status of the lhs identifi.
+        # Check the memory status of the lhs identifier.
         for lhs, lhs_symbol in Seq(self.lhs).zip(Seq(lhs_symbols)):
             check_move = not isinstance(lhs, IdentifierAst)
             ensure_memory_integrity(self, lhs_symbol.name, self.op, scope_handler, check_move=check_move, mark_symbols=False)
