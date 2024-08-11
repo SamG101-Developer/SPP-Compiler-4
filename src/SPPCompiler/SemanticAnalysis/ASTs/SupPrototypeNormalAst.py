@@ -55,7 +55,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
-        scope_handler.into_new_scope(f"{self.identifier}#SUP-functions-{time.time()}")
+        scope_handler.into_new_scope(f"{self.identifier}#SUP-functions")
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
