@@ -7,6 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -51,8 +52,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst, FunctionParameterSelfAst
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst
-        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Get the LHS-type of the function call. For postfix identifiers, this is the rightmost identifier left of the
         # function name.
@@ -71,7 +70,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
             case IdentifierAst():
-                lhs_type = Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
+                lhs_type = CommonTypes.global_()
                 lhs_identifier = lhs
                 re_analyse = True
                 owner_scope_generic_arguments = Seq()

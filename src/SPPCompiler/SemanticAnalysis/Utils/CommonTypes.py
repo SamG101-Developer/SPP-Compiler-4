@@ -1,5 +1,11 @@
 class CommonTypes:
     @staticmethod
+    def global_(pos: int = -1):
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
+        return Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
+
+    @staticmethod
     def self(pos: int = -1):
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericIdentifierAst
         return TypeAst(pos, [GenericIdentifierAst(pos, "Self", None)])

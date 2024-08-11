@@ -223,6 +223,11 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
+
+        # Move into the function scope.
         scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters, the function parameters and the return type, in this order. This allows
@@ -231,19 +236,32 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Check there are no conflicting function overloads.
-        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
-        from SPPCompiler.SyntacticAnalysis.Parser import Parser
-        owner_type = self._ctx.identifier.without_generics() if not isinstance(self._ctx, ModulePrototypeAst) else Parser(Lexer(f"GLOBAL").lex(), "").parse_type().parse_once()
+        # Check there are no conflicting function overloads. First, get all the overload function scopes.
+        # Todo: this inadvertently bans overriding a super-class function implementation
+        match self._ctx:
+            case ModulePrototypeAst(): owner_type = CommonTypes.global_()
+            case _: owner_type = self._ctx.identifier.without_generics()
+
         type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
         func_scopes = get_all_function_scopes(type_scope, self._orig)
 
+        # Iterate through each function scope, skipping the current scope (don't compare self against self).
         for func_scope in func_scopes:
             overload_definition = func_scope[1].body.members[0]
             overload_scope = func_scope[0].children[0]
             if overload_definition == self: continue
             that_parameters = overload_definition.parameters
+
+            # Check if a "self" parameter exists on nether or both
+            this_self_parameter = self.parameters.get_self()
+            that_self_parameter = that_parameters.get_self()
+            if (this_self_parameter is not None) ^ (that_self_parameter is not None): continue
+
+            # Check if "self" is the same (allows override detection)
+            if this_self_parameter is not None:
+                this_self_type = scope_handler.current_scope.parent.name
+                that_self_type = overload_scope.parent.name
+                if this_self_type != that_self_type: continue
 
             # Compare the required parameter types and conventions of the function prototypes.
             this_required_parameter_types = Seq(self.parameters.get_req()).map(lambda p: p.type_declaration)
@@ -262,7 +280,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             if check_1 and check_2:
                 raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, self, overload_definition)
 
-        # The rest of the prototype (body) etc is handled in the SubroutinePrototypeAst and CoroutinePrototypeAst nodes,
+        # The rest of the prototype (the body) is handled in the SubroutinePrototypeAst and CoroutinePrototypeAst nodes,
         # as they have different analysis requirements. This includes exiting the scope.
 
     def __eq__(self, other):
