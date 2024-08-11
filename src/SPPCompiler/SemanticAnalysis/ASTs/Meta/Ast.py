@@ -1,17 +1,14 @@
 from __future__ import annotations
-
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass
-class Ast(ABC):
+class Ast:
     pos: int
     
     @ast_printer_method
-    @abstractmethod
     def print(self, printer: AstPrinter) -> str:
         ...
     
@@ -23,9 +20,8 @@ class Ast(ABC):
         return self.print(printer)
 
 
-class Default(ABC):
+class Default:
     @staticmethod
-    @abstractmethod
     def default() -> Default:
         ...
 

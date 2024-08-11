@@ -1,17 +1,11 @@
-from abc import ABCMeta
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
-class ConventionMovAstMeta(ABCMeta):
-    def __repr__(self):
-        return ""
-
-
 @dataclass
-class ConventionMovAst(Ast, metaclass=ConventionMovAstMeta):
+class ConventionMovAst(Ast):
     """
     The ConventionMovAst node represents the convention for moving or copying an argument into a function parameter for
     a function call. It is also used to yield an owned value out of a function.

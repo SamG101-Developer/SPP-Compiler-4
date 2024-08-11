@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Type, Optional, Tuple
 
@@ -207,8 +206,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
     return func_scopes
 
 
-class TypeInfer(ABC):
-    @abstractmethod
+class TypeInfer:
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         pass
 

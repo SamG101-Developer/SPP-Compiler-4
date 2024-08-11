@@ -1,4 +1,3 @@
-from abc import ABCMeta
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -6,13 +5,8 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
-class ConventionRefAstMeta(ABCMeta):
-    def __repr__(self):
-        return "&"
-
-
 @dataclass
-class ConventionRefAst(Ast, metaclass=ConventionRefAstMeta):
+class ConventionRefAst(Ast):
     """
     The ConventionRefAst node represents the convention taking an immutable borrow of an argument into a function
     parameter for a function call. It is also used to yield an immutable borrow out of a coroutine.

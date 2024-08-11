@@ -1,4 +1,3 @@
-from abc import ABCMeta
 from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -6,13 +5,8 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
-class ConventionMutAstMeta(ABCMeta):
-    def __repr__(self):
-        return "&mut "
-
-
 @dataclass
-class ConventionMutAst(Ast, metaclass=ConventionMutAstMeta):
+class ConventionMutAst(Ast):
     """
     The ConventionMutAst node represents the convention taking a mutable borrow of an argument into a function parameter
     for a function call. It is also used to yield a mutable borrow out of a coroutine.
