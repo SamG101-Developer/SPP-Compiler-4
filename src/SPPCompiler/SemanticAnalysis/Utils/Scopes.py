@@ -65,7 +65,7 @@ class Scope:
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
         if isinstance(name, TypeAst):
-            name = copy.deepcopy(name)
+            name = TypeAst(pos=name.pos, parts=name.parts.copy())
             namespace = name.parts[:-1].copy()
 
             # For each part in the namespace, enter the child scope if it exists.
