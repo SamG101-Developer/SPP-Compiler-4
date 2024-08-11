@@ -1,12 +1,13 @@
 import cProfile
 import os.path
+import pstats
 
 import colorama
 
 from SPPCompiler.Compiler.Compiler import Compiler
 
 
-PROFILE = False
+PROFILE = True
 
 
 def main():
@@ -24,4 +25,6 @@ if __name__ == "__main__":
         p.enable()
         main()
         p.disable()
-        p.print_stats(sort="ncalls")
+
+        s = pstats.Stats(p)
+        p.dump_stats("profile.prof")
