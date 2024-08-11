@@ -29,5 +29,6 @@ sup std::ops::Eq on BigInt {
 }
 
 
+cls U16 { }
 cls U32 { }
 cls U64 { }

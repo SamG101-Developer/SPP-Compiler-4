@@ -1,0 +1,6 @@
+mod std::algorithms
+
+
+cls Sortable[T] { }
+
+cls Comparable[T] { }

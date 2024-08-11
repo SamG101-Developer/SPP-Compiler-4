@@ -1,9 +1,13 @@
 mod std::residual
 
 
-cls Opt[T] {
-    value: Vec[T]
-}
+cls Opt[T] { }
+
+cls Res[T, E] { }
+
+
+# Todo: use Opt[T] = T | None
+# Todo: use Err[T, E] = T | E
 
 
 ##

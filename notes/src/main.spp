@@ -67,7 +67,13 @@ sup C on B { }
 fun aaaaaaaaaa(Point(x, y, z): Point) -> std::BigInt { ret 5 }
 
 
+fun generic_test[T](a: T, b: T) -> T { }
+
+
 fun main(y: &std::BigInt, v99: std::Vec[std::BigInt], tl: (std::U32, std::U64)) -> std::Void {
+    let mut gt = generic_test(false, false)
+    gt = false
+
     1 + 2 + 3
 
     let point = Point(x=100, y=100, z=100)

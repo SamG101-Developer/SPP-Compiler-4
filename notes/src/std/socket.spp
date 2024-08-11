@@ -1,0 +1,35 @@
+mod std::socket
+
+
+cls SocketError { }
+
+cls SocketDomain { }
+
+
+cls TcpSocket {
+    handler: U64
+}
+
+sup TcpSocket {
+    fun new(domain: SocketDomain) -> Res[TcpSocket, SocketError] { }
+    fun connect(&self, host: Str, port: U16) -> Res[Void, SocketError] {}
+    fun close(&self) -> Void { }
+}
+
+sup TcpSocket {
+    fun bind(&self, host: Str, port: U16) -> Res[Void, SocketError] { }
+    fun listen(&self, backlog: U64 = 5_u64) -> Res[Void, SocketError] { }
+    fun accept(&self) -> Res[TcpSocket, SocketError] { }
+}
+
+sup TcpSocket {
+    fun send(&self, data: Str) -> Res[Void, SocketError] { }
+    fun recv(&self, size: U64) -> Res[Str, SocketError] { }
+    fun recv_all(&self, eos: Str = "\r\n") -> Res[Str, SocketError] { }
+}
+
+##
+sup std::ops::Del on TcpSocket {
+    fun del(&self) -> Void { }
+}
+##
