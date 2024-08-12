@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum
+from fastenum import Enum
 import json_fix
 
 

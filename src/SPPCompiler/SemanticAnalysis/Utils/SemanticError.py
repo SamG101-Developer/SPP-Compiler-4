@@ -3,7 +3,7 @@ from __future__ import annotations
 import difflib
 import inflection
 from colorama import Fore, Style
-from enum import Enum
+from fastenum import Enum
 from typing import List, Optional, Tuple
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
