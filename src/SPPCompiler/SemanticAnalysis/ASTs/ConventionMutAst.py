@@ -1,5 +1,7 @@
+from __future__ import annotations
 from dataclasses import dataclass
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
@@ -18,6 +20,16 @@ class ConventionMutAst(Ast):
 
     ampersand_token: TokenAst
     mut_token: TokenAst
+
+    @staticmethod
+    def dummy() -> ConventionMutAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+
+        # Quick way to create a convention mut ast.
+        return ConventionMutAst(
+            pos=-1,
+            ampersand_token=TokenAst.dummy(TokenType.TkBorrow),
+            mut_token=TokenAst.dummy(TokenType.KwMut))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

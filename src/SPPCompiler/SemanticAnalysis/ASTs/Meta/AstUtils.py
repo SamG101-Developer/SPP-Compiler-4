@@ -220,7 +220,7 @@ class InferredType:
         return self.convention == other.convention and self.type.symbolic_eq(other.type, scope, that_scope)
 
     def __str__(self):
-        return f"{self.convention}{self.type}"
+        return f"{self.convention.dummy()}{self.type}"
 
 
 __all__ = [
