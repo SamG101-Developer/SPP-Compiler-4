@@ -1,4 +1,6 @@
 import math
+import os
+
 import colorama
 
 
@@ -14,27 +16,37 @@ class ProgressBar:
         self._max_value = max_value
         self._current_value = 0
         self._current_label = ""
-        self._character = "▔"
-        self._init()
-
-    def _init(self) -> None:
-        color = colorama.Fore.LIGHTWHITE_EX
-        reset = colorama.Fore.RESET
-        print(f"{color}{self._title}:{reset}\n")
+        self._character = "—"
 
     def next(self, label: str) -> None:
         self._current_value += 1
-        self._current_label = ""
+        self._current_label = label.split(os.path.sep)[-1]
         self._print()
 
     def _print(self) -> None:
+        # Calculate the percentage done, and the number of characters to print.
         percentage = self._current_value / self._max_value * 100
         bar = self._character * math.floor(percentage)
 
-        color = colorama.Fore.LIGHTRED_EX if percentage < 25 else colorama.Fore.LIGHTYELLOW_EX if percentage < 75 else colorama.Fore.LIGHTGREEN_EX
+        # Create the title label, describing the progress bar.
+        color = colorama.Fore.LIGHTWHITE_EX
         reset = colorama.Fore.RESET
+        title = f"{color}{self._title}{reset} "
 
-        print(f"\r\t{color}{bar}{reset}", end="")
-
+        # Create the subtext label, describing the current step, and pad it to the end of the bar.
+        pad_to_label = " " * (100 - len(bar))
         if self._current_value == self._max_value:
-            print("\n")
+            label = "[Done]"
+        else:
+            label = f"{pad_to_label}[{self._current_label}]"
+        label = f"{color}{label}{reset}"
+
+        # Create the colour of the progress bar depending on the percentage complete.
+        color = colorama.Fore.LIGHTRED_EX if percentage < 25 else colorama.Fore.LIGHTYELLOW_EX if percentage < 75 else colorama.Fore.LIGHTGREEN_EX
+
+        # Print the progress bar
+        print(f"\r{title}{color}{bar}{reset} {label}", end="")
+
+        # Print a newline if the progress bar is complete.
+        if self._current_value == self._max_value:
+            print("")

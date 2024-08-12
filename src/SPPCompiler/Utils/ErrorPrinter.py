@@ -1,3 +1,4 @@
+import os
 from typing import NoReturn
 
 from SPPCompiler.Utils.ErrorFormatter import ErrorFormatter
@@ -6,7 +7,7 @@ from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError
 
 def format_semantic_error(err_fmt: ErrorFormatter, exception: SemanticError) -> str:
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrorStringFormatType
-    final_error = ""
+    final_error = "\n"
     for error in exception.additional_info:
         final_error += err_fmt.error(
             error[0], message=error[1],
