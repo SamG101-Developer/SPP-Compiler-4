@@ -71,6 +71,9 @@ fun generic_test[T](a: T, b: T) -> T { }
 
 
 fun main(y: &std::BigInt, v99: std::Vec[std::BigInt], tl: (std::U32, std::U64)) -> std::Void {
+    let boob = B(x=1, y=2)
+    boob.upper(1)
+
     let mut gt = generic_test(false, false)
     gt = false
 

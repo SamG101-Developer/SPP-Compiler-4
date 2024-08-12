@@ -5,7 +5,7 @@ Generics:
 
 Coroutines:
 -- Check the sent objects' type against the `Send` generic parameter.
--- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspend points.
+-- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspension points.
 
 Sup classes:
 -- Ensure overridden methods exist on the `sup` class.
@@ -13,6 +13,8 @@ Sup classes:
 
 Object initialization:
 -- Sup initialization
+    -- Replace sup-scopes with the generically-filled scopes?
+    -- What about inheriting the same superclass with different generics?)
 
 Patterns:
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
@@ -23,17 +25,17 @@ Tuples:
 -- Check memory rules apply to multiple values inside tuples
 
 Functions:
--- Inheriting a class requires the `self` argument type-check to match the new sub-class
 -- Reject ambiguous functions calls where > 1 overload is valid
 -- Re-add the "cannot use self in module function" check (removed for false positives)
--- Generic fall-through for sup-inheritance blocks.
+-- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
 -- Functions with destructured parameters and no members act as if they have members (destructure is injected).
 
 Typedefs:
+-- Redo the lot
 -- Importing typedefs (see TypedefStatementAst::generate() comments).
 -- Sup-typedefs.
--- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub)) -- make more cyclic like "let" statements.
+-- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub), Vec) -- make more cyclic like "let" statements.
 
 Other:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
@@ -43,4 +45,6 @@ Other:
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Providing too many generics to a type creates an unhandled python error.
 -- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
--- Union types throw errors
+    -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
+-- Union types throw generic-oriented errors
+-- Compound assignment => check LHS is a symbolic identifier.

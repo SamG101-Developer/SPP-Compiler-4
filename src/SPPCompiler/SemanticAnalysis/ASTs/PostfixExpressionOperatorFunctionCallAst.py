@@ -221,8 +221,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         argument_type.convention = parameter_type.convention
                         argument.convention = parameter.convention
                         # Check the argument type is a subtype of the parameter type.
-                        if not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
-                            raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
+                        # if not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
+                        #     raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
 
                     # Otherwise, check the argument type directly matches the parameter type.
                     elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
