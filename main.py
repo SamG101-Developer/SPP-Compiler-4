@@ -7,13 +7,13 @@ import colorama
 from SPPCompiler.Compiler.Compiler import Compiler
 
 
-PROFILE = True
+PROFILE = False
 
 
 def main():
     colorama.init()
     file_path = os.path.abspath("notes/src")
-    compiler = Compiler(file_path)
+    compiler = Compiler(file_path, mode="r")
     colorama.deinit()
 
 
