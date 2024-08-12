@@ -27,7 +27,7 @@ class Scope:
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         scope = self
         if isinstance(symbol.name, TypeAst):
-            name = copy.deepcopy(symbol.name)
+            name = TypeAst(pos=symbol.name.pos, parts=symbol.name.parts.copy())
             namespace = name.parts[:-1].copy()
 
             for part in namespace.copy():
