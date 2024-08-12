@@ -2,6 +2,16 @@ from SPPCompiler.LexicalAnalysis.Tokens import Token, TokenType
 import re
 
 
+_TKS   = [t for t in TokenType.__dict__.keys() if t[:2] == "Tk"]
+_KWS = [t for t in TokenType.__dict__.keys() if t[:2] == "Kw"]
+_LXS  = [t for t in TokenType.__dict__.keys() if t[:2] == "Lx"]
+
+_TKS.sort(key=lambda t: len(TokenType[t].value), reverse=True)
+_KWS.sort(key=lambda t: len(TokenType[t].value), reverse=True)
+
+_AVAILABLE_TOKS = _KWS + _LXS + _TKS
+
+
 class Lexer:
     _code: str
 
@@ -12,17 +22,8 @@ class Lexer:
         current = 0
         output = []
 
-        tokens   = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Tk"]
-        keywords = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Kw"]
-        lexemes  = [t for t in TokenType.__dict__["_member_names_"] if t[:2] == "Lx"]
-
-        tokens.sort(key=lambda t: len(TokenType[t].value), reverse=True)
-        keywords.sort(key=lambda t: len(TokenType[t].value), reverse=True)
-
-        available_tokens = keywords + lexemes + tokens
-
         while current < len(self._code):
-            for token in available_tokens:
+            for token in _AVAILABLE_TOKS:
                 value = getattr(TokenType, token).value
                 upper = current + len(value)
                 token_prefix = token[:2]
