@@ -121,6 +121,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # At this point, either the class existed, or it exists now, so superimpose the "Fun___" type onto it. Create
         # the call function, like "call_ref", and carry through the generic parameters, function parameters,
         # return type, etc.
+        # Todo: don't deepcopy body and just link it?
         self._ctx = None
         fun_ast = copy.deepcopy(self)
         fun_ast.identifier = function_call_name
