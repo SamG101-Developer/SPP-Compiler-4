@@ -47,6 +47,8 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         return s
 
     def _get_matching_overload(self, scope_handler: ScopeHandler, lhs: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", "FunctionArgumentGroupAst", Scope]:
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
         from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst, FunctionParameterSelfAst
@@ -112,6 +114,17 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 parameter_identifiers = Seq(func_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 parameter_identifiers_required = Seq(func_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
                 arguments = Seq(self.arguments.arguments.copy())
+
+                # Edit tuple-expansion argument into multiple arguments. For example, "..tuple" -> "tuple.0, tuple.1".
+                for argument in arguments.filter_to_type(FunctionArgumentNormalAst):
+                    if argument.unpack_token:
+                        tuple_argument_type = argument.value.infer_type(scope_handler, **kwargs).type
+                        tuple_argument_index = arguments.index(argument)
+                        arguments.remove(argument)
+                        for i in range(len(tuple_argument_type.parts[-1].generic_arguments.arguments)):
+                            tuple_subscript_code = Parser(Lexer(f"{argument.value}.{i}").lex(), "").parse_expression().parse_once()
+                            arguments.insert(tuple_argument_index + i, FunctionArgumentNormalAst(argument.pos, argument.convention, None, tuple_subscript_code))
+
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 generic_parameters = Seq(func_overload.generic_parameters.parameters.copy())
@@ -253,6 +266,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             called_signature += f"{argument.infer_type(scope_handler, **kwargs).type}, "
         called_signature = called_signature[:-2] + ")"
 
+        # Error if there are no valid overloads for this function call.
         if not valid_overloads:
             # Merge all the overload errors.
             signatures = f"{called_signature}\n\nAvailable signatures:\n"
@@ -266,6 +280,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 signatures += f"\n{error_string}\n"
             raise SemanticErrors.NO_VALID_OVERLOADS(display_ast, signatures)
 
+        # Error if there are multiple valid overloads for this function call (after generic substitution).
         if len(valid_overloads) > 1:
             signatures = f"{called_signature}\n\nAvailable signatures:\n"
             for func_overload, *_ in valid_overloads:
