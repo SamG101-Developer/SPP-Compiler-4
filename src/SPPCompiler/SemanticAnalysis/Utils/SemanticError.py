@@ -683,3 +683,17 @@ class SemanticErrors:
             message="Unpacking requires a tuple type.",
             tip="Ensure the type is a tuple type.")
         return exception
+
+    @staticmethod
+    def INVALID_SUPERIMPOSITION_MEMBER(ast: Ast, superclass_type: "TypeAst") -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=superclass_type.pos,
+            tag_message=f"Superclass declared as '{superclass_type}'.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Invalid member found here.",
+            message=f"Member does not exist on superclass '{superclass_type.without_generics()}'.",
+            tip="Ensure the member is defined in the superclass.")
+        return exception
