@@ -206,6 +206,23 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
     return func_scopes
 
 
+def extend_type_to_full_namespace(parts: list, base_type_scope: Scope) -> None:
+    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
+    true_type_namespace = base_type_scope.scopes_as_namespace
+    this_type_namespace = Seq(parts).filter_to_type(IdentifierAst).value.copy()
+    len_given = len(this_type_namespace)
+    if len(true_type_namespace) != len(this_type_namespace):
+        this_type_namespace.extend([IdentifierAst(-1, "") for _ in range(len(true_type_namespace) - len(this_type_namespace))])
+
+    for i, (t, r) in enumerate(zip(true_type_namespace, this_type_namespace)):
+        if t.value != r.value:
+            this_type_namespace = true_type_namespace[:i + 1] + this_type_namespace
+            this_type_namespace = this_type_namespace[:len(true_type_namespace)]
+            break
+    parts[:len_given] = this_type_namespace
+
+
 class TypeInfer:
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         pass
