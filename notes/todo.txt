@@ -21,7 +21,6 @@ Patterns:
 
 Tuples:
 -- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
--- Tuple unpacking into parameters ie `function_call(..tuple)`
 -- Check memory rules apply to multiple values inside tuples
 
 Functions:

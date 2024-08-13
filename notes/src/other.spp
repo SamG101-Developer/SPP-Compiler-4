@@ -1,0 +1,12 @@
+mod other
+
+
+fun function(x: std::Str, a: std::BigInt, b: std::BigInt, c: std::BigInt, y: std::Bool) -> std::BigInt {
+    ret a
+}
+
+
+fun test() -> std::Void {
+    let tuple = (1, 2, 3)
+    let mut y = function("hello", ..tuple, false)
+}
