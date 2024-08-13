@@ -70,7 +70,14 @@ fun aaaaaaaaaa(Point(x, y, z): Point) -> std::BigInt { ret 5 }
 fun generic_test[T](a: T, b: T) -> T { }
 
 
+fun mult_overload[T](a: T, b: std::Str) -> std::Bool { }
+fun mult_overload[T](a: std::Str, b: T) -> std::Void { }
+
+
 fun main(y: &std::BigInt, v99: std::Vec[std::BigInt], tl: (std::U32, std::U64)) -> std::Void {
+    let mut rng = mult_overload(123, "hello")
+    rng = false
+
     let boob = B(x=1, y=2)
     boob.upper(1)
 

@@ -381,6 +381,17 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def AMBIGUOUS_FUNCTION_CALL(ast: Ast, overloads: str) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message="Ambiguous function call.",
+            message="Multiple overloads found for function call after generic substitution.",
+            tip=f"Ensure the function call is unambiguous:\n{overloads}")
+        return exception
+
+    @staticmethod
     def NUMERICAL_MEMBER_ACCESS_TYPE(lhs: Ast, rhs: Ast, lhs_ty: "TypeAst") -> SemanticError:
         exception = SemanticError()
         exception.add_info(

@@ -25,7 +25,6 @@ Tuples:
 -- Check memory rules apply to multiple values inside tuples
 
 Functions:
--- Reject ambiguous functions calls where > 1 overload is valid
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.

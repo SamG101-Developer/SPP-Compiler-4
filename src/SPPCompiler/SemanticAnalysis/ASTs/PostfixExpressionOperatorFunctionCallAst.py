@@ -239,21 +239,21 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 if specialized_scope_info["created"]:
                     specialized_scope_info["remove_function"]()
 
+        # Format the display name for the method or function.
+        match lhs:
+            case PostfixExpressionAst():
+                display_name = f"{lhs_type}::{lhs.op.identifier}"
+                display_ast = lhs.op.identifier
+            case _:
+                display_name = f"{lhs}"
+                display_ast = lhs
+
+        called_signature = f"\n\nCalled signature:\n  - {display_name}("
+        for argument in self.arguments.arguments:
+            called_signature += f"{argument.infer_type(scope_handler, **kwargs).type}, "
+        called_signature = called_signature[:-2] + ")"
+
         if not valid_overloads:
-            # Format the display name for the method or function.
-            match lhs:
-                case PostfixExpressionAst():
-                    display_name = f"{lhs_type}::{lhs.op.identifier}"
-                    display_ast = lhs.op.identifier
-                case _:
-                    display_name = f"{lhs}"
-                    display_ast = lhs
-
-            called_signature = f"\n\nCalled signature:\n  - {display_name}("
-            for argument in self.arguments.arguments:
-                called_signature += f"{argument.infer_type(scope_handler, **kwargs).type}, "
-            called_signature = called_signature[:-2] + ")"
-
             # Merge all the overload errors.
             signatures = f"{called_signature}\n\nAvailable signatures:\n"
             for func_overload, func_overload_error in func_overload_errors:
@@ -267,8 +267,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             raise SemanticErrors.NO_VALID_OVERLOADS(display_ast, signatures)
 
         if len(valid_overloads) > 1:
-            # todo
-            ...
+            signatures = f"{called_signature}\n\nAvailable signatures:\n"
+            for func_overload, *_ in valid_overloads:
+                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+                signatures += f"  - {error_string}\n"
+            raise SemanticErrors.AMBIGUOUS_FUNCTION_CALL(self, signatures)
 
         self._overload = valid_overloads[0]
         return self._overload
