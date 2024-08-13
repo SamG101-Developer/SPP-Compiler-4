@@ -8,7 +8,7 @@ from typing import List, Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types, extend_type_to_full_namespace
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -65,7 +65,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericArgumentGroupAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericArgumentGroupAst, GenericIdentifierAst
 
         # Check if this type exists both with and without the generic arguments.
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
@@ -73,9 +73,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         generic_arguments = Seq(self.parts[-1].generic_arguments.arguments.copy())
 
         # Check the namespace exists.
-        # todo: identify which part of the namespace is invalid + "similar" in parent scope (just keep testing each par cumulatively)
-        # todo: ".parts" shouldn't combine the namespace object's items (dont use ".items" in the parser)
-        # todo: shared with TypedefStatementAst (namespace check)
         namespace = Seq(self.parts).filter_to_type(IdentifierAst).value
         namespace_scope = scope_handler.get_namespaced_scope(namespace)
         if not namespace_scope:
@@ -121,12 +118,18 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
             self.parts[-1].generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
+            # Check if the type exists now the generics have been named.
+            mock_type = GenericIdentifierAst(self.parts[-1].pos, self.parts[-1].value, GenericArgumentGroupAst.from_list(generic_arguments.value))
+            mock_type = TypeAst(self.pos, self.parts[:-1] + [mock_type])
+            if scope_handler.current_scope.has_symbol(mock_type):
+                return
+
             # Create a new scope and symbol for the generic version of the type.
             this_type_scope_name = copy.deepcopy(base_type_scope._scope_name)
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
             this_type_scope = Scope(this_type_scope_name, base_type_scope.parent)
             this_type_scope._sup_scopes = base_type_scope._sup_scopes
-            this_type_scope._symbol_table = copy.copy(base_type_scope._symbol_table)  # todo: copy.copy?
+            this_type_scope._symbol_table = copy.copy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 
             # Add the new scope and symbol to the correct parent scope.
