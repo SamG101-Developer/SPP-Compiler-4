@@ -9,7 +9,6 @@ Coroutines:
 
 Sup classes:
 -- Ensure overridden methods exist on the `sup` class.
--- Allow specialization of sup-class methods in the `sup` block.
 
 Object initialization:
 -- Sup initialization

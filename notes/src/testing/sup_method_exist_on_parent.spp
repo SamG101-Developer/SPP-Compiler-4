@@ -1,0 +1,26 @@
+mod testing::sup_method_exist_on_parent
+
+
+cls SuperClass { }
+
+sup SuperClass {
+    fun test_0(self) -> std::Void { }
+    fun test_1(&self) -> std::Void { }
+    fun test_2(&mut self) -> std::Void { }
+}
+
+
+cls SubClass { }
+
+sup SubClass {
+    fun other(&self) -> std::Void { }
+}
+
+sup SuperClass on SubClass { }
+
+
+fun run() -> std::Void {
+    let sub = SubClass()
+    sub.test_1()
+    sub.other()
+}
