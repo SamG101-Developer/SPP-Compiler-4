@@ -224,9 +224,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
-        from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Move into the function scope.
         scope_handler.move_to_next_scope()
@@ -240,7 +238,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Check there are no conflicting function overloads. First, get all the overload function scopes.
         # Todo: this inadvertently bans overriding a super-class function implementation
         match self._ctx:
-            case ModulePrototypeAst(): owner_type = CommonTypes.global_()
+            case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
             case _: owner_type = self._ctx.identifier.without_generics()
 
         type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope

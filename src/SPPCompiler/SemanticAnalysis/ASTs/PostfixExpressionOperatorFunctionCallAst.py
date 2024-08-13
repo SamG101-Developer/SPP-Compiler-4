@@ -7,7 +7,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
-from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -47,13 +46,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         return s
 
     def _get_matching_overload(self, scope_handler: ScopeHandler, lhs: "ExpressionAst", **kwargs) -> Tuple["FunctionPrototypeAst", "FunctionArgumentGroupAst", Scope]:
-        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SyntacticAnalysis.Parser import Parser
         from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst, FunctionParameterSelfAst
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
-        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst, TypeAst
 
         # Get the LHS-type of the function call. For postfix identifiers, this is the rightmost identifier left of the
         # function name.
@@ -69,10 +66,15 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 lhs_type = lhs.lhs
                 lhs_identifier = lhs.op.identifier
                 re_analyse = False
-                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+
+                # Namespace vs enclosing class
+                match lhs.lhs:
+                    case IdentifierAst(): owner_scope_generic_arguments = []
+                    case _: owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
             case IdentifierAst():
-                lhs_type = CommonTypes.global_()
+                lhs_type = scope_handler.current_scope.parent_module.name
                 lhs_identifier = lhs
                 re_analyse = True
                 owner_scope_generic_arguments = Seq()
@@ -114,17 +116,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 parameter_identifiers = Seq(func_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 parameter_identifiers_required = Seq(func_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
                 arguments = Seq(self.arguments.arguments.copy())
-
-                # Edit tuple-expansion argument into multiple arguments. For example, "..tuple" -> "tuple.0, tuple.1".
-                for argument in arguments.filter_to_type(FunctionArgumentNormalAst):
-                    if argument.unpack_token:
-                        tuple_argument_type = argument.value.infer_type(scope_handler, **kwargs).type
-                        tuple_argument_index = arguments.index(argument)
-                        arguments.remove(argument)
-                        for i in range(len(tuple_argument_type.parts[-1].generic_arguments.arguments)):
-                            tuple_subscript_code = Parser(Lexer(f"{argument.value}.{i}").lex(), "").parse_expression().parse_once()
-                            arguments.insert(tuple_argument_index + i, FunctionArgumentNormalAst(argument.pos, argument.convention, None, tuple_subscript_code))
-
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 generic_parameters = Seq(func_overload.generic_parameters.parameters.copy())
