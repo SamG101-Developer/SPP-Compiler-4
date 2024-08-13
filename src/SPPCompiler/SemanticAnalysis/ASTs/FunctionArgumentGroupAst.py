@@ -40,6 +40,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
     def do_semantic_pre_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # This method sometimes needs to be called to ensure certain checks, but the rest of the semantic analysis also
         # handles the symbols' memory state, which isn't desired here.
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
 
         # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
@@ -56,12 +58,20 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "function argument")
 
-        # Make sure any arguments being unpacked are tuples.
+        # Edit tuple-expansion argument into multiple arguments. For example, "..tuple" -> "tuple.0, tuple.1".
         for argument in Seq(self.arguments).filter_to_type(FunctionArgumentNormalAst):
             if argument.unpack_token:
+                # Make sure any arguments being unpacked are tuples.
                 tuple_argument_type = argument.value.infer_type(scope_handler, **kwargs).type
                 if not tuple_argument_type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
                     raise SemanticErrors.UNPACKING_NON_TUPLE_ARGUMENT(argument.value, tuple_argument_type)
+
+                # Remove the "..argument", and replace it with each part of the tuple.
+                tuple_argument_index = self.arguments.index(argument)
+                self.arguments.remove(argument)
+                for i in range(len(tuple_argument_type.parts[-1].generic_arguments.arguments)):
+                    tuple_subscript_code = Parser(Lexer(f"{argument.value}.{i}").lex(), "").parse_expression().parse_once()
+                    self.arguments.insert(tuple_argument_index + i, FunctionArgumentNormalAst(argument.pos, argument.convention, None, tuple_subscript_code))
 
         # Analyse each argument.
         Seq(self.arguments).map(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
