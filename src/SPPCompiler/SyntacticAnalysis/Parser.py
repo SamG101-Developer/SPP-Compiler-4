@@ -235,9 +235,8 @@ class Parser:
         p1 = self.parse_identifier().parse_once()
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         p3 = self.parse_convention().parse_once()
-        p4 = self.parse_token(TokenType.TkVariadic).parse_optional()
-        p5 = self.parse_expression().parse_once()
-        return FunctionArgumentNamedAst(c1, p1, p2, p3, p4, p5)
+        p4 = self.parse_expression().parse_once()
+        return FunctionArgumentNamedAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     def parse_function_parameters(self) -> FunctionParameterGroupAst:
