@@ -190,7 +190,7 @@ def convert_function_arguments_to_named(
         # For a normal parameter, assign the next parameter identifier to the argument.
         else:
             parameter_identifier = parameter_identifiers.pop(0)
-            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, None, argument.value)
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
             arguments.replace(argument, new_argument)
 
     return arguments
