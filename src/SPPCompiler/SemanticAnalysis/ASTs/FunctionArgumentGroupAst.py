@@ -6,6 +6,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.Utils.Sequence import Seq
@@ -54,6 +55,13 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
             raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "function argument")
+
+        # Make sure any arguments being unpacked are tuples.
+        for argument in Seq(self.arguments).filter_to_type(FunctionArgumentNormalAst):
+            if argument.unpack_token:
+                tuple_argument_type = argument.value.infer_type(scope_handler, **kwargs).type
+                if not tuple_argument_type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+                    raise SemanticErrors.UNPACKING_NON_TUPLE_ARGUMENT(argument.value, tuple_argument_type)
 
         # Analyse each argument.
         Seq(self.arguments).map(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))

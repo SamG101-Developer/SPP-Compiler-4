@@ -672,3 +672,14 @@ class SemanticErrors:
             message="Conflicting function overloads.",
             tip="Ensure that the function overloads have different signatures.")
         return exception
+
+    @staticmethod
+    def UNPACKING_NON_TUPLE_ARGUMENT(ast: Ast, ty: InferredType) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Type inferred as '{ty}'.",
+            message="Unpacking requires a tuple type.",
+            tip="Ensure the type is a tuple type.")
+        return exception
