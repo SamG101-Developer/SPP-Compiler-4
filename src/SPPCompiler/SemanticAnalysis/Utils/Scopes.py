@@ -12,7 +12,8 @@ class Scope:
     _parent_scope: Optional[Scope]
     _children_scopes: List[Scope]
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
-    _sup_scopes: List[Tuple[Scope, SupPrototypeInheritanceAst]]
+    _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
+    _normal_sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst]]
 
     def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
         # Set the attributes to the parameters or default values.
@@ -20,7 +21,11 @@ class Scope:
         self._parent_scope = parent_scope
         self._children_scopes = []
         self._symbol_table = SymbolTable()
+
+        # The "sup_scopes" are normal and inheritance superimpositions. The "normal_sup_scopes" are only normal
+        # superimpositions. These are necessary for checking members exist on the sup-class directly.
         self._sup_scopes = []
+        self._normal_sup_scopes = []
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
@@ -128,6 +133,7 @@ class Scope:
             "parent_scope": self._parent_scope._scope_name if self._parent_scope else None,
             "children_scopes": [child for child in self._children_scopes],
             "sup_scopes": [sup._scope_name for sup, _ in self._sup_scopes],
+            "normal_sup_scopes": [sup._scope_name for sup, _ in self._normal_sup_scopes],
             "symbol_table": self._symbol_table
         }
 

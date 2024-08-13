@@ -79,6 +79,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst
         scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters and where block. This will load the generics into the current scope, and
@@ -92,13 +93,58 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
+        # Check all members on this superimposition are present on the superclass.
+        super_class_implementations = Seq(scope_handler.current_scope.get_symbol(self.super_class).associated_scope._normal_sup_scopes)
+
+        # todo: as compiler develops, add the sup-typedefs here
+        super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
+        this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
+
+        # Compare the members to ensure the superclass contains the members.
+        # for this_member in this_class_members:
+        #     matched = False
+        #
+        #     for that_member in super_class_members:
+        #
+        #         # Check basic attributes, including the function type (FunRef vs FunMut for example).
+        #         c1 = this_member.generic_parameters == that_member.generic_parameters
+        #         c2 = this_member.identifier == that_member.identifier
+        #         c3 = this_member.where_block == that_member.where_block
+        #         c4 = this_member.super_class.parts[-1].value == that_member.super_class.parts[-1].value
+        #
+        #         # The superclass is more complex, as the "Self" argument and return type can be different.
+        #         this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
+        #         that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
+        #         t1 = this_member.super_class.parts[-1].generic_arguments["In"].parts[-1].generic_arguments.arguments[this_member_has_self_parameter:]
+        #         t2 = that_member.super_class.parts[-1].generic_arguments["In"].parts[-1].generic_arguments.arguments[that_member_has_self_parameter:]
+        #         c5 = t1 == t2
+        #
+        #         # Check if there is a match
+        #         matched = c1 and c2 and c3 and c4 and c5
+        #         if matched:
+        #             break
+        #
+        #     if not matched:
+        #         raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
+
         scope_handler.exit_cur_scope()
 
         # TODO : check there are no direct duplicate sup super-classes
-        # TODO : check overriden typedefs & methods appear on corresponding super-class
-        # TODO : check there are no duplicate / overlapping overloads of methods for this sup-block
-        #   At this point, all sup-blocks are discovered, so we can check for duplicate / overlapping overloads.
-        #   If in this function, it'll happen for every sup-block -only needs to happen once though (cls block?)
+
+    def __eq__(self, that) -> bool:
+        print("-" * 100)
+        print(self)
+        print(that)
+
+        x = all([
+            self.generic_parameters == that.generic_parameters,
+            self.super_class == that.super_class,
+            self.identifier == that.identifier,
+            self.where_block == that.where_block
+        ])
+
+        print(x)
+        return x
 
 
 __all__ = ["SupPrototypeInheritanceAst"]

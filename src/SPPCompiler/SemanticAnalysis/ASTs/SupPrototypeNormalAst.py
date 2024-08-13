@@ -75,6 +75,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        cls_scope._normal_sup_scopes.append((scope_handler.current_scope, self))
 
         # Skip internal functions scopes.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
