@@ -14,7 +14,7 @@ class Scope:
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
     _sup_scopes: List[Tuple[Scope, SupPrototypeInheritanceAst]]
 
-    def __init__(self, name: str, parent_scope: Optional[Scope] = None):
+    def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
         # Set the attributes to the parameters or default values.
         self._scope_name = name
         self._parent_scope = parent_scope
@@ -150,8 +150,20 @@ class Scope:
         return self._scope_name
 
     @property
+    def is_global(self) -> bool:
+        return self._is_global
+
+    @property
     def parent(self) -> Optional[Scope]:
         return self._parent_scope
+
+    @property
+    def parent_module(self) -> Scope:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+        scope = self
+        while not isinstance(scope.name, IdentifierAst):
+            scope = scope.parent
+        return scope
 
     @property
     def children(self) -> List[Scope]:
@@ -200,15 +212,17 @@ class ScopeHandler:
     _iterator: ScopeIterator
 
     def __init__(self, global_scope: Optional[Scope] = None):
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
-        self._global_scope = global_scope or Scope("Global")
+        # Create the global scope, set the current scope to the global scope, and initialize the scope iterator.
+        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "Global"))
         self._current_scope = self._global_scope
         self._iterator = iter(self)
 
-        global_type = TypeAst(pos=-1, parts=[GenericIdentifierAst(pos=-1, value="GLOBAL", generic_arguments=None)])
-        global_symbol = TypeSymbol(name=global_type, type=None, associated_scope=self._global_scope)
-        self._global_scope.add_symbol(global_symbol)
+        # The Analyzer adds namespace symbols to each namespace it creates (ie "std"). The Global scope is overlooked
+        # there, so create it here when a ScopeHandler is created.
+        global_namespace_symbol = NamespaceSymbol(name=self._global_scope.name, associated_scope=self._global_scope)
+        self._global_scope.add_symbol(global_namespace_symbol)
 
     def into_new_scope(self, name: Any) -> Scope:
         new_scope = Scope(name, self._current_scope)
