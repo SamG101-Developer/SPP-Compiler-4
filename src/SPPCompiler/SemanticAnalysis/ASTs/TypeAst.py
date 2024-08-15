@@ -65,7 +65,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, verify_generics: bool = True, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericArgumentGroupAst, GenericIdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst, GenericParameterVariadicAst
 
         # Check if this type exists both with and without the generic arguments.
         base_type_exists = scope_handler.current_scope.has_symbol(self.without_generics())
@@ -84,10 +85,16 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             types = Seq(scope.all_symbols()).filter_to_type(TypeSymbol).map(lambda s: s.name).map(lambda t: t.parts[-1].to_identifier().value).value
             raise SemanticErrors.UNKNOWN_IDENTIFIER(self.parts[-1].to_identifier(), types, "type")
 
-        elif not this_type_exists and generic_arguments:
+        elif not this_type_exists:  # and generic_arguments:
             # Get the symbol and scope for the base type.
             base_type_symbol = scope_handler.current_scope.get_symbol(self.without_generics())
             base_type_scope  = base_type_symbol.associated_scope
+            generic_parameters = Seq(base_type_symbol.type.generic_parameters.parameters)
+
+            # If there are too many generic arguments, throw an error.
+            if generic_arguments.length > generic_parameters.length:
+                if not (generic_parameters and isinstance(generic_parameters[-1], GenericParameterVariadicAst)):
+                    raise SemanticErrors.TOO_MANY_GENERIC_ARGUMENTS(self.parts[-1].generic_arguments, base_type_symbol)
 
             # Fill the namespace.
             extend_type_to_full_namespace(self.parts, base_type_scope)
@@ -95,7 +102,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
             convert_generic_arguments_to_named(
                 generic_arguments=generic_arguments,
-                generic_parameters=Seq(base_type_symbol.type.generic_parameters.parameters))
+                generic_parameters=generic_parameters)
 
             if self.without_generics() != CommonTypes.tuple([]):
                 self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
@@ -118,8 +125,19 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
             this_type_scope = Scope(this_type_scope_name, base_type_scope.parent)
             this_type_scope._sup_scopes = base_type_scope._sup_scopes
-            this_type_scope._symbol_table = copy.copy(base_type_scope._symbol_table)
+            this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
+
+            # print(f"\tCreating custom generic-ized type for {self}")
+            # print(f"\tBase type scope: {base_type_scope.name}")
+            # print(f"\tThis type scope: {this_type_scope.name}")
+            # print(f"\t{[sup_scope.name for sup_scope, _ in base_type_scope._sup_scopes]}")
+            # print(f"\t{[sup_scope.name for sup_scope, _ in this_type_scope._sup_scopes]}")
+
+            # Modify the "Self" type symbol.
+            this_type_scope._symbol_table._internal_table[CommonTypes.self()] = TypeSymbol(name=CommonTypes.self(), type=this_type_cls_ast, associated_scope=this_type_scope)
+
+            # print(f"Making new generic-ized type: {self} {[str(s.name) for s in this_type_scope._symbol_table._internal_table.values()]}")
 
             # Add the new scope and symbol to the correct parent scope.
             base_type_scope._parent_scope._children_scopes.append(this_type_scope)  # todo: add function like add_scope for ns propagation from Global
@@ -144,7 +162,9 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             temp_scope_handler.reset(base_type_scope)  # todo: is this scope correct?
             this_type_cls_ast.do_semantic_analysis(temp_scope_handler, **(kwargs | {"no-scope": True}))
 
-        elif base_type_exists and (base_type_symbol := scope_handler.current_scope.get_symbol(self.without_generics())).type:
+        else:
+            base_type_symbol = scope_handler.current_scope.get_symbol(self.without_generics())
+            if not base_type_symbol.type: return  # Generic type
 
             convert_generic_arguments_to_named(
                 generic_arguments=generic_arguments,
