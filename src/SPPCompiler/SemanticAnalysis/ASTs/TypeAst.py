@@ -125,6 +125,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             this_type_scope_name.parts[-1].generic_arguments.arguments = generic_arguments.value
             this_type_scope = Scope(this_type_scope_name, base_type_scope.parent)
             this_type_scope._sup_scopes = base_type_scope._sup_scopes
+            this_type_scope._normal_sup_scopes = base_type_scope._normal_sup_scopes
             this_type_scope._symbol_table = copy.deepcopy(base_type_scope._symbol_table)
             this_type_cls_ast = copy.deepcopy(base_type_symbol.type)
 
