@@ -11,11 +11,18 @@ class Seq[T]:
     def __init__(self, value: Iterable[T] = None) -> None:
         self._value = list(value) if value else []
 
+    # Appending operations
+
     def append(self, item: T) -> None:
         self._value.append(item)
 
     def insert(self, index: int, item: T) -> None:
         self._value.insert(index, item)
+
+    def extend(self, items: Seq[T]) -> None:
+        self._value.extend(items._value)
+
+    # Iteration operations
 
     def for_each[U](self, func: Callable[[T], U]) -> None:
         for v in self._value: func(v)
@@ -76,6 +83,9 @@ class Seq[T]:
 
     def sort(self, key: Callable[[T], any] = None, reverse: bool = False) -> Seq[T]:
         return Seq(sorted(self._value, key=key, reverse=reverse))
+
+    def reverse(self) -> Seq[T]:
+        return Seq(reversed(self._value))
 
     def is_sorted(self, key: Callable[[T], any] = None, reverse: bool = False) -> bool:
         return self.sort(key=key, reverse=reverse) == self
