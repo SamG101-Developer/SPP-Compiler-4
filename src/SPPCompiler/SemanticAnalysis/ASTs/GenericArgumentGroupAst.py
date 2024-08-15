@@ -75,13 +75,6 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         # Check both ASTs are the same type and have the same arguments.
         return self.arguments == other.arguments
 
-    def __getitem__(self, item: str) -> Optional["TypeAst"]:
-        print(item, self)
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericIdentifierAst, GenericArgumentNamedAst
-        mock_identifier = TypeAst(-1, [GenericIdentifierAst(-1, item, None)])
-        type = Seq(self.arguments).filter_to_type(GenericArgumentNamedAst).filter(lambda a: a.identifier == mock_identifier).first().type
-        return type
-
     @staticmethod
     def from_dict(dictionary: Dict["TypeAst", "TypeAst"]) -> GenericArgumentGroupAst:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNamedAst, TokenAst
