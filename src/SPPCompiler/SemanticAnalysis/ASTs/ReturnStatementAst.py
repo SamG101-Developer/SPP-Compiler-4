@@ -38,6 +38,8 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         # Check the value being turned is an owned type.
         if isinstance(self.expression, TypeAst):
             raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
+        if "is-coroutine" in kwargs:
+            raise SemanticErrors.RETURN_OUTSIDE_SUBROUTINE(self, kwargs["is-coroutine"])
         if self.expression:
             ensure_memory_integrity(self, self.expression, self.return_keyword, scope_handler)
 
