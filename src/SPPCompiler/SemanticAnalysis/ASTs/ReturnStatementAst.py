@@ -44,7 +44,7 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
             ensure_memory_integrity(self, self.expression, self.return_keyword, scope_handler)
 
         # Check the return type matches the enclosing function's return type.
-        target_return_type = InferredType(convention=ConventionMovAst, type=kwargs["target-return-type"] if "is-subroutine" in kwargs else kwargs["coroutine-return-type"])
+        target_return_type = InferredType(convention=ConventionMovAst, type=kwargs["target-return-type"])
         actual_return_type = self.expression.infer_type(scope_handler, **kwargs) if self.expression else InferredType(convention=ConventionMovAst, type=CommonTypes.void())
         if not actual_return_type.symbolic_eq(target_return_type, scope_handler.current_scope):
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.expression)

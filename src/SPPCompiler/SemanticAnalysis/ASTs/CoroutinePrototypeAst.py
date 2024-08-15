@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -29,7 +28,6 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
         # Add the "target-return-type" to the kwargs, so other ASTs can use the function's return type is required.
         # Analyse the body of the function, and then pop the return type from the kwargs.
         kwargs |= {"target-return-type": self.return_type}
-        kwargs |= {"coroutine-return-type": coroutine_return_type}
         kwargs |= {"is-coroutine": self.function_token}
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
