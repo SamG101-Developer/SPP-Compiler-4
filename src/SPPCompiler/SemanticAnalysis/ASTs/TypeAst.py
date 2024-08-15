@@ -102,7 +102,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
             convert_generic_arguments_to_named(
                 generic_arguments=generic_arguments,
-                generic_parameters=generic_parameters)
+                generic_parameters=generic_parameters,
+                generic_parameters_scope=base_type_scope)
 
             if self.without_generics() != CommonTypes.tuple([]):
                 self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
@@ -166,10 +167,12 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         else:
             base_type_symbol = scope_handler.current_scope.get_symbol(self.without_generics())
             if not base_type_symbol.type: return  # Generic type
+            base_type_scope = base_type_symbol.associated_scope
 
             convert_generic_arguments_to_named(
                 generic_arguments=generic_arguments,
-                generic_parameters=Seq(base_type_symbol.type.generic_parameters.parameters))
+                generic_parameters=Seq(base_type_symbol.type.generic_parameters.parameters),
+                generic_parameters_scope=base_type_scope)
 
             if self.without_generics() != CommonTypes.tuple([]):
                 self.parts[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments.value)
