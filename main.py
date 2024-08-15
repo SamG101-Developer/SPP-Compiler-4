@@ -13,7 +13,7 @@ PROFILE = False
 def main():
     colorama.init()
     file_path = os.path.abspath("notes/src")
-    compiler = Compiler(file_path, mode="r")
+    compiler = Compiler(file_path, mode="d")
     colorama.deinit()
 
 
