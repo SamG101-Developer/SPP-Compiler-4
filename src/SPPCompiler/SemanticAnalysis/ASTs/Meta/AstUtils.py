@@ -113,7 +113,8 @@ def ensure_memory_integrity(
 
 def convert_generic_arguments_to_named(
         generic_arguments: Seq["GenericArgumentAst"],
-        generic_parameters: Seq["GenericParameterAst"]) -> Seq["GenericArgumentAst"]:
+        generic_parameters: Seq["GenericParameterAst"],
+        generic_parameters_scope: Scope) -> Seq["GenericArgumentAst"]:
 
     from SPPCompiler.SemanticAnalysis.ASTs import (
         GenericArgumentNamedAst, GenericArgumentNormalAst, GenericParameterOptionalAst, GenericParameterVariadicAst,
@@ -144,10 +145,11 @@ def convert_generic_arguments_to_named(
             generic_arguments.replace(generic_argument, new_argument)
 
     # Add default values for any remaining generic parameters.
-    # Todo: This needs to get the FQType, because the generic default valye might be in another namespace
     for generic_parameter in generic_parameters:
         if isinstance(generic_parameter, GenericParameterOptionalAst) and generic_parameter.identifier not in generic_arguments.map(lambda a: a.identifier):
-            new_argument = GenericArgumentNamedAst(generic_parameter.pos, generic_parameter.identifier.parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_parameter.default_value)
+            generic_default_name = generic_parameter.identifier.parts[-1].to_identifier()
+            generic_default_type = generic_parameters_scope.get_symbol(generic_parameter.default_value).fq_type
+            new_argument = GenericArgumentNamedAst(generic_parameter.pos, generic_default_name, TokenAst.dummy(TokenType.TkAssign), generic_default_type)
             generic_arguments.append(new_argument)
 
     return generic_arguments
