@@ -473,14 +473,42 @@ class SemanticErrors:
     def INVALID_COROUTINE_RETURN_TYPE(ast: Ast, ret: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
+            pos=ast.pos,
+            tag_message="Function defined as a coroutine here.")
+        exception.add_error(
             pos=ret.pos,
-            tag_message=f"Function type defined as '{ret}'")
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Return type declared as '{ret}'",
+            message="Invalid return type for a coroutine",
+            tip="Use a valid generator return type.")
+        return exception
+
+    @staticmethod
+    def YIELD_OUTSIDE_COROUTINE(ast: Ast, fun: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=fun.pos,
+            tag_message=f"Subroutine defined here.")
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Gen expression found here",
-            message="Gen expressions can only occur inside a generator",
-            tip="Ensure the function returns a 'GenMov', 'GenRef' or 'GenMut' type.")
+            tag_message=f"Gen expression found here.",
+            message="Gen expressions can only occur inside a coroutine.",
+            tip="Return values using the 'ret' statement instead.")
+        return exception
+
+    @staticmethod
+    def RETURN_OUTSIDE_SUBROUTINE(ast: Ast, cor: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=cor.pos,
+            tag_message=f"Coroutine defined here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Ret statement found here.",
+            message="Ret statement can only occur inside a subroutine.",
+            tip="Yield values using the 'gen' expression instead.")
         return exception
 
     @staticmethod
