@@ -21,13 +21,6 @@ def infer_generics_types(
 
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
-    # print("#" * 100)
-    # print(ast)
-    # print("Generic parameters:", [str(generic) for generic in generic_parameters])
-    # print("Explicit generic arguments:", {str(key): str(value) for key, value in explicit_generic_arguments.items()})
-    # print("Infer from:", {str(key): str(value) for key, value in infer_from.items()})
-    # print("Map to:", {str(key): str(value) for key, value in map_to.items()})
-
     """
     For the class:
 
@@ -151,6 +144,7 @@ def convert_generic_arguments_to_named(
             generic_arguments.replace(generic_argument, new_argument)
 
     # Add default values for any remaining generic parameters.
+    # Todo: This needs to get the FQType, because the generic default valye might be in another namespace
     for generic_parameter in generic_parameters:
         if isinstance(generic_parameter, GenericParameterOptionalAst) and generic_parameter.identifier not in generic_arguments.map(lambda a: a.identifier):
             new_argument = GenericArgumentNamedAst(generic_parameter.pos, generic_parameter.identifier.parts[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), generic_parameter.default_value)
@@ -209,18 +203,11 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
 def extend_type_to_full_namespace(parts: list, base_type_scope: Scope) -> None:
     from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
-    true_type_namespace = base_type_scope.scopes_as_namespace
-    this_type_namespace = Seq(parts).filter_to_type(IdentifierAst).value.copy()
-    len_given = len(this_type_namespace)
-    if len(true_type_namespace) != len(this_type_namespace):
-        this_type_namespace.extend([IdentifierAst(-1, "") for _ in range(len(true_type_namespace) - len(this_type_namespace))])
+    true_type_namespace = Seq(base_type_scope.scopes_as_namespace)
+    this_type_namespace = Seq(parts).filter_to_type(IdentifierAst)
+    len_given = this_type_namespace.length
 
-    for i, (t, r) in enumerate(zip(true_type_namespace, this_type_namespace)):
-        if t.value != r.value:
-            this_type_namespace = true_type_namespace[:i + 1] + this_type_namespace
-            this_type_namespace = this_type_namespace[:len(true_type_namespace)]
-            break
-    parts[:len_given] = this_type_namespace
+    parts[:len_given] = true_type_namespace.value
 
 
 class TypeInfer:
