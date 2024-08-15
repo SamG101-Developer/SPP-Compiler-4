@@ -7,9 +7,6 @@ Coroutines:
 -- Check the sent objects' type against the `Send` generic parameter.
 -- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspension points.
 
-Sup classes:
--- Ensure overridden methods exist on the `sup` class.
-
 Object initialization:
 -- Sup initialization
     -- Replace sup-scopes with the generically-filled scopes?
@@ -44,7 +41,7 @@ Other:
     -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
 -- Union types throw generic-oriented errors
 -- Compound assignment => check LHS is a symbolic identifier.
--- Disallow "Self" being used as a generic argument in "sup" blocks as arguments of param defaults, and in teh class prototype as a default
+-- Disallow "Self" being used as a generic argument in "sup" blocks as arguments of param defaults, and in the class prototype as a default
     -- Leads to recursive types
 
 Notes
