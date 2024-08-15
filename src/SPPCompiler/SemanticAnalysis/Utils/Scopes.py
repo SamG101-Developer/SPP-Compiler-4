@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import copy
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
+
+# TODO: tidy property accessors
 
 
 class Scope:
@@ -75,8 +76,8 @@ class Scope:
 
             # For each part in the namespace, enter the child scope if it exists.
             for part in namespace.copy():
-                if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-                    scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+                if Seq(scope.children).map(lambda s: s.name).contains(part):
+                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
                     namespace.pop(0)
                 else:
                     break
