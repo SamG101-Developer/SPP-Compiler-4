@@ -52,7 +52,8 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         # Convert all anonymous generic arguments to named generic arguments (in the type being instantiated).
         self.class_type.parts[-1].generic_arguments.arguments = convert_generic_arguments_to_named(
             generic_arguments=Seq(self.class_type.parts[-1].generic_arguments.arguments),
-            generic_parameters=Seq(type_symbol.type.generic_parameters.parameters)).value
+            generic_parameters=Seq(type_symbol.type.generic_parameters.parameters),
+            generic_parameters_scope=type_symbol.associated_scope).value
 
         # Infer all the generic from arguments, and analyse the new generic-complete type. This type is required to be
         # analysed so that the type-checking of arguments can be done.

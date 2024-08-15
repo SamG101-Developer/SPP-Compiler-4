@@ -138,7 +138,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # Name all the anonymous function arguments and generic type arguments, and overwrite the named lists.
                 arguments = convert_function_arguments_to_named(arguments, parameters)
-                generic_arguments = convert_generic_arguments_to_named(generic_arguments, generic_parameters)
+                generic_arguments = convert_generic_arguments_to_named(generic_arguments, generic_parameters, func_scope)
                 named_argument_identifiers = arguments.filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 # Check all the required parameters have been given a corresponding named argument.
