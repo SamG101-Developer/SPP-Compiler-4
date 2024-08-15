@@ -16,14 +16,11 @@ sup SubClass {
     fun other(&self) -> std::Void { }
 }
 
-sup SuperClass on SubClass {
-    fun ooka(&self) -> std::Void { }
-}
+sup SuperClass on SubClass { }
 
 
 fun run() -> std::Void {
     let sub = SubClass()
     sub.test_1()
     sub.other()
-    sub.ooka()
 }
