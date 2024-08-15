@@ -1,8 +1,8 @@
 mod std::ops::eq
 
 
-cls Eq { }
+cls Eq[Rhs] { }
 
-sup Eq {
-    fun eq(&self, that: Self) -> Bool { }
+sup Eq[Rhs=Phantom] {
+    fun eq(&self, that: Rhs) -> Bool { }
 }

@@ -12,7 +12,7 @@ cls Vec {
     dir: std::BigInt
 }
 
-sup std::ops::Eq on Vec { }
+sup std::ops::Eq[Self] on Vec { }
 
 sup Vec {
     fun test(&self, other: Vec) -> std::Void { }

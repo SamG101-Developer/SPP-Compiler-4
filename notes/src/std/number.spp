@@ -8,23 +8,23 @@ cls BigInt {
 cls BigDec { }
 
 
-sup std::ops::Sub on BigInt {
+sup std::ops::Sub[Rhs=BigInt] on BigInt {
     fun sub(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Add on BigInt {
+sup std::ops::Add[Rhs=BigInt] on BigInt {
     fun add(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Mul on BigInt {
+sup std::ops::Mul[Rhs=BigInt] on BigInt {
     fun mul(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Div on BigInt {
+sup std::ops::Div[Rhs=BigInt] on BigInt {
     fun div(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Eq on BigInt {
+sup std::ops::Eq[Rhs=BigInt] on BigInt {
     fun eq(&self, that: BigInt) -> Bool { }
 }
 

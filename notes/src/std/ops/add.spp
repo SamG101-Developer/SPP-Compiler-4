@@ -1,13 +1,8 @@
 mod std::ops::add
 
-cls Random { }
 
-sup Random {
-    fun random() -> Self { }
-}
+cls Add[Rhs] {}
 
-cls Add {}
-
-sup Add {
-    fun add(self, rhs: Self) -> Self { }
+sup Add[Rhs=Phantom] {
+    fun add(self, that: Rhs) -> Self { }
 }

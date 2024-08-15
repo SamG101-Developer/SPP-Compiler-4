@@ -1,8 +1,8 @@
 mod std::ops::sub
 
 
-cls Sub { }
+cls Sub[Rhs] {}
 
-sup Sub {
-    fun sub(self, other: Sub) -> Sub { }
+sup Sub[Rhs=Phantom] {
+    fun sub(self, that: Rhs) -> Self { }
 }

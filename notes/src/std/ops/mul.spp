@@ -1,8 +1,8 @@
 mod std::ops::mul
 
 
-cls Mul { }
+cls Mul[Rhs] { }
 
-sup Mul {
-    fun mul(self, other: Mul) -> Mul { }
+sup Mul[Rhs=Phantom] {
+    fun mul(self, that: Rhs) -> Self { }
 }

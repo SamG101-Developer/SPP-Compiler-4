@@ -30,7 +30,7 @@ sup [T] UnsafeArr[T] {
 }
 
 sup [T] UnsafeArr[T] on Arr[T] {
-    fun get(&self, index: U64) -> T { }
+    fun get(&self, index: U64) -> Res[T, BoundsError] { }
     fun set(&mut self, index: U64, value: T) -> Res[Void, BoundsError] { }
     fun del(&mut self, index: U64) -> Res[T, BoundsError] { }
 }

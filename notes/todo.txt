@@ -40,8 +40,12 @@ Other:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)`.
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
--- Providing too many generics to a type creates an unhandled python error.
 -- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
     -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
 -- Union types throw generic-oriented errors
 -- Compound assignment => check LHS is a symbolic identifier.
+-- Disallow "Self" being used as a generic argument in "sup" blocks as arguments of param defaults, and in teh class prototype as a default
+    -- Leads to recursive types
+
+Notes
+-- All generics in the `sup` generics block must be inferrable by the class its being superimposed over.

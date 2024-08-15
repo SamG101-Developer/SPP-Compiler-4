@@ -1,0 +1,8 @@
+mod std::ops::and_
+
+
+cls And[Rhs] {}
+
+sup And[Rhs=Phantom] {
+    fun and_(self, that: Rhs) -> Bool { }
+}
