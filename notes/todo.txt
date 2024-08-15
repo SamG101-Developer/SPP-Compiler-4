@@ -41,8 +41,10 @@ Other:
     -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
 -- Union types throw generic-oriented errors
 -- Compound assignment => check LHS is a symbolic identifier.
--- Disallow "Self" being used as a generic argument in "sup" blocks as arguments of param defaults, and in the class prototype as a default
-    -- Leads to recursive types
+
+Self-type:
+-- Disallow "Self" being used as a generic argument in "sup" blocks as arguments (recursive types)
+-- Disallow "Self" being used as a generic parameter's default value in `cls` blocks (recursive types).
 
 Notes
 -- All generics in the `sup` generics block must be inferrable by the class its being superimposed over.

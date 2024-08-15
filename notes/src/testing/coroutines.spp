@@ -1,0 +1,7 @@
+mod testing::coroutines
+
+
+cor coroutine() -> std::GenMut[Yield=std::BigInt] {
+    let x = 123
+    gen &mut 123
+}
