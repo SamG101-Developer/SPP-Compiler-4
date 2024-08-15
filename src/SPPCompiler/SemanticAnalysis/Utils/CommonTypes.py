@@ -135,9 +135,7 @@ class CommonTypes:
 
     @staticmethod
     def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> type:
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionRefAst import ConventionRefAst
-        from SPPCompiler.SemanticAnalysis.ASTs.ConventionMutAst import ConventionMutAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
 
         match identifier.value[-3:]:
             case "Ref": return ConventionRefAst
