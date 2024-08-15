@@ -44,6 +44,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         if self.super_class.parts[-1].value in ["FunRef", "FunMut", "FunMov"]:
             return
 
+        # Substitute the "Self" type to the identifier of the class.
+        Seq(self.super_class.parts[-1].generic_arguments.arguments).for_each(lambda a: a.type.substitute_generics(CommonTypes.self(), self.identifier))
+
         # Use the SupPrototypeNormalAst's implementation.
         super().pre_process(context)
 
@@ -108,37 +111,30 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
 
         # Compare the members to ensure the superclass contains the members.
-        # for this_member in this_class_members:
-        #     # print("#" * 100)
-        #     # print(this_member)
-        #     # print("-" * 100)
-        #     # print(super_class_members.length)
-        #     matched = False
-        #
-        #     for that_member in super_class_members:
-        #
-        #         # print("\nNext Member:")
-        #         # print(that_member)
-        #
-        #         # Check basic attributes, including the function type (FunRef vs FunMut for example).
-        #         if this_member.generic_parameters != that_member.generic_parameters: continue
-        #         if this_member.identifier != that_member.identifier: continue
-        #         if this_member.where_block != that_member.where_block: continue
-        #         if this_member.super_class.parts[-1].value != that_member.super_class.parts[-1].value: continue
-        #
-        #         # The superclass is more complex, as the "Self" argument and return type can be different.
-        #         this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
-        #         that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
-        #         t1 = this_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[this_member_has_self_parameter:]
-        #         t2 = that_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[that_member_has_self_parameter:]
-        #         c5 = all(tt1.type.symbolic_eq(tt2.type, scope_handler.current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
-        #
-        #         matched = c5
-        #         if matched:
-        #             break
-        #
-        #     if not matched:
-        #         raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
+        for this_member in this_class_members:
+            matched = False
+
+            for that_member in super_class_members:
+
+                # Check basic attributes, including the function type (FunRef vs FunMut for example).
+                if this_member.generic_parameters != that_member.generic_parameters: continue
+                if this_member.identifier != that_member.identifier: continue
+                if this_member.where_block != that_member.where_block: continue
+                if this_member.super_class.parts[-1].value != that_member.super_class.parts[-1].value: continue
+
+                # The superclass is more complex, as the "Self" argument and return type can be different.
+                this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
+                that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
+                t1 = this_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[this_member_has_self_parameter:]
+                t2 = that_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[that_member_has_self_parameter:]
+                c5 = all(tt1.type.symbolic_eq(tt2.type, scope_handler.current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
+
+                matched = c5
+                if matched:
+                    break
+
+            if not matched:
+                raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
 
         scope_handler.exit_cur_scope()
 
