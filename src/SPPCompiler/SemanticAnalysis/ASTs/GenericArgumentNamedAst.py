@@ -41,7 +41,6 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse the type of the argument.
-        # print(scope_handler.current_scope.name, [str(s.name) for s in scope_handler.current_scope.all_symbols()])
         self.type.do_semantic_analysis(scope_handler, **kwargs)
 
     def __eq__(self, other):
