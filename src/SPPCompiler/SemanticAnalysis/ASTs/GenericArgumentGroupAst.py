@@ -71,6 +71,10 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         # Analyse each generic argument.
         Seq(self.arguments).for_each(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
+    def __getitem__(self, item: str) -> Optional["GenericArgumentAst"]:
+        # Get the generic argument with the given identifier.
+        return Seq(self.arguments).find(lambda a: a.identifier.parts[-1].to_identifier().value == item)
+
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
         return self.arguments == other.arguments
