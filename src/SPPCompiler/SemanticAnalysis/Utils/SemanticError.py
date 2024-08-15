@@ -695,5 +695,19 @@ class SemanticErrors:
             error_type=SemanticErrorType.TYPE_ERROR,
             tag_message=f"Invalid member found here.",
             message=f"Member does not exist on superclass '{superclass_type.without_generics()}'.",
-            tip="Ensure the member is defined in the superclass.")
+            tip="Ensure the member is defined in the superclass.\n- Note that 'Self'-type parameters change type depending on their enclosing class.")
+        return exception
+
+    @staticmethod
+    def TOO_MANY_GENERIC_ARGUMENTS(ast: Ast, symbol: TypeSymbol) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=symbol.type.identifier.pos,
+            tag_message=f"'{symbol.name}' declared here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Extra generic type arguments provided.",
+            message="Too many generic type arguments provided",
+            tip="Ensure the correct number of generic type arguments are provided.")
         return exception
