@@ -4,7 +4,6 @@ Generics:
 -- Function specialization.
 
 Coroutines:
--- Check the sent objects' type against the `Send` generic parameter.
 -- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspension points.
 
 Object initialization:

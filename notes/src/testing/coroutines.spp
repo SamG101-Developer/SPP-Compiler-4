@@ -1,7 +1,8 @@
 mod testing::coroutines
 
 
-cor coroutine() -> std::GenMut[Yield=std::BigInt] {
+cor coroutine() -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
     let x = 123
-    gen &mut 123
+    let mut y = gen &mut 123
+    y = "false"
 }
