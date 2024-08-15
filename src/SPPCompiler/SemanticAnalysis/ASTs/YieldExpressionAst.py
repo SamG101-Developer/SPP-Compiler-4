@@ -48,7 +48,7 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
 
         # Ensure the yield expression is in a coroutine.
-        if "is-coroutine" not in kwargs:
+        if "is-subroutine" in kwargs:
             raise SemanticErrors.YIELD_OUTSIDE_COROUTINE(self, kwargs["is-subroutine"])
 
         # Analyse the expression.
@@ -72,7 +72,7 @@ class YieldExpressionAst(Ast, SemanticAnalyser):
             type=Seq(coroutine_ret_type.parts[-1].generic_arguments.arguments).find(lambda i: i.identifier.parts[-1].to_identifier().value == "Yield").type)
 
         if not given_yield_type.symbolic_eq(target_yield_type, scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(self, given_yield_type, target_yield_type)
+            raise SemanticErrors.TYPE_MISMATCH(self, target_yield_type, given_yield_type)
 
 
 __all__ = ["YieldExpressionAst"]
