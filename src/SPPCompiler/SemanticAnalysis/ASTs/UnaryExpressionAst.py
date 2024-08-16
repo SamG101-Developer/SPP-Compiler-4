@@ -44,8 +44,9 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, ConventionMovAst
 
         # The type is a Fut[T] where T is the return type of the function call.
-        # TODO: this will cause an error, because the RHS hasn't been analysed yet
-        future_type = CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs)[1], pos=self.pos)
+        self.rhs.do_semantic_analysis(scope_handler, **kwargs)
+        future_type = CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs).type, pos=self.pos)
+        future_type.do_semantic_analysis(scope_handler, **kwargs)
         return InferredType(convention=ConventionMovAst, type=future_type)
 
 
