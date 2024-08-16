@@ -37,8 +37,8 @@ class Scope:
             namespace = name.parts[:-1].copy()
 
             for part in namespace.copy():
-                if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-                    scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+                if Seq(scope.children).map(lambda s: s.name).contains(part):
+                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
                     namespace.pop(0)
                 else:
                     break
@@ -133,8 +133,8 @@ class Scope:
             "name": self._scope_name,
             "parent_scope": self._parent_scope._scope_name if self._parent_scope else None,
             "children_scopes": [child for child in self._children_scopes],
-            "sup_scopes": [sup._scope_name for sup, _ in self._sup_scopes],
-            "normal_sup_scopes": [sup._scope_name for sup, _ in self._normal_sup_scopes],
+            "sup_scopes": [sup.name for sup, _ in self._sup_scopes],
+            "normal_sup_scopes": [sup.name for sup, _ in self._normal_sup_scopes],
             "symbol_table": self._symbol_table
         }
 
@@ -184,9 +184,9 @@ class Scope:
     def scopes_as_namespace(self) -> List[IdentifierAst]:
         scope = self._parent_scope
         namespace = []
-        while scope._parent_scope:
-            namespace.insert(0, scope._scope_name)
-            scope = scope._parent_scope
+        while scope.parent:
+            namespace.insert(0, scope.name)
+            scope = scope.parent
         return namespace
 
 
@@ -247,7 +247,7 @@ class ScopeHandler:
 
     def __iter__(self) -> ScopeIterator:
         def iterate(scope: Scope) -> Iterator[Scope]:
-            for child_scope in scope._children_scopes:
+            for child_scope in scope.children:
                 yield child_scope
                 yield from iterate(child_scope)
 
@@ -258,16 +258,16 @@ class ScopeHandler:
         return self._current_scope
 
     def at_global_scope(self, parent_level: int = 0) -> bool:
-        scope_to_check = self.current_scope
+        scope_to_check = self._current_scope
         for _ in range(parent_level):
-            scope_to_check = scope_to_check._parent_scope
+            scope_to_check = scope_to_check.parent
         return scope_to_check == self._global_scope
 
     def get_namespaced_scope(self, namespace: list["IdentifierAst"]) -> Optional[Scope]:
         scope = self._global_scope
         for part in namespace:
-            if Seq(scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-                scope = Seq(scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+            if Seq(scope.children).map(lambda s: s.name).contains(part):
+                scope = Seq(scope.children).filter(lambda s: s.name == part).first()
             else:
                 return None
         return scope

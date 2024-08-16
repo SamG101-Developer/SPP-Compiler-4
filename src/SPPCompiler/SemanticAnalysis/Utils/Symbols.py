@@ -100,11 +100,11 @@ class TypeSymbol(Symbol):
         if not self.type:
             return self.name
 
-        associated_scope = self.associated_scope._parent_scope
+        associated_scope = self.associated_scope.parent
         fq_type = copy.deepcopy(self.name)
-        while associated_scope._parent_scope is not None:
-            fq_type.parts.insert(0, associated_scope._scope_name)
-            associated_scope = associated_scope._parent_scope
+        while associated_scope.parent is not None:
+            fq_type.parts.insert(0, associated_scope.name)
+            associated_scope = associated_scope.parent
         return fq_type
 
 
