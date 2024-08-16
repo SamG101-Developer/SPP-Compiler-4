@@ -17,6 +17,7 @@ class MemoryStatus:
     ast_consumed: Optional[Ast] = dataclasses.field(default=None)
     ast_borrow: Optional[Ast] = dataclasses.field(default=None)
     ast_partial_moves: List[Ast] = dataclasses.field(default_factory=list)
+    ast_pins: List[Ast] = dataclasses.field(default_factory=list)
 
     @property
     def is_borrow(self) -> bool:
