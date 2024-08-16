@@ -52,6 +52,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst, TypeAst
 
+        if self._overload:
+            return self._overload
+
         # Get the LHS-type of the function call. For postfix identifiers, this is the rightmost identifier left of the
         # function name.
         re_analyse = False
