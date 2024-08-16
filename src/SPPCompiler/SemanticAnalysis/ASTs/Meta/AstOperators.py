@@ -18,6 +18,13 @@ BIN_OP_FUNCS = {
     TokenType.TkLe: "le",
     TokenType.TkGe: "ge",
     TokenType.TkSs: "cmp",
+    TokenType.TkAddAssign: "add_assign",
+    TokenType.TkSubAssign: "sub_assign",
+    TokenType.TkMulAssign: "mul_assign",
+    TokenType.TkDivAssign: "div_assign",
+    TokenType.TkRemAssign: "rem_assign",
+    TokenType.TkModAssign: "mod_assign",
+    TokenType.TkExpAssign: "pow_assign",
 }
 
 

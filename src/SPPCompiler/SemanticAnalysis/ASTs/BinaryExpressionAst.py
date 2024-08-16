@@ -8,6 +8,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
 
 @dataclass
@@ -49,6 +50,12 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
+
+        # Compound assignment expressions must have a variable on the left-hand side.
+        if self.op.token.token_type in {TokenType.TkAddAssign, TokenType.TkSubAssign, TokenType.TkMulAssign, TokenType.TkDivAssign, TokenType.TkModAssign, TokenType.TkRemAssign, TokenType.TkExpAssign}:
+            lhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.lhs)
+            if not lhs_symbol:
+                raise SemanticErrors.INVALID_OPERAND_COMPOUND_ASSIGNMENT(self.op, self.lhs)
 
         if isinstance(self.lhs, TokenAst):
             tuple_element_count = len(self.rhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)

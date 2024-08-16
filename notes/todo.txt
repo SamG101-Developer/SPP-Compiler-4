@@ -17,7 +17,6 @@ Patterns:
 
 Tuples:
 -- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
--- Check memory rules apply to multiple values inside tuples
 
 Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
@@ -30,23 +29,24 @@ Typedefs:
 -- Redo the lot
 -- Importing typedefs (see TypedefStatementAst::generate() comments).
 -- Sup-typedefs.
--- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::(ops::(Add, Sub), Vec) -- make more cyclic like "let" statements.
+-- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec} -- make more cyclic like "let" statements.
 
-Other:
+Global constants:
 -- Global constants move semantics (not movable). Add a GlobalConstantAst?
 -- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
+
+Types:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)`.
--- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
--- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
-    -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
 -- Union types throw generic-oriented errors
--- Compound assignment => check LHS is a symbolic identifier.
--- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
+
+Expressions:
+-- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
 
 Self-type:
 -- Disallow "Self" being used as a generic argument in "sup" blocks as arguments (recursive types)
 -- Disallow "Self" being used as a generic parameter's default value in `cls` blocks (recursive types).
 
-Notes
--- All generics in the `sup` generics block must be inferrable by the class its being superimposed over.
+Other:
+-- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
+-- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.

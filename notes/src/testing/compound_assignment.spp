@@ -1,0 +1,6 @@
+mod testing::compound_assignment
+
+
+fun test_compound_assignment() -> std::Void {
+    let mut a = 1
+}
