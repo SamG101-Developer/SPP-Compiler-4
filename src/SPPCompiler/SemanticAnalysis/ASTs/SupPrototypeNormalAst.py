@@ -7,6 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, Symbo
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -95,6 +96,11 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # ensure all their constraints are valid.
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.where_block.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Make sure every generic parameter is present in the identifier; otherwise it has no way to be inferred.
+        for generic_parameter in Seq(self.generic_parameters.parameters).map(lambda p: p.identifier):
+            if not self.identifier.contains_generic(generic_parameter):
+                raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
         # Make sure the identifier (the type being superimposed over), exists. If it does, analyse each member of the
         # body.

@@ -96,6 +96,12 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.where_block.do_semantic_analysis(scope_handler, **kwargs)
 
+        # Make sure every generic parameter is present in the identifier or superclass; otherwise it has no way to be
+        # inferred.
+        for generic_parameter in Seq(self.generic_parameters.parameters).map(lambda p: p.identifier):
+            if not self.identifier.contains_generic(generic_parameter) and not self.super_class.contains_generic(generic_parameter):
+                raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
+
         # Make sure the superclass, and the identifier (the type being superimposed over), exists. If it does, analyse
         # each member of the body.
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)

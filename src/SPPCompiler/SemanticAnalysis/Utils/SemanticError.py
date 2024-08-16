@@ -739,3 +739,17 @@ class SemanticErrors:
             message="Too many generic type arguments provided",
             tip="Ensure the correct number of generic type arguments are provided.")
         return exception
+
+    @staticmethod
+    def UNCONSTRAINED_GENERIC_PARAMETER(ast: Ast, gen: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Superimposition declared here.")
+        exception.add_error(
+            pos=gen.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Generic parameter '{gen}' is unconstrained.",
+            message="Unconstrained generic parameter.",
+            tip="Constrain the generic parameter to a valid type.")
+        return exception

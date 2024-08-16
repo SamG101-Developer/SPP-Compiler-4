@@ -194,6 +194,11 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             parts.append(GenericIdentifierAst(part.pos, part.value, None) if isinstance(part, GenericIdentifierAst) else part)
         return TypeAst(self.pos, parts)
 
+    def contains_generic(self, generic: TypeAst) -> bool:
+        for part in self:
+            if part == generic:
+                return True
+
     def symbolic_eq(self, that, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
         # Special cases for union types.  todo: re-check this
         if that.without_generics() == CommonTypes.var([]):
