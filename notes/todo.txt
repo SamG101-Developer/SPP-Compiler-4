@@ -2,6 +2,7 @@ Generics:
 -- All things generic constraints (functions, classes, sup-blocks, member access).
 -- Sup scopes for certain generics only.
 -- Function specialization.
+-- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
 
 Coroutines:
 -- Copy `async` function call borrow rules for coroutines? Borrows could be invalidated between suspension points.
@@ -23,6 +24,7 @@ Functions:
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
 -- Functions with destructured parameters and no members act as if they have members (destructure is injected).
+-- Static methods injecting a "self" argument even though it shouldn't be there.
 
 Typedefs:
 -- Redo the lot
@@ -40,6 +42,7 @@ Other:
     -- Although now `&` isn't used for binary expressions it should be possible to allow borrows for bin-op operands?
 -- Union types throw generic-oriented errors
 -- Compound assignment => check LHS is a symbolic identifier.
+-- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 
 Self-type:
 -- Disallow "Self" being used as a generic argument in "sup" blocks as arguments (recursive types)

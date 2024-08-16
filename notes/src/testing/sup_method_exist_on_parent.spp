@@ -19,7 +19,7 @@ sup SubClass {
 sup SuperClass on SubClass { }
 
 
-fun run() -> std::Void {
+fun test_subclass_superclass() -> std::Void {
     let sub = SubClass()
     sub.test_1()
     sub.other()

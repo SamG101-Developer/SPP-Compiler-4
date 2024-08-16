@@ -1,0 +1,30 @@
+mod testing::superimposition_fallthrough
+
+
+cls TestClass[T] {
+    a: T
+}
+
+
+sup [T] TestClass[T] {
+    fun test_method_a(&self, a: T) -> T { }
+    fun test_method_b(&self, b: T) -> T { }
+}
+
+
+cls TestSubClass[T] {
+    b: T
+}
+
+
+sup [T] TestClass[T] on TestSubClass[T] { }
+
+
+fun test_sup() -> std::Void {
+    let test_class = TestClass(a=100)
+    let mut x = test_class.test_method_a(1)
+    let mut y = test_class.test_method_b(2)
+    x = y
+
+    let sub_class = TestSubClass(b=100)
+}
