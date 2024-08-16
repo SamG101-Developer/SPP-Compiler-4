@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import difflib
-from logging import exception
 
 import inflection
 from colorama import Fore, Style
@@ -184,8 +183,8 @@ class SemanticErrors:
         exception.add_error(
             pos=conflict.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
-            message=f"Cannot {conflicting_how} an object that's currently being {existing_how.rstrip("e")}ed.",
             tag_message=f"Overlapping object '{conflict}' {conflicting_how.rstrip("e")}ed here.",
+            message=f"Cannot {conflicting_how} an object that's currently being {existing_how.rstrip("e")}ed.",
             tip=f"TODO")
         return exception
 
@@ -821,4 +820,60 @@ class SemanticErrors:
             tag_message="Invalid operand.",
             message="Invalid operand for compound assignment.",
             tip="Ensure the operand is a variable or attribute.")
+        return exception
+
+    @staticmethod
+    def INVALID_PIN_TARGET(ast: Ast, pin: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Pin operation found here.")
+        exception.add_error(
+            pos=pin.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Invalid pin target.",
+            message="Invalid pin target.",
+            tip="Ensure the target is a variable or attribute.")
+        return exception
+
+    @staticmethod
+    def PIN_OVERLAP_CONFLICT(old: Ast, new: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=old.pos,
+            tag_message=f"Expression pinned here.")
+        exception.add_error(
+            pos=new.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Overlapping pin created here.",
+            message="Cannot define overlapping pins.",
+            tip="Use more precise pins, or use one broad pin.")
+        return exception
+
+    @staticmethod
+    def UNPINNING_NON_PINNED(ast: Ast, rel: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Unpin operation found here.")
+        exception.add_error(
+            pos=rel.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Non-pinned expression found here.",
+            message="Cannot unpin a non-pinned expression.",
+            tip="Ensure the expression is pinned before unpinning.")
+        return exception
+
+    @staticmethod
+    def MOVING_PINNED_VALUE(ast: Ast, pin: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=pin.pos,
+            tag_message=f"'{ast}' pinned here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            tag_message="Pinned value moved here.",
+            message="Cannot move a pinned value.",
+            tip="Unpin the value, or don't copy the pinned value.")
         return exception
