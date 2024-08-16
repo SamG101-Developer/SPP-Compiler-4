@@ -32,7 +32,7 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst, TypeAst
 
         # Ensure the base type (no generics) exists, and is not a generic type, as these cannot be instantiated.
         # The non-generic version of the type is checked, as the generics can be changed by inferred generic from
@@ -69,8 +69,6 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Type-check the arguments of the object initializer.
         self.arguments.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Substitution for sup-scopes?
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
