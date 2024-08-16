@@ -39,6 +39,9 @@ class Seq[T]:
     def filter_not_type(self, *types: type) -> Seq[T]:
         return Seq([v for v in self._value if type(v) not in types])
 
+    def filter_out_none(self) -> Seq[T]:
+        return Seq([v for v in self._value if v is not None])
+
     def join(self, separator: str = "") -> str:
         return separator.join(self.map(str)._value)
 
