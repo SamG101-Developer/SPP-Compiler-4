@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import difflib
+from logging import exception
+
 import inflection
 from colorama import Fore, Style
 from fastenum import Enum
@@ -752,4 +754,71 @@ class SemanticErrors:
             tag_message=f"Generic parameter '{gen}' is unconstrained.",
             message="Unconstrained generic parameter.",
             tip="Constrain the generic parameter to a valid type.")
+        return exception
+
+    @staticmethod
+    def MISSING_OBJ_INIT_SUP_ARGUMENT(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Object initialization here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Missing a 'sup' argument.",
+            message="Missing a 'sup' argument in object initialization.",
+            tip="Ensure the object is initialized with q 'sup' argument.")
+        return exception
+
+    @staticmethod
+    def UNEXPECTED_OBJ_INIT_SUP_ARGUMENT(ast: Ast, sup: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Expected no superclass arguments.")
+        exception.add_error(
+            pos=sup.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Unexpected 'sup' argument.",
+            message="Unexpected 'sup' argument in object initialization.",
+            tip="Remove the 'sup' argument.")
+        return exception
+
+    @staticmethod
+    def MISSING_OBJ_INIT_SUPER_CLASS(ast: Ast, expected: TypeAst) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message=f"Missing superclass '{expected}'.",
+            message="Missing superclass in object initialization.",
+            tip="Ensure the object is initialized with a superclass.")
+        return exception
+
+    @staticmethod
+    def UNEXPECTED_OBJ_INIT_SUPER_CLASS(ast: Ast, given: TypeAst) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Object initialization here.")
+        exception.add_error(
+            pos=given.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Unexpected superclass.",
+            message="Unexpected superclass in object initialization.",
+            tip="Remove the unexpected superclass.")
+        return exception
+
+    @staticmethod
+    def INVALID_OPERAND_COMPOUND_ASSIGNMENT(ast: Ast, lhs: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ast.pos,
+            tag_message=f"Compound assignment found here.")
+        exception.add_error(
+            pos=lhs.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Invalid operand.",
+            message="Invalid operand for compound assignment.",
+            tip="Ensure the operand is a variable or attribute.")
         return exception
