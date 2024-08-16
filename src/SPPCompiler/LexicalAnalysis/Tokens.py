@@ -75,6 +75,8 @@ class TokenType(Enum):
     # Variable declarations
     KwLet = "let"
     KwMut = "mut"
+    KwPin = "pin"
+    KwRel = "rel"
 
     # Control flow
     KwCase = "case"
@@ -101,7 +103,7 @@ class TokenType(Enum):
 
     # Logical operators
     KwAnd = "and"
-    KwOr = "or"
+    KwOr = "or"  # ior? inclusive or
     KwNot = "not"
 
     # Misc
