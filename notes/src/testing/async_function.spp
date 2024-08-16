@@ -1,0 +1,10 @@
+mod testing::async_function
+
+
+fun test_function_99(a: &std::BigInt) -> std::Bool { }
+
+
+fun call_test_function_99() -> std::Void {
+    let mut val_1 = async test_function_99(&1)
+    let mut val_2 = test_function_99(&1)
+}

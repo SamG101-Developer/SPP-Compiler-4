@@ -1,0 +1,3 @@
+mod std::future
+
+cls Fut[T] { }
