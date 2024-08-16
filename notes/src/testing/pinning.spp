@@ -1,0 +1,15 @@
+mod testing::pinning
+
+
+cls PinTest {
+    a: std::BigInt
+    b: std::BigInt
+}
+
+
+fun test_pinning() -> PinTest {
+    let pin_test = PinTest(a=1, b=2)
+    pin pin_test.a
+
+    ret pin_test
+}

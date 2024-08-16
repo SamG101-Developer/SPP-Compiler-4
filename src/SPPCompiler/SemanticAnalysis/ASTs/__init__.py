@@ -84,6 +84,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSkipArgumentsAst import Pat
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantTupleDestructureAst import PatternVariantTupleDestructureAst
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantUnionDestructureAst import PatternVariantUnionDestructureAst
 from SPPCompiler.SemanticAnalysis.ASTs.PatternVariantSingleIdentifierAst import PatternVariantSingleIdentifierAst
+from SPPCompiler.SemanticAnalysis.ASTs.PinStatementAst import PinStatementAst
 from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionAst import PostfixExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorAst import PostfixExpressionOperatorAst
 from SPPCompiler.SemanticAnalysis.ASTs.PostfixExpressionOperatorEarlyReturnAst import PostfixExpressionOperatorEarlyReturnAst
@@ -94,6 +95,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.PostfixMemberPartAst import PostfixMember
 from SPPCompiler.SemanticAnalysis.ASTs.PrimaryExpressionAst import PrimaryExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.ProgramAst import ProgramAst
 from SPPCompiler.SemanticAnalysis.ASTs.RegexLiteralAst import RegexLiteralAst
+from SPPCompiler.SemanticAnalysis.ASTs.RelStatementAst import RelStatementAst
 from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
 from SPPCompiler.SemanticAnalysis.ASTs.StatementAst import StatementAst
 from SPPCompiler.SemanticAnalysis.ASTs.StringLiteralAst import StringLiteralAst
