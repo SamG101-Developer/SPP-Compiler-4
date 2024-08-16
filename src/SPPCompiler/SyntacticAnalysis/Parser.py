@@ -614,6 +614,20 @@ class Parser:
         return LoopControlFlowStatementAst(c1, [], p1)
 
     @parser_rule
+    def parse_pin_statement(self) -> PinStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwPin).parse_once()
+        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
+        return PinStatementAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_rel_statement(self) -> RelStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwRel).parse_once()
+        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
+        return RelStatementAst(c1, p1, p2)
+
+    @parser_rule
     def parse_inner_scope(self, rule) -> InnerScopeAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkBraceL).parse_once()
@@ -627,10 +641,12 @@ class Parser:
         p2 = self.parse_let_statement().for_alt()
         p3 = self.parse_return_statement().for_alt()
         p4 = self.parse_loop_control_flow_statement().for_alt()
-        p5 = self.parse_assignment_statement().for_alt()
-        p6 = self.parse_expression().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
-        return p7
+        p5 = self.parse_pin_statement().for_alt()
+        p6 = self.parse_rel_statement().for_alt()
+        p7 = self.parse_assignment_statement().for_alt()
+        p8 = self.parse_expression().for_alt()
+        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
+        return p9
 
     # ===== TYPEDEFS =====
 
