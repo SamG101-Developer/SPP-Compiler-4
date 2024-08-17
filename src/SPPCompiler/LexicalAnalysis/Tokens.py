@@ -109,11 +109,11 @@ class TokenType(Enum):
     # Misc
     KwOn = "on"
     KwIn = "in"
-    KwAsync = "async"
+    KwAsync = "async"  # go? take from golang
     KwThen = "then"
 
     # Lexemes
-    # Don't change order of these (regex are matched in this order)
+    # Don't change the order of these (regex are matched in this order)
     # 0x12 must be HexDigits not DecDigits(0) then Identifier(x12)
     LxRegex = r"r\".*\""
 
