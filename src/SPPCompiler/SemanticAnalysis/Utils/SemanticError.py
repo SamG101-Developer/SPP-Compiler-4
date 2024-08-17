@@ -905,3 +905,28 @@ class SemanticErrors:
             message="A conditional block hasn't consistently pinned or unpinned this value in all branches.",
             tip="Ensure the memory is consistently pinned or unpinned in each branch.")
         return exception
+
+    @staticmethod
+    def MUTABLE_GLOBAL_CONSTANT(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            tag_message="Global constant marked mutable here.",
+            message="Cannot declare a mutable global constant.",
+            tip="Remove the 'mut' modifier.")
+        return exception
+
+    @staticmethod
+    def REDEFINED_GLOBAL_CONSTANT(ast: Ast, new: Ast, old: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=old.pos,
+            tag_message=f"First declaration of '{ast}' found here.")
+        exception.add_error(
+            pos=new.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Redeclaration of global constant {ast}.",
+            message="Global constant redefinition.",
+            tip="Ensure the global constant is only declared once.")
+        return exception
