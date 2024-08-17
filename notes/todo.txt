@@ -8,7 +8,6 @@ Pins:
 -- Cannot unpin a value being borrowed by an async function unless await has been called on the corresponding future.
 -- Can unpin a value being borrowed by a coroutine, but the coroutine will be invalidated.
 -- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
--- Same rules for branches of "if" blocks. All mus result in the same pinning state.
 
 Object initialization:
 -- Sup initialization
@@ -51,6 +50,5 @@ Self-type:
 -- Disallow "Self" being used as a generic parameter's default value in `cls` blocks (recursive types).
 
 Other:
--- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Double analyse `loop` body, avoiding messing up `exit` loop counting.

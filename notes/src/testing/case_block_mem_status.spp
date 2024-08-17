@@ -1,0 +1,9 @@
+mod testing::case_block_mem_status
+
+
+fun test_cases() -> std::Void {
+    let x = 123
+    case x then
+        == 123 { pin x }
+        == 456 { }
+}
