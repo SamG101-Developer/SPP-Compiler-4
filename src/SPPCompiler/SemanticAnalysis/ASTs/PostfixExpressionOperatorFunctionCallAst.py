@@ -31,6 +31,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     fold_token: Optional["TokenAst"]
 
     _overload: Optional[Tuple["FunctionPrototypeAst", "FunctionArgumentGroupAst", Scope]] = field(default=None, init=False)
+    _is_async: Optional[Ast] = field(default=None, init=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
@@ -102,8 +103,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         # Get the function scopes from the LHS-type. These will be the "MOCK_..." classes created as type symbols inside
         # the owner-type's scope. Their associated scopes are attached to the symbols.
-        # mock_scopes = Seq(type_scope.get_all_symbols(Parser(Lexer(f"MOCK_{lhs_identifier}").lex(), "").parse_type().parse_once())).map(lambda sym: sym.associated_scope)
-        # func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
         func_scopes = get_all_function_scopes(type_scope, lhs_identifier)
 
         # Lists to save valid overloads and func overload errors. These lists are mutually exclusive.
@@ -227,9 +226,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     elif isinstance(parameter, FunctionParameterSelfAst):
                         argument_type.convention = parameter_type.convention
                         argument.convention = parameter.convention
-                        # Check the argument type is a subtype of the parameter type.
-                        # if not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
-                        #     raise SemanticErrors.TYPE_MISMATCH(argument, parameter_type, argument_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
 
                     # Otherwise, check the argument type directly matches the parameter type.
                     elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
@@ -292,7 +288,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             self._get_matching_overload(scope_handler, lhs, **kwargs)
             self.arguments.arguments = self._overload[1]
             self.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
-            self.arguments.do_semantic_analysis(scope_handler, **kwargs)
+            self.arguments.do_semantic_analysis(scope_handler, function_prototype_ast=self._overload[0], is_async=self._is_async, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, PostfixExpressionAst

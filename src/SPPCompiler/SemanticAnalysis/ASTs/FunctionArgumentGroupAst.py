@@ -76,14 +76,16 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         # Analyse each argument.
         Seq(self.arguments).map(lambda a: a.do_semantic_analysis(scope_handler, **kwargs))
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, function_prototype_ast=None, is_async=None, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
+        from SPPCompiler.SemanticAnalysis.ASTs import CoroutinePrototypeAst
 
         # Note that the memory rules here are also implemented in AstUtils.ensure_memory_integrity, but have to be split
         # here because of the multiple conventions that can be used.
 
-        # Ensure the pre-analysis is done anyway.
-        self.do_semantic_pre_analysis(scope_handler, **kwargs)
+        is_coroutine = isinstance(function_prototype_ast, CoroutinePrototypeAst)
+        is_coroutine_or_async = is_coroutine or is_async
+        function_pin_error_ast = is_async if is_async else function_prototype_ast
 
         # Define the sets of symbols that are borrowed immutable and mutable.
         borrows_ref = OrderedSet()
@@ -94,14 +96,14 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
 
             # Check for uninitialized / partially-moved values.
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
-            ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move_from_borrowed_context=False, mark_symbols=False)
+            ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move_from_borrowed_context=False, check_pinned_move=False, mark_symbols=False)
 
             # Enforce the Law of Exclusivity: check the conventions for the borrowed arguments, to ensure there are no
             # overlapping borrows.
             match argument.convention:
                 case ConventionMovAst() if symbol:
                     # mark symbols are moves / partially move, and check for moving from a borrowed context.
-                    ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move=False, check_partial_move=False)
+                    ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move=False, check_partial_move=False, check_pinned_move=True)
 
                     # Cannot move an identifier already borrowed as a previous argument. For example, "a" cannot be
                     # moved into a function call if "a" or "a.b" is borrowed as a previous argument.
@@ -128,6 +130,10 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                             how = "immutably" if borrow in borrows_ref else "mutably"
                             raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, f"{how} borrowed", "mutably borrow")
 
+                    # Ensure the argument is pinned if it is borrowed for a coroutine or async function.
+                    if is_coroutine_or_async and not any(str(argument.value).startswith(str(pin)) for pin in symbol.memory_info.ast_pins):
+                        raise SemanticErrors.UNPINNED_BORROW(argument.value, function_pin_error_ast, is_async)
+
                     # Add the mutable borrow to the set of mutable borrows.
                     borrows_mut.add(argument.value)
 
@@ -137,6 +143,10 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     for borrow in borrows_mut:
                         if str(borrow).startswith(str(argument.value)) or str(argument.value).startswith(str(borrow)):
                             raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, "mutably borrow", f"immutably borrow")
+
+                    # Ensure the argument is pinned if it is borrowed for a coroutine or async function.
+                    if is_coroutine_or_async and not any(str(argument.value).startswith(str(pin)) for pin in symbol.memory_info.ast_pins):
+                        raise SemanticErrors.UNPINNED_BORROW(argument.value, function_pin_error_ast, is_async)
 
                     # Add the immutable borrow to the set of immutable borrows.
                     borrows_ref.add(argument.value)

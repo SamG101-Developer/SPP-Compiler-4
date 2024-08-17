@@ -40,11 +40,14 @@ class UnaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         if not isinstance(self.rhs, PostfixExpressionAst) or not isinstance(self.rhs.op, PostfixExpressionOperatorFunctionCallAst):
             raise SemanticErrors.INVALID_ASYNC_CALL(self, self.rhs)
 
+        # Mark the function call as async and analyse it for type inference.
+        self.rhs.op._is_async = self.op
+        self.rhs.do_semantic_analysis(scope_handler, **kwargs)
+
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # The type is a Fut[T] where T is the return type of the function call.
-        self.rhs.do_semantic_analysis(scope_handler, **kwargs)
         future_type = CommonTypes.fut(self.rhs.infer_type(scope_handler, **kwargs).type, pos=self.pos)
         future_type.do_semantic_analysis(scope_handler, **kwargs)
         return InferredType(convention=ConventionMovAst, type=future_type)
