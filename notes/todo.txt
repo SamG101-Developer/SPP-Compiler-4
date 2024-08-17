@@ -53,3 +53,4 @@ Self-type:
 Other:
 -- Variable declared as uninitialized, initialized only on some branches -> "potentially uninitialized variable" error.
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
+-- Double analyse `loop` body, avoiding messing up `exit` loop counting.

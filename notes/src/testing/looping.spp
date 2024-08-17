@@ -1,0 +1,10 @@
+mod testing::looping
+
+
+fun test_loop_analysis() -> std::Void {
+    let x = 123
+
+    loop true {
+        let y = x
+    }
+}
