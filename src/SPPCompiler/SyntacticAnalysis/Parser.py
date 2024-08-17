@@ -95,8 +95,8 @@ class Parser:
         p3 = self.parse_sup_prototype_inheritance().for_alt()
         p4 = self.parse_sup_prototype_normal().for_alt()
         p5 = self.parse_typedef_statement().for_alt()
-        p6 = self.parse_let_statement_initialized().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        # p6 = self.parse_global_constant().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5).parse_once()
         return p7
 
     @parser_rule
@@ -479,19 +479,18 @@ class Parser:
     def parse_primary_expression(self) -> ExpressionAst:
         p1 = self.parse_literal().for_alt()
         p2 = self.parse_object_initialization().for_alt()
-        p3 = self.parse_type_single().for_alt()
-        p4 = self.parse_lambda_prototype().for_alt()
-        p5 = self.parse_parenthesized_expression().for_alt()
-        p6 = self.parse_identifier().for_alt()
-        p7 = self.parse_case_expression().for_alt()
-        p8 = self.parse_loop_expression().for_alt()
-        p9 = self.parse_gen_expression().for_alt()
-        p10 = self.parse_with_expression().for_alt()
-        p11 = self.parse_inner_scope(self.parse_statement).for_alt()
-        p12 = self.parse_self_keyword().for_alt()
-        p13 = self.parse_token(TokenType.TkVariadic).for_alt()
-        p14 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12 | p13).parse_once()
-        return p14
+        p3 = self.parse_lambda_prototype().for_alt()
+        p4 = self.parse_parenthesized_expression().for_alt()
+        p5 = self.parse_identifier().for_alt()
+        p6 = self.parse_case_expression().for_alt()
+        p7 = self.parse_loop_expression().for_alt()
+        p8 = self.parse_gen_expression().for_alt()
+        p9 = self.parse_with_expression().for_alt()
+        p10 = self.parse_inner_scope(self.parse_statement).for_alt()
+        p11 = self.parse_self_keyword().for_alt()
+        p12 = self.parse_token(TokenType.TkVariadic).for_alt()
+        p13 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9 | p10 | p11 | p12).parse_once()
+        return p13
 
     @parser_rule
     def parse_parenthesized_expression(self) -> ParenthesizedExpressionAst:
