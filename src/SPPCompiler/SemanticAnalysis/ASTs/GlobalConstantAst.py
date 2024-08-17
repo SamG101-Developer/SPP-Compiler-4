@@ -46,6 +46,7 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader,  SemanticAnalyser, Sy
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Global constants cannot be redifined.
+        # Todo: this might get the same symbols out of the current namespace (exclusive=True)?
         if scope_handler.current_scope.has_symbol(self.assign_to.identifier):
             raise SemanticErrors.REDEFINED_GLOBAL_CONSTANT(self.assign_to.identifier, self.let_keyword, scope_handler.current_scope.get_symbol(self.assign_to.identifier).memory_info.ast_initialized)
 

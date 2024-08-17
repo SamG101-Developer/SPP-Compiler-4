@@ -25,9 +25,9 @@ Functions:
 -- Take out the check allowing empty-functions to be called (it is for testing purposes only).
 
 Global constants:
--- Global constant AST for constants defined in the global scope.
--- Only allow literals and object initializations as the value of a global constant.
--- Global constants cannot be moved (auto-pin), must be immutable, and cannot be unpinned.
+-- Extend to allow more than just literals.
+-- Check tuples that include non-literals.
+-- Prevent unpinning of global constants.
 -- How to do arrays given there is no array literal => might need to add one?
 
 Types:
