@@ -34,8 +34,10 @@ Typedefs:
 -- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec} -- make more cyclic like "let" statements.
 
 Global constants:
--- Global constants move semantics (not movable). Add a GlobalConstantAst?
--- The GlobalConstantAst will be used for function -> class conversions, removing the need for `_sup_let_type`
+-- Global constant AST for constants defined in the global scope.
+-- Only allow literals and object initializations as the value of a global constant.
+-- Global constants cannot be moved (auto-pin), must be immutable, and cannot be unpinned.
+-- How to do arrays given there is no array literal => might need to add one?
 
 Types:
 -- Special `Copy` type that doesn't "move" the value.
