@@ -42,9 +42,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         return s
 
     def pre_process(self, context) -> None:
-        # There is no preprocessing required for a let statement.
-        # TODO: why inherit from PreProcessor?
-        pass
+        # Dummy implementation required as all module members must implement this method.
+        ...
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the symbol for the variable being assigned to. This is only used for function preprocessing.
@@ -52,10 +51,14 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         scope_handler.current_scope.add_symbol(variable_symbol)
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        # Override default behaviour and do nothing.
         ...
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        # If the symbol was already generated (in .generate(), then nothing needs to be done)
         if self._sup_let_type is not None: return
+
+        # Ensure the memory integrity of the RHS.
         ensure_memory_integrity(self, self.value, self.assign_token, scope_handler)
 
         # Analyse the value being assigned to the variable.
