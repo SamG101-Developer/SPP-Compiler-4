@@ -877,3 +877,19 @@ class SemanticErrors:
             message="Cannot move a pinned value.",
             tip="Unpin the value, or don't copy the pinned value.")
         return exception
+
+    @staticmethod
+    def UNPINNED_BORROW(ast: Ast, fun: Ast, is_async: bool) -> SemanticError:
+        what1 = "Coroutine definition" if not is_async else "Asynchronous tag"
+        what2 = "coroutine" if not is_async else "asynchronous function"
+        exception = SemanticError()
+        exception.add_info(
+            pos=fun.pos,
+            tag_message=f"{what1} here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            tag_message="Unpinned borrow found here.",
+            message=f"Cannot borrow an unpinned value into a {what2} call.",
+            tip="Ensure the value is pinned before borrowing it.")
+        return exception
