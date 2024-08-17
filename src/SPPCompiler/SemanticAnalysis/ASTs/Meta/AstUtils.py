@@ -72,7 +72,7 @@ def infer_generics_types(
 def ensure_memory_integrity(
         entire_ast: Ast, value_ast: Ast, move_ast: Ast, scope_handler: ScopeHandler,
         check_move: bool = True, check_partial_move: bool = True, check_move_from_borrowed_context: bool = True,
-        check_pinned: bool = True, mark_symbols: bool = True) -> None:
+        check_pinned_move: bool = True, mark_symbols: bool = True) -> None:
 
     from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -102,7 +102,7 @@ def ensure_memory_integrity(
         raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(value_ast, move_ast, symbol)
 
     # 5. Check the symbol is not pinned.
-    if check_pinned:
+    if check_pinned_move:
         for existing_pin in symbol.memory_info.ast_pins:
             if str(value_ast).startswith(str(existing_pin)) or str(existing_pin).startswith(str(value_ast)):
                 raise SemanticErrors.MOVING_PINNED_VALUE(value_ast, existing_pin)
