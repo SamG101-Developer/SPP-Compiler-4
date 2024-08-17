@@ -9,6 +9,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredT
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -52,8 +53,30 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is
         # because the condition fragment is combined with the branch fragments, and "1 == == 2" is invalid.
         kwargs |= {"condition": self.condition}
+
+        symbol_memory_status_changes = {}
         for branch in self.branches:
+            # Save the memory status (initialization and pins) of the symbols in the current scope.
+            this_scope_symbols = Seq(scope_handler.current_scope.all_symbols()).filter_to_type(VariableSymbol)
+            this_scope_old_symbol_info = this_scope_symbols.map(lambda s: (s.name, (s.memory_info.ast_consumed, s.memory_info.ast_initialized, s.memory_info.ast_pins.copy()))).dict()
             branch.do_semantic_analysis(scope_handler, **kwargs)
+
+            # Check if the memory status of any symbol has changed. Changes must be consistent across all branches if
+            # the symbol is used later.
+            this_scope_new_symbol_info = this_scope_symbols.map(lambda s: (s.name, (s.memory_info.ast_consumed, s.memory_info.ast_initialized, s.memory_info.ast_pins.copy()))).dict()
+            for symbol_name, (old_memory_consumed, old_memory_initialized, old_pins) in this_scope_old_symbol_info.items():
+
+                # Reset the symbol information.
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_consumed = old_memory_consumed
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_initialized = old_memory_initialized
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_pins = old_pins
+                new_memory_consumed, new_memory_initialized, new_pins = this_scope_new_symbol_info[symbol_name]
+
+                # Log changes in the dictionary.
+                if symbol_name in symbol_memory_status_changes:
+                    symbol_memory_status_changes[symbol_name].append((new_memory_initialized, new_pins, new_memory_consumed))
+                else:
+                    symbol_memory_status_changes[symbol_name] = [(new_memory_initialized, new_pins, new_memory_consumed)]
 
             # Check the else branch is the final branch (this also ensures there is only 1 present)
             if isinstance(branch, PatternVariantElseAst) and branch != self.branches[-1]:
@@ -64,6 +87,19 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
                 for pattern in branch.patterns:
                     binary_ast = BinaryExpressionAst(branch.pos, self.condition, branch.comp_operator, pattern.expression)
                     binary_ast.do_semantic_analysis(scope_handler, **kwargs)
+
+        # Mark the emory status of inconsistent symbols as "inconsistent" to prevent further use.
+        for symbol_name, changes in symbol_memory_status_changes.items():
+            if not all(c[0] == changes[0][0] for c in changes):
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_initialized = "Inconsistent"
+            else:
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_initialized = changes[0][0]
+            if not all(c[1] == changes[0][1] for c in changes):
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_pins = "Inconsistent"
+            else:
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_pins = changes[0][1]
+            if all(c[2] == changes[0][2] for c in changes):
+                scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_consumed = changes[0][2]
 
         if "assignment" in kwargs:
             # If this if-expression is being used for assignment, then all the branches must return the same type.

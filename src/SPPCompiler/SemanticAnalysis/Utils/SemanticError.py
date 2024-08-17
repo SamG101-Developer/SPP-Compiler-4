@@ -883,3 +883,25 @@ class SemanticErrors:
             message=f"Cannot borrow an unpinned value into a {what2} call.",
             tip="Ensure the value is pinned before borrowing it.")
         return exception
+
+    @staticmethod
+    def INCONSISTENT_MEMORY_INIT_STATUS(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            tag_message="Value might not be initialized.",
+            message="A conditional block hasn't consistently initialized or consumed this value in all branches.",
+            tip="Ensure the memory is consistently initialized or consumed in each branch.")
+        return exception
+
+    @staticmethod
+    def INCONSISTENT_MEMORY_PIN_STATUS(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.MEMORY_ERROR,
+            tag_message="Value might not be pinned.",
+            message="A conditional block hasn't consistently pinned or unpinned this value in all branches.",
+            tip="Ensure the memory is consistently pinned or unpinned in each branch.")
+        return exception

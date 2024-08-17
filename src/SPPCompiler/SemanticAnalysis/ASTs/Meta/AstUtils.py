@@ -83,6 +83,12 @@ def ensure_memory_integrity(
     if not symbol:
         return
 
+    # 0. Check for inconsistent memory status (from case block branches).
+    if symbol.memory_info.ast_initialized == "Inconsistent":
+        raise SemanticErrors.INCONSISTENT_MEMORY_INIT_STATUS(value_ast)
+    if symbol.memory_info.ast_pins == "Inconsistent":
+        raise SemanticErrors.INCONSISTENT_MEMORY_PIN_STATUS(value_ast)
+
     # 1. Check the symbol has not been consumed by another move. This prevents double moves or using uninitialized values.
     if check_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_consumed:
         raise SemanticErrors.USING_NON_INITIALIZED_VALUE(value_ast, symbol)
