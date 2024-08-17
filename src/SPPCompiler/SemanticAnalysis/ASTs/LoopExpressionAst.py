@@ -42,11 +42,7 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-
         # Analyse the condition
-        if isinstance(self.condition, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
 
         kwargs["loop-count"] = kwargs.get("loop-count", 0) + 1

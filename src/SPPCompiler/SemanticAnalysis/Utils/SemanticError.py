@@ -634,16 +634,6 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def INVALID_USE_OF_TYPE_AS_EXPR(ast: Ast) -> SemanticError:
-        exception = SemanticError()
-        exception.add_error(
-            pos=ast.parts[-1].pos, error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message="Type cannot be used here.",
-            message="Cannot use a type as an expression in this context.",
-            tip="Use a valid non-type expression.")
-        return exception
-
-    @staticmethod
     def INVALID_ITERABLE_TYPE(ast: Ast, ty: InferredType) -> SemanticError:
         exception = SemanticError()
         exception.add_error(

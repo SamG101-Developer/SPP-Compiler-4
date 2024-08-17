@@ -47,15 +47,13 @@ class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Ensure the yield expression is in a coroutine.
         if "is-subroutine" in kwargs:
             raise SemanticErrors.YIELD_OUTSIDE_COROUTINE(self, kwargs["is-subroutine"])
 
         # Analyse the expression.
-        if isinstance(self.expression, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
         coroutine_ret_type = kwargs["target-return-type"]
 

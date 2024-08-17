@@ -33,12 +33,7 @@ class ParenthesizedExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-
         # Analyse the expression inside the parentheses.
-        # Todo: effects of not having this check for ParenthesizedExpressionAst?
-        if isinstance(self.expression, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:

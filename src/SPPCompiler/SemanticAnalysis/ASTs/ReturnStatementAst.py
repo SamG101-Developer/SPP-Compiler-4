@@ -33,11 +33,9 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Check the value being turned is an owned type.
-        if isinstance(self.expression, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         if "is-coroutine" in kwargs:
             raise SemanticErrors.RETURN_OUTSIDE_SUBROUTINE(self, kwargs["is-coroutine"])
         if self.expression:

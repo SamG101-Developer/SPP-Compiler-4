@@ -33,11 +33,9 @@ class PatternGuardAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Analyse the guard expression
-        if isinstance(self.expression, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.expression)
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure the guard expression evaluates to a Bool type.

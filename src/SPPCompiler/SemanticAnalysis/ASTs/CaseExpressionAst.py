@@ -47,8 +47,6 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         scope_handler.into_new_scope("<if-expression>")
 
         # Analyse the condition.
-        if isinstance(self.condition, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.condition)
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the branches don't have comparison operators if the condition contains a comparison operator. This is

@@ -35,11 +35,9 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst, LetStatementInitializedAst, TokenAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TokenAst
 
         # Analyse the iterable.
-        if isinstance(self.iterable, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.iterable)
         self.iterable.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure the iterable is an iterable type.

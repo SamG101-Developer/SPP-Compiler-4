@@ -53,8 +53,6 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                 raise SemanticErrors.INVALID_LHS_EXPR(lhs)
 
         # Analyse the rhs of the assignment.
-        if isinstance(self.rhs, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.rhs)
         self.rhs.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the memory status of the lhs identifier.

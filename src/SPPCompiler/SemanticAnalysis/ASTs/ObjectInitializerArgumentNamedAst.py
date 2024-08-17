@@ -32,11 +32,7 @@ class ObjectInitializerArgumentNamedAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-
         # Analyse the value of the named argument.
-        if isinstance(self.value, TypeAst):
-            raise SemanticErrors.INVALID_USE_OF_TYPE_AS_EXPR(self.value)
         self.value.do_semantic_analysis(scope_handler, **kwargs)
 
 
