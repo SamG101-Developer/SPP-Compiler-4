@@ -51,3 +51,6 @@ class RelStatementAst(Ast, SemanticAnalyser):
             if not match:
                 raise SemanticErrors.UNPINNING_NON_PINNED(self, pin_target)
             symbol.memory_info.ast_pins.remove(pin_target)
+
+
+__all__ = ["RelStatementAst"]

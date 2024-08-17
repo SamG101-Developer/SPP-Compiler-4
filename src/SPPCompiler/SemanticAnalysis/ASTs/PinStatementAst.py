@@ -44,3 +44,6 @@ class PinStatementAst(Ast, SemanticAnalyser):
                 if str(pin_target).startswith(str(existing_pin)) or str(existing_pin).startswith(str(pin_target)):
                     raise SemanticErrors.PIN_OVERLAP_CONFLICT(existing_pin, pin_target)
             symbol.memory_info.ast_pins.append(pin_target)
+
+
+__all__ = ["PinStatementAst"]
