@@ -5,6 +5,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType, ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
@@ -36,8 +37,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_pre_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            IdentifierAst, PostfixExpressionAst, ObjectInitializerArgumentNamedAst)
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
 
         attribute_identifiers = kwargs["attributes"]
 
@@ -58,21 +58,16 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         arguments = Seq(self.arguments).filter(lambda a: isinstance(a.identifier, IdentifierAst))
         argument_identifiers = arguments.map(lambda a: a.identifier)
 
-        # Check there is a maximum of one default argument.
+        # Check there is a maximum of one default argument and one "sup" argument.
         if len(def_arguments) > 1:
             raise SemanticErrors.DUPLICATE_ITEM(def_arguments, "default object initializer argument")
-
-        # Check there is a maximum of one sup argument.
         if len(sup_arguments) > 1:
             raise SemanticErrors.DUPLICATE_ITEM(sup_arguments, "sup object initializer argument")
 
-        # Todo: check the sup-argument is a tuple of all stateful, non-default super-classes in order
-        if True:
-            ...
-
         def_argument = def_arguments[0] if def_arguments else None
 
-        # Mark the default value as moved.#
+        # Mark the default value as moved.
+        # Todo: mark it as partially moved with all the necessary attributes moved.
         if def_argument:
             match def_argument.value:
                 case IdentifierAst(): scope_handler.current_scope.get_symbol(def_argument.value).memory_info.ast_consumed = def_argument
@@ -87,7 +82,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "object initializer", "attribute")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ObjectInitializerArgumentNamedAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
 
         class_type = kwargs["class-type"]
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
@@ -111,6 +106,44 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.TYPE_MISMATCH(argument, attribute_type, argument_type)
 
         # Todo: super-class checks
+
+        # Ensure all the "sup" arguments are present in the object initializer.
+        # sup_types = type_symbol.associated_scope.sup_scopes
+        # sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
+        # expected_sup_types = Seq()
+        # for sup_scope, sup_block in sup_types:
+        #
+        #     # Only stateful superclasses must be present, so check the number of attributes.
+        #     super_class_type = scope_handler.current_scope.get_symbol(sup_scope.name)
+        #     super_class_attribute_count = len(super_class_type.type.body.members)
+        #
+        #     if super_class_attribute_count > 0:
+        #         expected_sup_types.append(super_class_type.fq_type)
+        #
+        # # Check a "sup" argument is given if there are expected superclasses.
+        # if not self.get_sup_args() and expected_sup_types:
+        #     raise SemanticErrors.MISSING_OBJ_INIT_SUP_ARGUMENT(self)
+        # elif self.get_sup_args() and not expected_sup_types:
+        #     raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUP_ARGUMENT(self, self.get_sup_args()[0])
+        #
+        # if self.get_sup_args():
+        #     # Check the superclass argument is a tuple.
+        #     given_sup_argument = self.get_sup_args()[0]
+        #     given_sup_argument_type = given_sup_argument.value.infer_type(scope_handler, **kwargs)
+        #     if not given_sup_argument_type.type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+        #         raise SemanticErrors.TYPE_MISMATCH(given_sup_argument, CommonTypes.tuple([]), given_sup_argument_type)
+        #
+        #     # Check all the expected superclasses are present in the superclass argument.
+        #     given_sup_argument_individual_types = Seq(given_sup_argument_type.type.parts[-1].generic_arguments.arguments.copy())
+        #     print("-" * 100)
+        #     print(expected_sup_types.map(str))
+        #     print(given_sup_argument_individual_types.map(str))
+        #     for expected_sup_type in expected_sup_types:
+        #         if not given_sup_argument_individual_types.contains(expected_sup_type):
+        #             raise SemanticErrors.MISSING_OBJ_INIT_SUPER_CLASS(given_sup_argument, expected_sup_type.without_generics())
+        #         given_sup_argument_individual_types.remove(expected_sup_type)
+        #     if given_sup_argument_individual_types:
+        #         raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types[0])
 
     def get_def_args(self) -> List["ObjectInitializerArgumentNamedAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
