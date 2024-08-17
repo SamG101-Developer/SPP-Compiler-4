@@ -5,9 +5,6 @@ Generics:
 -- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
 
 Pins:
--- Introduce the "pin" keyword for pinning values.
--- Pinning a value should prevent it from being moved.
--- Async and coroutines can only accept borrows that are pinned.
 -- Cannot unpin a value being borrowed by an async function unless await has been called on the corresponding future.
 -- Can unpin a value being borrowed by a coroutine, but the coroutine will be invalidated.
 -- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
