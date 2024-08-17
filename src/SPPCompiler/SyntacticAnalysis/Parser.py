@@ -95,8 +95,8 @@ class Parser:
         p3 = self.parse_sup_prototype_inheritance().for_alt()
         p4 = self.parse_sup_prototype_normal().for_alt()
         p5 = self.parse_typedef_statement().for_alt()
-        # p6 = self.parse_global_constant().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5).parse_once()
+        p6 = self.parse_global_constant().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
         return p7
 
     @parser_rule
@@ -695,6 +695,15 @@ class Parser:
         return TypedefStatementSpecificItemAliasAst(c1, p1, TypeAst(p2.pos, [p2]))
 
     # ===== LET-DECLARATIONS =====
+
+    @parser_rule
+    def parse_global_constant(self) -> GlobalConstantAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwLet).parse_once()
+        p2 = self.parse_local_variable_single_identifier().parse_once()
+        p3 = self.parse_token(TokenType.TkAssign).parse_once()
+        p4 = self.parse_literal().parse_once()
+        return GlobalConstantAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     def parse_let_statement(self) -> LetStatementAst:
