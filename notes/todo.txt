@@ -1,3 +1,5 @@
+NOW
+
 Generics:
 -- All things generic constraints (functions, classes, sup-blocks, member access).
 -- Sup scopes for certain generics only.
@@ -14,24 +16,13 @@ Object initialization:
     -- Replace sup-scopes with the generically-filled scopes?
     -- What about inheriting the same superclass with different generics?)
 
-Patterns:
--- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
-
-Tuples:
--- Tuple function folding: fold-able tuples need to be marked as so, then the function fold only folds those tuples.
-
 Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
--- Functions with destructured parameters and no members act as if they have members (destructure is injected).
 -- Static methods injecting a "self" argument even though it shouldn't be there.
-
-Typedefs:
--- Redo the lot
--- Importing typedefs (see TypedefStatementAst::generate() comments).
--- Sup-typedefs.
--- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec} -- make more cyclic like "let" statements.
+-- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
+-- Take out the check allowing empty-functions to be called (it is for testing purposes only).
 
 Global constants:
 -- Global constant AST for constants defined in the global scope.
@@ -41,7 +32,7 @@ Global constants:
 
 Types:
 -- Special `Copy` type that doesn't "move" the value.
--- Prevent type redeclaration in the same scope (except `Self`)`.
+-- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
 -- Union types throw generic-oriented errors
 
 Expressions:
@@ -54,3 +45,16 @@ Self-type:
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Double analyse `loop` body, avoiding messing up `exit` loop counting.
+
+
+FUTURE
+
+Typedefs:
+-- Remove for now & redo the lot
+-- Importing typedefs (see TypedefStatementAst::generate() comments).
+-- Sup-typedefs (and check they exist on the superclass; modify existing method checks).
+-- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec}
+-- Change typedefs to work like "destructures" (recursive) in the parser & analysis.
+
+Patterns:
+-- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
