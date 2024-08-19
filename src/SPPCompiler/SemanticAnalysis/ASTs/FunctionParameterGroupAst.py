@@ -42,9 +42,9 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
             FunctionParameterVariadicAst)
 
         # Check there are no duplicate parameter names for this function, and raise an exception if there are.
-        # if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
-        #     duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
-        #     raise SemanticErrors.DUPLICATE_ITEM(duplicate_parameters, "attribute")
+        if Seq(self.parameters).map(lambda p: p.identifier_for_param()).contains_duplicates():
+            duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
+            raise SemanticErrors.DUPLICATE_ITEM(duplicate_parameters, "attribute")
 
         # Ensure the ordering of parameters in this group is correct (Self => Required => Optional => Variadic).
         classification_ordering = {
@@ -55,7 +55,7 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
         sorted_classifications  = current_classifications.sort(key=lambda c: list(classification_ordering.keys()).index(c[0]))
         if current_classifications != sorted_classifications:
             difference = sorted_classifications.ordered_difference(current_classifications)
-            raise SemanticErrors.INVALID_ORDER(difference.value, classification_ordering, "parameter")
+            raise SemanticErrors.INVALID_ORDER(difference.list(), classification_ordering, "parameter")
 
         # todo: this doesn't work (creates false positives)
         # Ensure that this function is a class method if a "self" parameter is present.

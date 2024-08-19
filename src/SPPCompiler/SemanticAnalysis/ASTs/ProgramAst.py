@@ -32,7 +32,7 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeL
 
         # Pre-process the module's members and remove all function prototypes (converted).
         Seq(self.module.body.members).for_each(lambda m: m.pre_process(context))
-        self.module.body.members = Seq(self.module.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).value
+        self.module.body.members = Seq(self.module.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).list()
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the module's members.
