@@ -35,7 +35,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         s += f"{self.super_class.print(printer)} "
         s += f"{self.on_keyword.print(printer)}"
         s += f"{self.identifier.print(printer)}"
-        s += f" {self.where_block.print(printer)}" if self.where_block else ""
+        s += f" {self.where_block.print(printer)} " if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
 

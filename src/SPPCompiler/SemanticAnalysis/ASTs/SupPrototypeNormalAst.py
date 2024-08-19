@@ -43,7 +43,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         # Print the SupPrototypeNormalAst.
         s = ""
         s += f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)} {self.identifier.print(printer)}"
-        s += f" {self.where_block.print(printer)}" if self.where_block else ""
+        s += f" {self.where_block.print(printer)} " if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s
 
