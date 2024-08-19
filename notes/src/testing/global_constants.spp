@@ -5,6 +5,12 @@ let constant_1 = 1
 let constant_2 = 2
 let constant_3 = 3
 
+cls TestGlobalType {
+    a: std::BigInt
+}
+
+let constant_4 = TestGlobalType(a=1)
+
 
 fun glob_func(a: &std::BigInt) -> std::BigInt { ret 5 }
 

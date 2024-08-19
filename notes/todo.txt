@@ -20,21 +20,21 @@ Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
--- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
+-- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
 -- Take out the check allowing empty-functions to be called (it is for testing purposes only).
 -- Overriding a function doesn't remove the base overload from consideration.
 
 Global constants:
--- Extend to allow more than just literals.
--- Check tuples that include non-literals.
--- Prevent unpinning of global constants.
--- How to do arrays given there is no array literal => might need to add one?
+-- Prevent unpinning global constants.
+-- How to do arrays with no array literal => might need to add one?
+-- Using global constants from other modules doesn't work.
 
 Types:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
 -- Union types throw generic-oriented errors
 -- Numerical type indexing
+-- Serious consideration of `Self` being moved into a regular type-definition, just in the scope above?
 
 Expressions:
 -- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.

@@ -703,7 +703,7 @@ class Parser:
         p1 = self.parse_token(TokenType.KwLet).parse_once()
         p2 = self.parse_local_variable_single_identifier().parse_once()
         p3 = self.parse_token(TokenType.TkAssign).parse_once()
-        p4 = self.parse_literal().parse_once()
+        p4 = self.parse_global_constant_value().parse_once()
         return GlobalConstantAst(c1, p1, p2, p3, p4)
 
     @parser_rule
@@ -1315,7 +1315,7 @@ class Parser:
     def parse_literal(self) -> LiteralAst:
         p1 = self.parse_literal_number().for_alt()
         p2 = self.parse_literal_string().for_alt()
-        p3 = self.parse_literal_tuple().for_alt()
+        p3 = self.parse_literal_tuple(self.parse_expression).for_alt()
         p4 = self.parse_literal_regex().for_alt()
         p5 = self.parse_literal_boolean().for_alt()
         p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
@@ -1336,10 +1336,10 @@ class Parser:
         return StringLiteralAst(c1, p1)
 
     @parser_rule
-    def parse_literal_tuple(self) -> TupleLiteralAst:
+    def parse_literal_tuple(self, item) -> TupleLiteralAst:
         p1 = self.parse_literal_tuple_0_items().for_alt()
-        p2 = self.parse_literal_tuple_1_items().for_alt()
-        p3 = self.parse_literal_tuple_n_items().for_alt()
+        p2 = self.parse_literal_tuple_1_items(item).for_alt()
+        p3 = self.parse_literal_tuple_n_items(item).for_alt()
         p4 = (p1 | p2 | p3).parse_once()
         return p4
 
@@ -1438,21 +1438,61 @@ class Parser:
         return TupleLiteralAst(c1, p1, [], p2)
 
     @parser_rule
-    def parse_literal_tuple_1_items(self) -> TupleLiteralAst:
+    def parse_literal_tuple_1_items(self, item) -> TupleLiteralAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_expression().parse_once()
+        p2 = item().parse_once()
         p3 = self.parse_token(TokenType.TkComma).parse_once()
         p4 = self.parse_token(TokenType.TkParenR).parse_once()
         return TupleLiteralAst(c1, p1, [p2], p4)
 
     @parser_rule
-    def parse_literal_tuple_n_items(self) -> TupleLiteralAst:
+    def parse_literal_tuple_n_items(self, item) -> TupleLiteralAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
+        p2 = item().parse_one_or_more(TokenType.TkComma)
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return TupleLiteralAst(c1, p1, p2, p3)
+
+    # ===== GLOBAL CONSTANTS =====
+    @parser_rule
+    def parse_global_constant_value(self) -> ExpressionAst:
+        p1 = self.parse_literal_number().for_alt()
+        p2 = self.parse_literal_string().for_alt()
+        p3 = self.parse_literal_global_tuple().for_alt()
+        p4 = self.parse_literal_regex().for_alt()
+        p5 = self.parse_literal_boolean().for_alt()
+        p6 = self.parse_global_object_initialization().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
+
+    @parser_rule
+    def parse_literal_global_tuple(self) -> TupleLiteralAst:
+        p1 = self.parse_literal_tuple(self.parse_global_constant_value).parse_once()
+        return p1
+
+    @parser_rule
+    def parse_global_object_initialization(self) -> ObjectInitializerAst:
+        c1 = self.current_pos()
+        p1 = self.parse_type_single().parse_once()
+        p2 = self.parse_global_object_initializer_arguments().parse_once()
+        return ObjectInitializerAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_global_object_initializer_arguments(self) -> ObjectInitializerArgumentGroupAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkParenL).parse_once()
+        p2 = self.parse_global_object_initializer_argument_named().parse_zero_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkParenR).parse_once()
+        return ObjectInitializerArgumentGroupAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_global_object_initializer_argument_named(self) -> ObjectInitializerArgumentNamedAst:
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_once()
+        p2 = self.parse_token(TokenType.TkAssign).parse_once()
+        p3 = self.parse_global_constant_value().parse_once()
+        return ObjectInitializerArgumentNamedAst(c1, p1, p2, p3)
 
     # ===== TOKENS, KEYWORDS, & LEXEMES =====
 

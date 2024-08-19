@@ -6,5 +6,6 @@ sup MyType {
     fun static_function(a: std::BigInt) -> MyType { }
 }
 
+let constant = 1
 
 # fun function_test(a: MyType) -> MyType { }
