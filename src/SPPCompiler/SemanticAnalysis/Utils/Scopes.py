@@ -32,22 +32,57 @@ class Scope:
         # For TypeAst, shift the scope if a namespaced type is being added.
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         scope = self
-        if isinstance(symbol.name, TypeAst):
-            name = TypeAst(pos=symbol.name.pos, parts=symbol.name.parts.copy())
-            namespace = name.parts[:-1].copy()
 
-            for part in namespace.copy():
-                if Seq(scope.children).map(lambda s: s.name).contains(part):
-                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
-                    namespace.pop(0)
-                else:
-                    break
-            name.parts[:-1] = namespace
-            symbol.name = name
+        if isinstance(symbol.name, TypeAst):
+            for part in symbol.name.namespace + symbol.name.types[:-1]:
+                inner_symbol = scope.get_symbol(part)
+                match inner_symbol:
+                    case None: break
+                    case _: scope = inner_symbol.associated_scope
+            symbol.name = symbol.name.types[-1]
 
         # Add a symbol to the symbol table.
         scope._symbol_table.add(symbol)
         return symbol
+
+    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
+        # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
+        # print(f"Getting symbol {name} from {self}")
+
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
+        assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst))
+        scope = self
+
+        # For TypeAsts, shift the scope if a namespaced type is being accessed.
+        if isinstance(name, TypeAst):
+            for part in name.namespace + name.types[:-1]:
+                inner_symbol = scope.get_symbol(part)
+                # print(inner_symbol, inner_symbol.associated_scope)
+                match inner_symbol:
+                    case None: break
+                    case _: scope = inner_symbol.associated_scope
+            name = name.types[-1]
+
+        # Get the symbol from the symbol table. If it doesn't exist, then get the symbol from the parent scope. This is
+        # done recursively until the symbol is found, or the global scope is reached.
+        symbol = scope._symbol_table.get(name)
+
+        if symbol:
+            return symbol
+        if self._parent_scope and not exclusive:
+            symbol = self._parent_scope.get_symbol(name)
+            if symbol:
+                return symbol
+
+        # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
+        # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
+        # contain inherited symbols.
+
+        if isinstance(name, IdentifierAst) or isinstance(name, GenericIdentifierAst) and name.value.startswith("MOCK_"):
+            for sup_scope, _ in self._sup_scopes:
+                symbol = sup_scope.get_symbol(name)
+                if symbol:
+                    return symbol
 
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
@@ -63,48 +98,9 @@ class Scope:
 
         return self.get_symbol(identifier) if isinstance(identifier, IdentifierAst) else None
 
-    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
-        # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
-        assert type(name) in [IdentifierAst, TypeAst], f"Expected IdentifierAst or TypeAst, got {type(name)}"
-        scope = self
-
-        # For TypeAsts, shift the scope if a namespaced type is being accessed.
-        if isinstance(name, TypeAst):
-            name = TypeAst(pos=name.pos, parts=name.parts.copy())
-            namespace = name.parts[:-1].copy()
-
-            # For each part in the namespace, enter the child scope if it exists.
-            for part in namespace.copy():
-                if Seq(scope.children).map(lambda s: s.name).contains(part):
-                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
-                    namespace.pop(0)
-                else:
-                    break
-
-            name.parts[:-1] = namespace
-
-        # Get the symbol from the symbol table. If it doesn't exist, then get the symbol from the parent scope. This is
-        # done recursively until the symbol is found, or the global scope is reached.
-        sym = scope._symbol_table.get(name)
-
-        if not sym and self._parent_scope and not exclusive:
-            sym = self._parent_scope.get_symbol(name)
-        if sym:
-            return sym
-
-        # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
-        # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
-        # contain inherited symbols.
-        if isinstance(name, IdentifierAst) or isinstance(name, TypeAst) and name.parts[-1].value.startswith("MOCK_"):
-            for sup_scope, _ in self._sup_scopes:
-                sym = sup_scope.get_symbol(name)
-                if sym:
-                    return sym
-
-    def get_all_symbols(self, name: TypeAst) -> List[VariableSymbol]:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-        assert isinstance(name, TypeAst)
+    def get_all_symbols(self, name: GenericIdentifierAst) -> List[VariableSymbol]:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+        assert isinstance(name, GenericIdentifierAst)
         scope = self
 
         syms = [scope._symbol_table.get(name)]
@@ -138,6 +134,17 @@ class Scope:
             "symbol_table": self._symbol_table
         }
 
+    def depth_to(self, that_scope: Scope) -> int:
+        def _depth_to(scope: Scope, target: Scope, depth: int) -> int:
+            if scope is target:
+                return depth
+            for child in scope._sup_scopes:
+                result = _depth_to(child[0], target, depth + 1)
+                if result:
+                    return result
+            return 0
+        return _depth_to(self, that_scope, 0)
+
     @property
     def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
         # The sup scopes are a tree of scopes however, due to inheritance, say C inherits A and B, and B inherits A,
@@ -157,10 +164,6 @@ class Scope:
         return self._scope_name
 
     @property
-    def is_global(self) -> bool:
-        return self._is_global
-
-    @property
     def parent(self) -> Optional[Scope]:
         return self._parent_scope
 
@@ -177,17 +180,19 @@ class Scope:
         return self._children_scopes
 
     @property
-    def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
-        return self._sup_scopes
-
-    @property
     def scopes_as_namespace(self) -> List[IdentifierAst]:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
         scope = self._parent_scope
         namespace = []
         while scope.parent:
-            namespace.insert(0, scope.name)
+            if isinstance(scope.name, IdentifierAst):
+                namespace.insert(0, scope.name)
             scope = scope.parent
         return namespace
+
+    def __str__(self):
+        return str(self._scope_name)
 
 
 class ScopeIterator:
@@ -222,7 +227,7 @@ class ScopeHandler:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         # Create the global scope, set the current scope to the global scope, and initialize the scope iterator.
-        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "Global"))
+        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "_global"))
         self._current_scope = self._global_scope
         self._iterator = iter(self)
 
