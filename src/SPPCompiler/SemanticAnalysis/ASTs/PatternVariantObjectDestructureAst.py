@@ -55,7 +55,7 @@ class PatternVariantObjectDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             pos=self.pos,
             class_type=self.class_type,
             bracket_l_token=self.bracket_l_token,
-            items=converted_items.value,
+            items=converted_items.list(),
             bracket_r_token=self.bracket_r_token)
 
         return bindings

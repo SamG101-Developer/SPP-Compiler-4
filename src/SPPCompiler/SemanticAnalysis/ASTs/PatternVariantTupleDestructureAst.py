@@ -52,7 +52,7 @@ class PatternVariantTupleDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         bindings = LocalVariableTupleDestructureAst(
             pos=self.pos,
             paren_l_token=self.paren_l_token,
-            items=converted_items.value,
+            items=converted_items.list(),
             paren_r_token=self.paren_r_token)
 
         return bindings
