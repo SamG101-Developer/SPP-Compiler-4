@@ -190,7 +190,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
     def symbolic_eq(self, that: TypeAst, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
         # Special cases for union types.
-        if self.without_generics() == CommonTypes.var([]):
+        if self.without_generics() == CommonTypes.var([]) and self.types[-1].generic_arguments.arguments:
             for generic_argument in self.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments:
                 if generic_argument.type.symbolic_eq(that, this_scope, that_scope):
                     return True

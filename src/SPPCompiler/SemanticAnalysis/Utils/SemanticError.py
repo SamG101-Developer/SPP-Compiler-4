@@ -679,6 +679,20 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def TYPE_DESTRUCTURING_INVALID_TYPE(ty: Ast, var: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=var.pos,
+            tag_message=f"Variant type declared here.")
+        exception.add_error(
+            pos=ty.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Type '{ty}' does not belong to the variant.",
+            message="Invalid type for type destructuring.",
+            tip="Ensure the type belongs to the variant type.")
+        return exception
+
+    @staticmethod
     def CONFLICTING_FUNCTION_OVERLOADS(name: str, ast0: Ast, ast1: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_info(

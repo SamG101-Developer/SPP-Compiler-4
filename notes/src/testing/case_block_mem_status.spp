@@ -1,9 +1,32 @@
 mod testing::case_block_mem_status
 
 
-fun test_cases() -> std::Void {
+cls Point {
+    x: std::BigInt
+    y: std::BigInt
+    z: std::BigInt
+}
+
+
+cls DirVec {
+    point: Point
+    dir: std::BigInt
+}
+
+
+fun test_cases(y: std::U32 | std::Str) -> std::Void {
     let x = 123
     case x then
         == 123 { let z = x }
         == 456 { }
+
+    case y then
+        is std::U32 { "num" }
+        is std::Str { "str" }
+
+    let d = DirVec(point=Point(x=1, y=2, z=3), dir=4)
+
+    case d then
+        is DirVec(point=Point(x=1, y=2, z=3), dir=4) { "1" }
+        is DirVec(point=Point(x=1, y=2, z=3), ..) { "2" }
 }
