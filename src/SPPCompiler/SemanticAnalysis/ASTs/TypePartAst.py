@@ -1,7 +1,5 @@
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, TokenAst
 
-type TypePartAst = IdentifierAst | GenericIdentifierAst | TokenAst
+type TypePartAst = GenericIdentifierAst | TokenAst
 
 __all__ = ["TypePartAst"]
