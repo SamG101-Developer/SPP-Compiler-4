@@ -32,9 +32,10 @@ class TokenAst(Ast):
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same token types and metadata if they're lexemes.
-        c1 = isinstance(other, TokenAst) and self.token.token_type == other.token.token_type
-        c2 = self.token.token_metadata == other.token.token_metadata if self.token.token_type.name.startswith("Lx") else True
-        return c1 and c2
+        return (
+                isinstance(other, TokenAst)
+                and self.token.token_type == other.token.token_type
+                and (self.token.token_metadata == other.token.token_metadata if self.token.token_type.name.startswith("Lx") else True))
 
     def __hash__(self):
         # The hash must be fixed, so that the same identifiers in different IdentifierAst objects have the same hash.
