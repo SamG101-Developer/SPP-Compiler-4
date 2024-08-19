@@ -31,7 +31,7 @@ fun test_cases(y: std::U32 | std::Str) -> std::Void {
 
     let t = (1, 2, 3, 4)
     let val = case t then
-        is (1, 2, a, mut b) { b = 123 }
+        is (1, 2, a, mut b) { "123" }
         is (1, 2, 3, 4) { "2" }
-        else { false }
+        else { "false" }
 }

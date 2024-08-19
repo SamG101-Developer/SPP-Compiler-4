@@ -108,7 +108,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
                 raise SemanticErrors.CONFLICTING_IF_BRANCH_TYPES(branch_return_types[0], branch_return_types[1])
 
             # Ensure the final branch is an else branch. todo: exhaustive branches don't need this
-            if not isinstance(self.branches[-1], PatternVariantElseAst):
+            if not isinstance(self.branches[-1].patterns[0], PatternVariantElseAst):
                 raise SemanticErrors.NO_ELSE_BRANCH(self.branches[-1])
 
         # Exit the if-scope.
