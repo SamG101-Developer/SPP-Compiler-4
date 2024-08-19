@@ -103,7 +103,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         if "assignment" in kwargs:
             # If this if-expression is being used for assignment, then all the branches must return the same type.
-            branch_return_types = Seq(self.branches).map(lambda b: b.infer_type(scope_handler, **kwargs)).unique_items()
+            branch_return_types = Seq(self.branches).map(lambda b: b.body.infer_type(scope_handler, **kwargs)).unique_items()
             if branch_return_types.length > 1:
                 raise SemanticErrors.CONFLICTING_IF_BRANCH_TYPES(branch_return_types[0], branch_return_types[1])
 

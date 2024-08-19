@@ -30,7 +30,7 @@ fun test_cases(y: std::U32 | std::Str) -> std::Void {
         is DirVec(point=Point(x=1, y=2, z=3), ..) { "2" }
 
     let t = (1, 2, 3, 4)
-    case t then
+    let val = case t then
         is (1, 2, a, mut b) { b = 123 }
         is (1, 2, 3, 4) { "2" }
         else { false }

@@ -303,6 +303,9 @@ class InferredType:
     def __str__(self):
         return f"{self.convention.dummy()}{self.type}"
 
+    def __hash__(self):
+        return hash((self.convention, self.type))
+
 
 __all__ = [
     "TypeInfer",
