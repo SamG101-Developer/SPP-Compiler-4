@@ -19,8 +19,9 @@ class Seq[T]:
     def insert(self, index: int, item: T) -> None:
         self._value.insert(index, item)
 
-    def extend(self, items: Seq[T]) -> None:
+    def extend(self, items: Seq[T]) -> Seq[T]:
         self._value.extend(items._value)
+        return self
 
     # Iteration operations
 
@@ -223,12 +224,11 @@ class Seq[T]:
     # Properties
 
     @property
-    def value(self) -> List[T]:
-        return self._value
-
-    @property
     def length(self) -> int:
         return len(self._value)
 
     def dict(self) -> Dict:
         return {key: val for (key, val) in self._value}
+
+    def list(self) -> List:
+        return self._value

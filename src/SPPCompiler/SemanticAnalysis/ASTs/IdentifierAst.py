@@ -60,6 +60,11 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
                 # Namespaces are not types, so return the namespace symbol itself.
                 return InferredType(convention=ConventionMovAst, type=self)
 
+    def to_generic_identifier(self) -> "GenericIdentifierAst":
+        # Convert the identifier to a generic identifier.
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+        return GenericIdentifierAst(self.pos, self.value, None)
+
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value.
         return isinstance(other, IdentifierAst) and self.value == other.value
