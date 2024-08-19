@@ -116,7 +116,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             # Parse the mock class and let statement code to generate the respective ASTs.
             mock_cls_ast = Parser(Lexer(mock_cls).lex(), "").parse_class_prototype().parse_once()
             mock_let_ast = Parser(Lexer(mock_let).lex(), "").parse_let_statement_initialized().parse_once()
-            mock_let_ast._sup_let_type = function_class_type
+            mock_let_ast._sup_let_type = mock_cls_ast.identifier
 
             # Append both of these ASTs to the module or sup prototype ("context" will be either one).
             context.body.members.append(mock_cls_ast)
