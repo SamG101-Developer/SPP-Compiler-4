@@ -1,12 +1,12 @@
 mod testing::tuple_unpacking
 
 
-fun function_tuple_unpacking(x: std::Str, a: std::BigInt, b: std::BigInt, c: std::BigInt, y: std::Bool) -> std::BigInt {
+fun function_tuple_unpacking(x: std::Str, a: std::BigInt, b: std::Str, c: std::BigInt, y: std::Bool) -> std::BigInt {
     ret a
 }
 
 
 fun test_tuple_unpacking() -> std::Void {
-    let tuple = (1, 2, 3)
+    let tuple = (1, "2", 3)
     let mut y = function_tuple_unpacking("hello", ..tuple, false)
 }

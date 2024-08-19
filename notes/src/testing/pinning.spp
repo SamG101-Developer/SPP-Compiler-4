@@ -16,7 +16,7 @@ fun test_pinning() -> PinTest {
     let pin_test = PinTest(a=1, b=2)
     pin pin_test
 
-    async test_pinning_async(&pin_test)
+    let future = async test_pinning_async(&pin_test)
 
     rel pin_test
     ret pin_test
