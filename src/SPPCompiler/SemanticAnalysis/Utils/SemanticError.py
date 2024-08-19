@@ -265,7 +265,7 @@ class SemanticErrors:
     @staticmethod
     def UNKNOWN_IDENTIFIER(ast: Ast, similar: list, what: str) -> SemanticError:
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-        value = ast.parts[-1].value if isinstance(ast, TypeAst) else ast.value
+        value = ast.types[-1].value if isinstance(ast, TypeAst) else ast.value
         closest = difflib.get_close_matches(value, similar, n=1, cutoff=0)
         closest = f" Did you mean '{closest[0]}'?" if closest else ""
 
@@ -411,13 +411,13 @@ class SemanticErrors:
         exception = SemanticError()
         exception.add_info(
             pos=lhs.pos,
-            tag_message=f"Type inferred as '{lhs_ty}' ({len(lhs_ty.parts[-1].generic_arguments.arguments)} elements)")
+            tag_message=f"Type inferred as '{lhs_ty}' ({len(lhs_ty.types[-1].generic_arguments.arguments)} elements)")
         exception.add_error(
             pos=rhs.pos,
             error_type=SemanticErrorType.TYPE_ERROR,
             tag_message=f"Numeric member access found here to element {rhs}",
             message="Numeric member access out of bounds",
-            tip=f"Use a valid index for numeric member access (< {len(lhs_ty.parts[-1].generic_arguments.arguments)})")
+            tip=f"Use a valid index for numeric member access (< {len(lhs_ty.types[-1].generic_arguments.arguments)})")
         return exception
 
     @staticmethod
@@ -608,7 +608,7 @@ class SemanticErrors:
     @staticmethod
     def STATIC_MEMBER_TYPE_ACCESS(ast: Ast, op: Ast, what: str) -> SemanticError:
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-        value = ast.parts[-1] if isinstance(ast, TypeAst) else ast
+        value = ast.types[-1] if isinstance(ast, TypeAst) else ast
         exception = SemanticError()
         exception.add_info(
             pos=value.pos, tag_message=f"'{ast}' is a {what}.")
@@ -622,7 +622,7 @@ class SemanticErrors:
     @staticmethod
     def RUNTIME_MEMBER_TYPE_ACCESS(ast: Ast, op: Ast, what: str) -> SemanticError:
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-        value = ast.parts[-1] if isinstance(ast, TypeAst) else ast
+        value = ast.types[-1] if isinstance(ast, TypeAst) else ast
         exception = SemanticError()
         exception.add_info(
             pos=value.pos, tag_message=f"'{ast}' is a {what}.")
@@ -873,9 +873,9 @@ class SemanticErrors:
         what1 = "Coroutine definition" if not is_async else "Asynchronous tag"
         what2 = "coroutine" if not is_async else "asynchronous function"
         exception = SemanticError()
-        exception.add_info(
-            pos=fun.pos,
-            tag_message=f"{what1} here.")
+        # exception.add_info(
+        #     pos=fun.pos,
+        #     tag_message=f"{what1} here.")
         exception.add_error(
             pos=ast.pos,
             error_type=SemanticErrorType.MEMORY_ERROR,
