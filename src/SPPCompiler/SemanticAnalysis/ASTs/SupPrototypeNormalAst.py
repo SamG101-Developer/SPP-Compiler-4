@@ -1,10 +1,10 @@
-import time
 from dataclasses import dataclass
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import get_owner_type_of_sup_block
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -52,14 +52,14 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         from SPPCompiler.SemanticAnalysis.ASTs import SubroutinePrototypeAst, CoroutinePrototypeAst
         Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
-        self.body.members = Seq(self.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).value
+        self.body.members = Seq(self.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).list()
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope, and add the "Self" type to the scope.
         scope_handler.into_new_scope(f"{self.identifier}#SUP-functions")
 
         # Generate the body members (prototype), and register the generic parameters types.
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
         # Exit the new scope.
@@ -67,18 +67,14 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
+        self_symbol = get_owner_type_of_sup_block(self.identifier, scope_handler)
 
         # Register the "Self" type and analyse the identifier.
         self.identifier.do_semantic_analysis(scope_handler)
-        scope_handler.current_scope.add_symbol(TypeSymbol(
+        self_symbol and scope_handler.current_scope.add_symbol(TypeSymbol(
             name=CommonTypes.self(),
-            type=scope_handler.current_scope.get_symbol(self.identifier).type))
-
-        # Register the class's generics into the sup-block.
-        for generic_argument in self.identifier.parts[-1].generic_arguments.arguments:
-            generic_argument_type = scope_handler.current_scope.get_symbol(generic_argument.type).type
-            generic_argument_name = generic_argument.identifier
-            scope_handler.current_scope.add_symbol(TypeSymbol(name=generic_argument_name, type=generic_argument_type))
+            type=self_symbol.type,
+            associated_scope=self_symbol.associated_scope))
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import get_owner_type_of_sup_block, matching_function_types
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -41,11 +42,11 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     def pre_process(self, context: "ModulePrototypeAst") -> None:
         # Don't preprocess converted function classes, because they will infinitely generate new ones inside.
         # TODO: Change to std::FunRef, std::FunMut, std::FunMov
-        if self.super_class.parts[-1].value in ["FunRef", "FunMut", "FunMov"]:
+        if self.super_class.types[-1].value in ["FunRef", "FunMut", "FunMov"]:
             return
 
         # Substitute the "Self" type to the identifier of the class.
-        Seq(self.super_class.parts[-1].generic_arguments.arguments).for_each(lambda a: a.type.substitute_generics(CommonTypes.self(), self.identifier))
+        self.super_class.substitute_generics(CommonTypes.self(), self.identifier)
 
         # Use the SupPrototypeNormalAst's implementation.
         super().pre_process(context)
@@ -55,7 +56,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         scope_handler.into_new_scope(f"{self.identifier}#SUP-{self.super_class}")
 
         # Generate the body members (prototype), and register the generic parameters types.
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
         # Exit the new scope.
@@ -63,18 +64,16 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
+        self_symbol = get_owner_type_of_sup_block(self.identifier, scope_handler)
 
         # Register the "Self" type and analyse the identifier.
         self.identifier.do_semantic_analysis(scope_handler)
-        scope_handler.current_scope.add_symbol(TypeSymbol(
+        self_symbol and scope_handler.current_scope.add_symbol(TypeSymbol(
             name=CommonTypes.self(),
-            type=scope_handler.current_scope.get_symbol(self.identifier).type))
+            type=self_symbol.type,
+            associated_scope=self_symbol.associated_scope))
 
-        # Register the class's generics into the sup-block.
-        for generic_argument in self.identifier.parts[-1].generic_arguments.arguments:
-            generic_argument_type = scope_handler.current_scope.get_symbol(generic_argument.type).type
-            generic_argument_name = generic_argument.identifier
-            scope_handler.current_scope.add_symbol(TypeSymbol(name=generic_argument_name, type=generic_argument_type))
+        # scope_handler.current_scope.get_symbol(self.identifier).associated_scope
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
@@ -112,7 +111,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         super_class_scope = scope_handler.current_scope.get_symbol(self.super_class).associated_scope
         super_class_implementations = Seq(super_class_scope._normal_sup_scopes)
 
-        # todo: as compiler develops, add the sup-typedefs here
+        # Todo: as compiler develops, add the sup-typedefs here
         super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
         this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
 
@@ -122,20 +121,15 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
             for that_member in super_class_members:
 
-                # Check basic attributes, including the function type (FunRef vs FunMut for example).
-                if this_member.generic_parameters != that_member.generic_parameters: continue
-                if this_member.identifier != that_member.identifier: continue
-                if this_member.where_block != that_member.where_block: continue
-                if this_member.super_class.parts[-1].value != that_member.super_class.parts[-1].value: continue
+                if any([
+                        this_member.generic_parameters != that_member.generic_parameters,
+                        this_member.where_block != that_member.where_block,
+                        this_member.identifier != that_member.identifier,
+                        this_member.super_class.types[-1].value != that_member.super_class.types[-1].value]):
+                    continue
 
                 # The superclass is more complex, as the "Self" argument and return type can be different.
-                this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
-                that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
-                t1 = this_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[this_member_has_self_parameter:]
-                t2 = that_member.super_class.parts[-1].generic_arguments.arguments[-1].type.parts[-1].generic_arguments.arguments[that_member_has_self_parameter:]
-                c5 = all(tt1.type.symbolic_eq(tt2.type, scope_handler.current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
-
-                matched = c5
+                matched = matching_function_types(this_member, that_member, scope_handler.current_scope, super_class_scope)
                 if matched:
                     break
 
