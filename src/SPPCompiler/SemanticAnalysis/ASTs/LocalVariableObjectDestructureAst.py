@@ -32,7 +32,12 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
-        return f"{self.class_type.print(printer)}{self.bracket_l_token.print(printer)}{Seq(self.items).print(printer, ", ")}{self.bracket_r_token.print(printer)}"
+        s = ""
+        s += f"{self.class_type.print(printer)}"
+        s += f"{self.bracket_l_token.print(printer)}"
+        s += f"{Seq(self.items).print(printer, ", ")}"
+        s += f"{self.bracket_r_token.print(printer)}"
+        return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
