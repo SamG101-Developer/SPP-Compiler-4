@@ -72,25 +72,23 @@ class VariableSymbol(Symbol):
 
 @dataclass(kw_only=True)
 class TypeSymbol(Symbol):
-    name: TypeAst
+    name: GenericIdentifierAst
     type: Optional[ClassPrototypeAst]  # None for generic types
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
-    # generic_map: dict[TypeAst, TypeAst] = dataclasses.field(default_factory=dict)
+    is_generic: bool = dataclasses.field(default=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TypeAst
-        assert isinstance(self.name, TypeAst), f"Got type symbol with name: {self.name} ({type(self.name)}"  # TODO: This is not correct
+        from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
+        assert isinstance(self.name, (GenericIdentifierAst, TypeAst)), f"Got type symbol with name: {self.name} ({type(self.name)}"
         assert isinstance(self.type, ClassPrototypeAst) or self.type is None, f"Got type symbol with type: {type(self.type)}"
-
-        # generics = self.name.parts[-1].generic_arguments
-        # self.name = self.name.without_generics()
-        # self.generic_map = {generic.identifier: generic.type for generic in generics}
 
     def __json__(self) -> dict:
         return {
             "what": "type",
             "name": self.name,
             "type": self.type,
+            "is_generic": self.is_generic,
+            "associated_scope": self.associated_scope.name if self.associated_scope else None,
         }
 
     def __str__(self) -> str:
@@ -98,13 +96,15 @@ class TypeSymbol(Symbol):
 
     @property
     def fq_type(self) -> TypeAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
         if not self.type:
             return self.name
 
         associated_scope = self.associated_scope.parent
-        fq_type = copy.deepcopy(self.name)
+        fq_type = TypeAst(self.name.pos, [], [self.name])
         while associated_scope.parent is not None:
-            fq_type.parts.insert(0, associated_scope.name)
+            fq_type.namespace.insert(0, associated_scope.name)
             associated_scope = associated_scope.parent
         return fq_type
 
