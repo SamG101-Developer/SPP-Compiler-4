@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import NoReturn
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
@@ -9,8 +10,8 @@ class Ast:
     pos: int
     
     @ast_printer_method
-    def print(self, printer: AstPrinter) -> str:
-        ...
+    def print(self, printer: AstPrinter) -> NoReturn:
+        raise
     
     def __eq__(self, other):
         return isinstance(other, Ast)
