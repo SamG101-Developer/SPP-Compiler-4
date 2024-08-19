@@ -1,0 +1,6 @@
+mod testing::union_testing
+
+
+fun test_union(mut a: std::U32 | std::Str) -> std::Void {
+    a = "123"
+}

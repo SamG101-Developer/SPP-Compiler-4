@@ -32,12 +32,8 @@ Global constants:
 Types:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
--- Union types throw generic-oriented errors
 -- Numerical type indexing
 -- Serious consideration of `Self` being moved into a regular type-definition, just in the scope above?
-
-Expressions:
--- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
 
 Self-type:
 -- Disallow "Self" being used as a generic argument in "sup" blocks as arguments (recursive types)
