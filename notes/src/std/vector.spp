@@ -2,8 +2,8 @@ mod std::vector
 
 
 cls Vec[T] {
-    data: Arr[T]
-    length: U64
+    # data: Arr[T]
+    # length: U64
 }
 
 sup [T] Vec[T] {
@@ -37,12 +37,6 @@ sup [T] Vec[T] {
 }
 
 sup [T] Vec[T] {
-    fun iter_ref(&self) -> IterRef[T] { }
-    fun iter_mut(&mut self) -> IterMut[T] { }
-    fun item_mov(self) -> IterMov[T] { }
-}
-
-sup [T] Vec[T] {
     fun clear(&mut self) -> Void { }
     fun is_empty(&self) -> Bool { }
 }
@@ -56,4 +50,16 @@ sup [T] Vec[T] {
 sup [T: Sortable] Sortable[T] on Vec[T] {
     fun sort(&mut self) -> Void { }
     fun sort_by(&mut self, compare: FunRef[Bool, (T, T)]) -> Void { }
+}
+
+sup [T] IterMov[T] on Vec[T] {
+    # cor iter_mov(self) -> GenMov[T] { }
+}
+
+sup [T] IterRef[T] on Vec[T] {
+    # cor iter_ref(&self) -> GenRef[T] { }
+}
+
+sup [T] IterMut[T] on Vec[T] {
+    # cor iter_mut(&mut self) -> GenMut[T] { }
 }

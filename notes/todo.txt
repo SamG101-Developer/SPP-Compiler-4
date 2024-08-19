@@ -20,9 +20,9 @@ Functions:
 -- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
--- Static methods injecting a "self" argument even though it shouldn't be there.
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
 -- Take out the check allowing empty-functions to be called (it is for testing purposes only).
+-- Overriding a function doesn't remove the base overload from consideration.
 
 Global constants:
 -- Extend to allow more than just literals.
@@ -34,6 +34,7 @@ Types:
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
 -- Union types throw generic-oriented errors
+-- Numerical type indexing
 
 Expressions:
 -- Operations ie `1 + 2`, `2` should be taken by-ref, but there is no way to do this currently.
