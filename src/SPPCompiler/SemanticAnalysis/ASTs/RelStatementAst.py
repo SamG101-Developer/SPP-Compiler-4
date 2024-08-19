@@ -3,6 +3,7 @@ from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
@@ -26,6 +27,13 @@ class RelStatementAst(Ast, SemanticAnalyser):
 
     rel_keyword: "TokenAst"
     expressions: List["ExpressionAst"]
+
+    def print(self, printer: AstPrinter) -> str:
+        # Print the RelStatementAst.
+        s = ""
+        s += f"{self.rel_keyword.print(printer)} "
+        s += f"{Seq(self.expressions).print(printer, ", ")};"
+        return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse each expression.
