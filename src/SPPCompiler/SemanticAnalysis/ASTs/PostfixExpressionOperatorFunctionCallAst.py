@@ -50,8 +50,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionArgumentNormalAst, FunctionArgumentNamedAst
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst, FunctionParameterSelfAst
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
-        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, ConventionMovAst, IdentifierAst
 
         if self._overload:
             return self._overload
@@ -65,7 +64,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 lhs_type = lhs.lhs.infer_type(scope_handler, **kwargs).type
                 lhs_identifier = lhs.op.identifier
                 re_analyse = True
-                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
             case PostfixExpressionAst() if lhs.op.dot_token.token.token_type == TokenType.TkDblColon:
                 lhs_type = lhs.lhs
                 lhs_identifier = lhs.op.identifier
@@ -74,7 +73,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # Namespace vs enclosing class
                 match lhs.lhs:
                     case IdentifierAst(): owner_scope_generic_arguments = []
-                    case _: owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+                    case _: owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
 
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
             case IdentifierAst():
@@ -88,6 +87,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         # Create a new AST, using the type to form the function. For example, "vec.test(other)" becomes
         # "Vec::test(vec, other)". This provides uniform analysis for all function calls.
         if re_analyse:
+
             # Insert the "self" argument into the argument list if the function is a method.
             arguments = copy.copy(self.arguments)
             if isinstance(lhs, PostfixExpressionAst) and lhs.op.dot_token.token.token_type == TokenType.TkDot:
@@ -121,7 +121,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 named_argument_identifiers = Seq(arguments).filter_to_type(FunctionArgumentNamedAst).map(lambda a: a.identifier)
 
                 generic_parameters = Seq(func_overload.generic_parameters.parameters.copy())
-                generic_parameters_identifiers_required = Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier)
                 generic_arguments = Seq(self.generic_arguments.arguments.copy())
                 is_function_variadic = func_overload.parameters.parameters and isinstance(func_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
                 specialized_scope_info = {"created": False, "remove_function": None}
@@ -148,13 +147,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameter_identifiers[0], "function call", "parameter")
 
                 # Infer generic arguments, and inherit from the lhs type.
-                generic_arguments = GenericArgumentGroupAst.from_dict(infer_generics_types(
+                generic_arguments.arguments = infer_generics_types(
                     ast=self,
-                    generic_parameters=generic_parameters_identifiers_required.copy().value,
+                    generic_parameters=Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
                     explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     infer_from=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     map_to=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
-                    scope_handler=scope_handler))
+                    scope_handler=scope_handler)
 
                 if generic_arguments.arguments:
                     # Temporarily remove the body of the overload before copying it (faster).
@@ -173,7 +172,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
 
                     parameters = Seq(specialized_func_overload.parameters.parameters)
-                    # todo: re-name the scope with the substituted generic types too: "MOCK_func#SUP-std::FunRef[...]".
 
                     # Register the specialization to the module or "sup" block, and pre-process the overload.
                     func_overload._ctx.body.members.append(specialized_func_overload)

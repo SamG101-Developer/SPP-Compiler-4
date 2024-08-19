@@ -27,8 +27,7 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-        from SPPCompiler.SemanticAnalysis.ASTs.GenericIdentifierAst import GenericIdentifierAst
-        self.identifier = TypeAst(self.raw_identifier.pos, [GenericIdentifierAst(self.raw_identifier.pos, self.raw_identifier.value, None)])
+        self.identifier = TypeAst(self.raw_identifier.pos, [], [self.raw_identifier.to_generic_identifier()])
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

@@ -60,7 +60,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                         raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_TYPE(lhs, self.identifier, lhs_type)
 
                     # Check if the index is within bounds, i.e. it is less than the number of elements in the tuple.
-                    if int(self.identifier.token.token_metadata) >= len(lhs_type.parts[-1].generic_arguments.arguments):
+                    if int(self.identifier.token.token_metadata) >= len(lhs_type.types[-1].generic_arguments.arguments):
                         raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs, self.identifier, lhs_type)
 
                 # Identifier member access.
@@ -112,7 +112,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         # correct element.
         elif isinstance(self.identifier, TokenAst):
             lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            return InferredType(convention=ConventionMovAst, type=lhs_type.type.parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type)
+            return InferredType(convention=ConventionMovAst, type=lhs_type.type.types[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.

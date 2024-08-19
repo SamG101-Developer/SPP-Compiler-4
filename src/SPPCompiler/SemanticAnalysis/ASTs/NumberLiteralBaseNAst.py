@@ -30,7 +30,7 @@ class NumberLiteralBaseNAst(Ast, SemanticAnalyser, TypeInfer):
         if self.raw_type:
             corrected_raw_type = GenericIdentifierAst(self.raw_type.pos, self.raw_type.value.title(), None)
             std_namespace = IdentifierAst(self.raw_type.pos, "std")
-            self.type = TypeAst(self.raw_type.pos, [std_namespace, corrected_raw_type])
+            self.type = TypeAst(self.raw_type.pos, [std_namespace], [corrected_raw_type])
 
     def print(self, printer: AstPrinter) -> str:
         # Print the NumberLiteralBaseNAst.

@@ -34,12 +34,13 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst, TypeAst
 
-        # Ensure the base type (no generics) exists, and is not a generic type, as these cannot be instantiated.
-        # The non-generic version of the type is checked, as the generics can be changed by inferred generic from
-        # arguments, so the complete type, with generics, is analysed later.
-        self.class_type.do_semantic_analysis(scope_handler, **(kwargs | {"is-init": True}))
+        generic_infer_from = Seq(self.arguments.arguments).map(lambda a: (a.identifier, self.arguments.get_argument_value(a).infer_type(scope_handler, **kwargs).type)).dict()
+        generic_map_to = Seq(base_type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict()
+
+        # Analyse the type, and ensure that it isn't a generic type being instantiated.
+        self.class_type.do_semantic_analysis(scope_handler, generic_infer_from, generic_map_to, **kwargs)
         type_symbol = scope_handler.current_scope.get_symbol(self.class_type)
-        if not type_symbol.type:
+        if type_symbol.is_generic:
             raise SemanticErrors.NON_INSTANTIABLE_TYPE(self.class_type, type_symbol)
 
         kwargs["attributes"] = Seq(type_symbol.type.body.members).map(lambda a: a.identifier)

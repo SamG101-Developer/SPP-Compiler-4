@@ -80,7 +80,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
-        if self.super_class.parts[-1].value not in ["FunRef", "FunMut", "FunMov"]:
+        if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
             self.super_class.do_semantic_analysis(scope_handler)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
 

@@ -57,13 +57,13 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
             if check:
                 if given_iterable_type_scope._scope_name.without_generics().symbolic_eq(iterable_type, given_iterable_type_scope, scope_handler.current_scope):
                     generator_type = given_iterable_type_scope._scope_name
-                    yield_type = next(g for g in generator_type.parts[-1].generic_arguments.arguments if g.identifier.parts[-1].value == "Yield").type
+                    yield_type = generator_type.types[-1].generic_arguments["Yield"].type
                     break
 
                 for sup_scope in given_iterable_type_scope.sup_scopes:
                     if sup_scope._scope_name.without_generics().symbolic_eq(iterable_type, given_iterable_type_scope, scope_handler.current_scope):
                         generator_type = sup_scope._scope_name
-                        yield_type = next(g for g in generator_type.parts[-1].generic_arguments.arguments if g.identifier.parts[-1].value == "Yield").type
+                        yield_type = generator_type.types[-1].generic_arguments["Yield"].type
                         break
 
         if generator_type is None:
@@ -85,9 +85,9 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
             variable_symbol.memory_info = MemoryStatus(
                 ast_initialized=self,
                 ast_consumed=None,
-                ast_borrow=self if generator_type.parts[-1].value in ["GenRef", "GenMut"] else None,
-                is_borrow_mut=generator_type.parts[-1].value == "GenMut",
-                is_borrow_ref=generator_type.parts[-1].value == "GenRef")
+                ast_borrow=self if generator_type.types[-1].value in ["GenRef", "GenMut"] else None,
+                is_borrow_mut=generator_type.types[-1].value == "GenMut",
+                is_borrow_ref=generator_type.types[-1].value == "GenRef")
 
 
 __all__ = ["LoopExpressionConditionIterableAst"]

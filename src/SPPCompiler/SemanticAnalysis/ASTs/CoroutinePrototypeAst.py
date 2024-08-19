@@ -22,7 +22,7 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
             raise SemanticErrors.INVALID_COROUTINE_RETURN_TYPE(self, self.return_type)
 
         # Get the coroutine return type (it is the generic argument in the "Return" type).
-        coroutine_return_type = CommonTypes.opt(self.return_type.parts[-1].generic_arguments["Yield"].type)
+        coroutine_return_type = CommonTypes.opt(self.return_type.types[-1].generic_arguments["Yield"].type)
         coroutine_return_type.do_semantic_analysis(scope_handler, **kwargs)
 
         # Add the "target-return-type" to the kwargs, so other ASTs can use the function's return type is required.
