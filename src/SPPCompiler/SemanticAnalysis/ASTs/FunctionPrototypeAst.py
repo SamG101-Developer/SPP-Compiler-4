@@ -226,15 +226,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        # print("-" * 100)
-        #
-        # import inspect
-        # frame = inspect.stack()[2]
-        # print(f"{frame.filename}:{frame.lineno}")
-        #
-        # print("FN PROTO", self._orig, self.parameters, self.return_type)
-        # print(self)
-
         from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
 
         # Move into the function scope.
