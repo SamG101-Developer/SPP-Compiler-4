@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
-
-# TODO: tidy property accessors
 
 
 class Scope:
@@ -84,16 +83,40 @@ class Scope:
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
 
+        # Match the name against a set of ASTs to get the identifier.
         match name:
+
+            # For an IdentifierAst, the name is already the outermost identifier.
             case IdentifierAst():
                 identifier = name
+
+            # For a PostfixExpressionAst, the outermost symbol is reached by recursively getting the lhs.
             case PostfixExpressionAst():
-                while isinstance(name, PostfixExpressionAst) and isinstance(name.op, PostfixExpressionOperatorMemberAccessAst): name = name.lhs
+                while isinstance(name, PostfixExpressionAst) and isinstance(name.op, PostfixExpressionOperatorMemberAccessAst) and name.op.dot_token.token.token_type == TokenType.TkDot:
+                    name = name.lhs
                 identifier = name
+
+            # Otherwise, there is no identifier.
             case _:
                 return None
 
-        return self.get_symbol(identifier) if isinstance(identifier, IdentifierAst) else None
+        # For namespaced constants, like "std::none", shift the scope to the namespace.
+        if isinstance(identifier, PostfixExpressionAst) and isinstance(identifier.op, PostfixExpressionOperatorMemberAccessAst):
+            scope, rhs = self, identifier.op.identifier
+            while isinstance(identifier, PostfixExpressionAst) and isinstance(identifier.op, PostfixExpressionOperatorMemberAccessAst):
+                scope = scope.get_symbol(identifier.lhs).associated_scope
+                identifier = identifier.lhs
+            symbol = scope.get_symbol(rhs)
+
+        # For identifiers, get the symbol from the symbol table.
+        elif isinstance(identifier, IdentifierAst):
+            symbol = self.get_symbol(identifier)
+
+        # Otherwise, this is a symbol-less expression.
+        else:
+            symbol = None
+
+        return symbol
 
     def get_all_symbols(self, name: GenericIdentifierAst) -> List[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
