@@ -859,6 +859,20 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def UNPINNING_CONSTANT(ast: Ast, constant: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=constant.pos,
+            tag_message=f"Global constant '{ast}' found here.")
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.VALUE_ERROR,
+            tag_message="Global constant unpinned here.",
+            message="Cannot unpin a global constant.",
+            tip="Ensure the expression is not a global constant.")
+        return exception
+
+    @staticmethod
     def MOVING_PINNED_VALUE(ast: Ast, pin: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
