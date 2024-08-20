@@ -68,16 +68,17 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     lhs_symbol = scope_handler.current_scope.get_symbol(lhs_type)
                     lhs_type_scope = lhs_symbol.associated_scope
 
-                    # Check if the left side is a generic type.
+                    # Check if the left side is a generic type - can not access members off these.
+                    # Todo: Allow with constraints / intersection types
                     if not lhs_type_scope:
-                        raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints / intersection types
+                        raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)
 
                     # Check the identifier is a variable and not a namespace.
                     if isinstance(lhs_symbol, NamespaceSymbol):
                         raise SemanticErrors.STATIC_MEMBER_TYPE_ACCESS(lhs, self.dot_token, "namespace")
 
                     # Check if the member being accessed exists on the left side type.
-                    if not lhs_type_scope.has_symbol(self.identifier):
+                    if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                         raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
 
                 # Namespaced member access.
