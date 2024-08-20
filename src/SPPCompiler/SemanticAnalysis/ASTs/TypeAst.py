@@ -108,6 +108,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                 # If the generic type doesn't exist, create a symbol and scope for it.
                 if not type_scope.parent.has_symbol(type_part):
+
                     # Create the new scope for this type and add it to the parent scope.
                     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
                     new_scope._scope_name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
