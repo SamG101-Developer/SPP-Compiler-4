@@ -111,27 +111,24 @@ class CommonTypes:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
-        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
         send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
-        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenRef", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def gen_mut(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
-        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
         send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
-        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMut", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def gen_mov(gen_type=None, ret_type=None, send_type=None, pos: int = -1):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst, GenericIdentifierAst, GenericArgumentGroupAst, GenericArgumentNormalAst, TokenAst
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         gen_type = GenericArgumentNormalAst(-1, gen_type or CommonTypes.void())
-        ret_type = GenericArgumentNormalAst(-1, ret_type or CommonTypes.void())
         send_type = GenericArgumentNormalAst(-1, send_type or CommonTypes.void())
-        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, ret_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
+        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
     def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> type:
