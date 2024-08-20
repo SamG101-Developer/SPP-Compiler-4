@@ -228,8 +228,6 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
     mock_scopes = Seq(type_scope.get_all_symbols(converted_identifier)).map(lambda sym: sym.associated_scope).list()
     mock_scopes.sort(key=lambda scope: type_scope.depth_to(scope.parent), reverse=True)
 
-    # print("-" * 100)
-
     # Remove overloads from further away classes that are overridden by closer classes.
     # func_scopes_2 = {scope: scope.sup_scopes for scope in mock_scopes}
     # for scope, sup_scopes in func_scopes_2.items():

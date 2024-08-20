@@ -47,10 +47,8 @@ class Scope:
 
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
-        # print(f"Getting symbol {name} from {self}")
-
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
-        assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst))
+        assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)), type(name)
         scope = self
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
@@ -77,10 +75,9 @@ class Scope:
         # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
         # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
         # contain inherited symbols.
-
         if isinstance(name, IdentifierAst) or isinstance(name, GenericIdentifierAst) and name.value.startswith("MOCK_"):
             for sup_scope, _ in self._sup_scopes:
-                symbol = sup_scope.get_symbol(name)
+                symbol = sup_scope.get_symbol(name, exclusive)
                 if symbol:
                     return symbol
 
@@ -147,8 +144,6 @@ class Scope:
 
     @property
     def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
-        # The sup scopes are a tree of scopes however, due to inheritance, say C inherits A and B, and B inherits A,
-        # then the sup scopes must be B and B'a A, so use a set to make sure that the 2nd A isn't added too.
         all_sup_scopes = []
         scopes_read = []
         for sup_scope, ast in self._sup_scopes:
@@ -223,12 +218,12 @@ class ScopeHandler:
     _current_scope: Scope
     _iterator: ScopeIterator
 
-    def __init__(self, global_scope: Optional[Scope] = None):
+    def __init__(self, global_scope: Optional[Scope] = None, current_scope: Optional[Scope] = None):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         # Create the global scope, set the current scope to the global scope, and initialize the scope iterator.
         self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "_global"))
-        self._current_scope = self._global_scope
+        self._current_scope = current_scope or self._global_scope
         self._iterator = iter(self)
 
         # The Analyzer adds namespace symbols to each namespace it creates (ie "std"). The Global scope is overlooked

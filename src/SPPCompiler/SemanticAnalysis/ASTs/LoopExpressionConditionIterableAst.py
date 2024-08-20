@@ -12,6 +12,7 @@ from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import MemoryStatus
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -29,7 +30,7 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the LoopExpressionConditionIterable.
         s = ""
-        s += f"{self.variable.print(printer)}"
+        s += f"{self.variable.print(printer)} "
         s += f"{self.in_keyword.print(printer)}"
         s += f"{self.iterable.print(printer)}"
         return s
@@ -41,33 +42,15 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
         self.iterable.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure the iterable is an iterable type.
-        given_iterable_type = self.iterable.infer_type(scope_handler, **kwargs)  # todo: says "Yield=T" but should have actual argument?
-        given_iterable_type_symbol = scope_handler.current_scope.get_symbol(given_iterable_type.type)
-        given_iterable_type_scope = given_iterable_type_symbol.associated_scope
-        given_iterable_type.type = given_iterable_type.type.without_generics()
+        given_iterable_type = self.iterable.infer_type(scope_handler, **kwargs)
+        empty_iterable_type = InferredType(convention=given_iterable_type.convention, type=given_iterable_type.type.without_generics())
 
-        # TODO: this will change to IteratorMov, IteratorRef, IteratorMut etc
-        generator_type = None
-        for iterable_type in [CommonTypes.gen_mov().without_generics(), CommonTypes.gen_ref().without_generics(), CommonTypes.gen_mut().without_generics()]:
-            check = given_iterable_type.symbolic_eq(
-                InferredType(convention=ConventionMovAst, type=iterable_type),
-                given_iterable_type_scope,
-                scope_handler.current_scope)
-
-            if check:
-                if given_iterable_type_scope._scope_name.without_generics().symbolic_eq(iterable_type, given_iterable_type_scope, scope_handler.current_scope):
-                    generator_type = given_iterable_type_scope._scope_name
-                    yield_type = generator_type.types[-1].generic_arguments["Yield"].type
-                    break
-
-                for sup_scope in given_iterable_type_scope.sup_scopes:
-                    if sup_scope._scope_name.without_generics().symbolic_eq(iterable_type, given_iterable_type_scope, scope_handler.current_scope):
-                        generator_type = sup_scope._scope_name
-                        yield_type = generator_type.types[-1].generic_arguments["Yield"].type
-                        break
-
-        if generator_type is None:
+        available_generator_types = Seq([CommonTypes.gen_mov().without_generics(), CommonTypes.gen_ref().without_generics(), CommonTypes.gen_mut().without_generics()])
+        available_generator_types = available_generator_types.map(lambda t: InferredType(convention=ConventionMovAst, type=t))
+        if not any(empty_iterable_type.symbolic_eq(t, scope_handler.current_scope) for t in available_generator_types):
             raise SemanticErrors.INVALID_ITERABLE_TYPE(self, given_iterable_type)
+
+        yield_type = given_iterable_type.type.types[-1].generic_arguments["Yield"].type
 
         # Form a let statement with the variable.
         let_statement = LetStatementUninitializedAst(
@@ -85,9 +68,9 @@ class LoopExpressionConditionIterableAst(Ast, SemanticAnalyser):
             variable_symbol.memory_info = MemoryStatus(
                 ast_initialized=self,
                 ast_consumed=None,
-                ast_borrow=self if generator_type.types[-1].value in ["GenRef", "GenMut"] else None,
-                is_borrow_mut=generator_type.types[-1].value == "GenMut",
-                is_borrow_ref=generator_type.types[-1].value == "GenRef")
+                ast_borrow=self if given_iterable_type.type.types[-1].value in ["GenRef", "GenMut"] else None,
+                is_borrow_mut=given_iterable_type.type.types[-1].value == "GenMut",
+                is_borrow_ref=given_iterable_type.type.types[-1].value == "GenRef")
 
 
 __all__ = ["LoopExpressionConditionIterableAst"]

@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import MemoryStatus
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 
 
 @dataclass

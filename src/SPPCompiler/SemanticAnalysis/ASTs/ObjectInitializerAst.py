@@ -31,7 +31,6 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-
         # Load generic information for type-analysis.
         base_type_symbol = scope_handler.current_scope.get_symbol(self.class_type.without_generics())
         if not base_type_symbol:
