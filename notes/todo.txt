@@ -1,13 +1,17 @@
 NOW
 
-Generics:
+Superimposition:
 -- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
+-- Disallow sup-scopes with overlapping attributes.
+
+Generics:
 -- Function specialization.
 -- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
 
 Pins:
 -- Can unpin a value being borrowed, but the coroutine or future must be invalidated.
 -- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
+-- What about "ret coroutine(&argument)" => the argument is pinned, but the coroutine doesn't exist as a symbol.
 
 Object initialization:
 -- Sup initialization
@@ -27,9 +31,9 @@ Global constants:
 
 Types:
 -- Special `Copy` type that doesn't "move" the value.
--- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
+-- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?.
 -- Numerical type indexing
--- Serious consideration of `Self` being moved into a regular type-definition, just in the scope above?
+-- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
