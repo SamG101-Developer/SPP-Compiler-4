@@ -556,14 +556,14 @@ class Parser:
         return LoopElseExpressionAst(c1, p1, p2)
 
     @parser_rule
-    def parse_gen_expression(self) -> YieldExpressionAst:
+    def parse_gen_expression(self) -> GenExpressionAst:
         # todo: alter the parsing to add convention+expression in own method (currently can do "yield &mut" nothing)
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwGen).parse_once()
         p2 = self.parse_token(TokenType.KwWith).parse_optional()
         p3 = self.parse_convention().parse_once()
         p4 = self.parse_expression().parse_optional()
-        return YieldExpressionAst(c1, p1, p2, p3, p4)
+        return GenExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
     def parse_with_expression(self) -> WithExpressionAst:

@@ -32,6 +32,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterInlineConstraintAst impor
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterOptionalAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterRequiredAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterVariadicAst import *
+from SPPCompiler.SemanticAnalysis.ASTs.GenExpressionAst import GenExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.GlobalConstantAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.InnerScopeAst import *
@@ -119,7 +120,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.WhereConstraintsAst import WhereConstrain
 from SPPCompiler.SemanticAnalysis.ASTs.WhereConstraintsGroupAst import WhereConstraintsGroupAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAliasAst import WithExpressionAliasAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAst import WithExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpressionAst
 
 # Inherit FunctionPrototypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.CoroutinePrototypeAst import CoroutinePrototypeAst
