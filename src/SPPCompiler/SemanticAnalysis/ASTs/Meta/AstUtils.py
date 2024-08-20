@@ -126,7 +126,9 @@ def ensure_memory_integrity(
     # 5. Check the symbol is not pinned.
     if check_pinned_move:
         for existing_pin in symbol.memory_info.ast_pins:
-            if str(value_ast).startswith(str(existing_pin)) or str(existing_pin).startswith(str(value_ast)):
+            # Global constants need namespace removed here.
+            str_value_ast = str(value_ast).split("::")[-1]
+            if str_value_ast.startswith(str(existing_pin)) or str(existing_pin).startswith(str_value_ast):
                 raise SemanticErrors.MOVING_PINNED_VALUE(value_ast, existing_pin)
 
     # 6. Mark the symbol as consumed or partially moved.
