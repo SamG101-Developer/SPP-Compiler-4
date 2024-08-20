@@ -26,7 +26,6 @@ Functions:
 
 Global constants:
 -- How to do arrays with no array literal => might need to add one?
--- Using global constants from other modules doesn't work.
 
 Types:
 -- Special `Copy` type that doesn't "move" the value.

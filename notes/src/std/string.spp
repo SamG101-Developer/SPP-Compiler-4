@@ -7,4 +7,13 @@ cls Str { }
 sup Str {
     fun upper(&self) -> Str { }
     fun lower(&self) -> Str { }
+    fun consume(self) -> Str { }
+}
+
+
+fun test_other_mod_constant() -> std::Void {
+    let x = testing::test_loop_analysis()
+    let y = testing::constant_1.upper()
+
+    # why does the function work, but getting a global constant from the "testing" namespace doesnt?
 }

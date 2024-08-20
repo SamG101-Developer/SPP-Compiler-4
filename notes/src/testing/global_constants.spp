@@ -1,7 +1,7 @@
 mod testing::global_constants
 
 
-let constant_1 = 1
+let constant_1 = "1"
 let constant_2 = 2
 let constant_3 = 3
 
@@ -16,5 +16,5 @@ fun glob_func(a: &std::BigInt) -> std::BigInt { ret 5 }
 
 
 fun test_global_constant() -> std::Void {
-    glob_func(&constant_1)
+    glob_func(&constant_2)
 }
