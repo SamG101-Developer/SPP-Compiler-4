@@ -105,33 +105,33 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         # Check all members on this superimposition are present on the superclass.
-        # super_class_scope = scope_handler.current_scope.get_symbol(self.super_class).associated_scope
-        # super_class_implementations = Seq(super_class_scope._normal_sup_scopes)
-        #
-        # # Todo: as compiler develops, add the sup-typedefs here
-        # super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
-        # this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
-        #
-        # # Compare the members to ensure the superclass contains the members.
-        # for this_member in this_class_members:
-        #     matched = False
-        #
-        #     for that_member in super_class_members:
-        #
-        #         if any([
-        #                 this_member.generic_parameters != that_member.generic_parameters,
-        #                 this_member.where_block != that_member.where_block,
-        #                 this_member.identifier != that_member.identifier,
-        #                 this_member.super_class.types[-1].value != that_member.super_class.types[-1].value]):
-        #             continue
-        #
-        #         # The superclass is more complex, as the "Self" argument and return type can be different.
-        #         matched = matching_function_types(this_member, that_member, scope_handler.current_scope, super_class_scope)
-        #         if matched:
-        #             break
-        #
-        #     if not matched:
-        #         raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
+        super_class_scope = scope_handler.current_scope.get_symbol(self.super_class).associated_scope
+        super_class_implementations = Seq(super_class_scope._normal_sup_scopes)
+
+        # Todo: as compiler develops, add the sup-typedefs here
+        super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
+        this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
+
+        # Compare the members to ensure the superclass contains the members.
+        for this_member in this_class_members:
+            matched = False
+
+            for that_member in super_class_members:
+
+                if any([
+                        this_member.generic_parameters != that_member.generic_parameters,
+                        this_member.where_block != that_member.where_block,
+                        this_member.identifier != that_member.identifier,
+                        this_member.super_class.types[-1].value != that_member.super_class.types[-1].value]):
+                    continue
+
+                # The superclass is more complex, as the "Self" argument and return type can be different.
+                matched = matching_function_types(this_member, that_member, scope_handler.current_scope, super_class_scope)
+                if matched:
+                    break
+
+            if not matched:
+                raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
 
         scope_handler.exit_cur_scope()
 
