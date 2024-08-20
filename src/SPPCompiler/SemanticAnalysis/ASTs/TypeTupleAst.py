@@ -25,14 +25,14 @@ class TypeTupleAst(Ast):
     other: List["TypePartAst"]
 
     def as_single_type(self) -> "TypeAst":
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-
         # Convert the TypeTupleAst to a TypeSingleAst.
         tuple_type = CommonTypes.tuple(self.items, self.paren_l_token.pos)
+
         if not self.other:
             return tuple_type
         else:
-            return TypeAst(self.pos, tuple_type.namespace, tuple_type.types + self.other)
+            tuple_type.types += self.other.copy()
+            return tuple_type
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
