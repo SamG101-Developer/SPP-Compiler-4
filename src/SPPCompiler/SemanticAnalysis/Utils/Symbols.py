@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 
 @dataclass(kw_only=True)
@@ -96,7 +97,7 @@ class TypeSymbol(Symbol):
 
     @property
     def fq_type(self) -> TypeAst:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst
 
         if not self.type:
             return self.name
@@ -104,7 +105,8 @@ class TypeSymbol(Symbol):
         associated_scope = self.associated_scope.parent
         fq_type = TypeAst(self.name.pos, [], [self.name])
         while associated_scope.parent is not None:
-            fq_type.namespace.insert(0, associated_scope.name)
+            if isinstance(associated_scope.name, IdentifierAst):
+                fq_type.namespace.insert(0, associated_scope.name)
             associated_scope = associated_scope.parent
         return fq_type
 
@@ -131,3 +133,26 @@ class SymbolTable[SymbolType]:
         return {
             "symbols": [x for x in self._internal_table.values()]
         }
+
+    def __deepcopy__(self, memodict=None):
+        # Temporarily remove the "Self" symbol from this table.
+        temp_self_symbol = self.get(CommonTypes.self().types[-1])
+        if temp_self_symbol:
+            temp_self_scope = temp_self_symbol.associated_scope
+            temp_self_symbol.associated_scope = None
+
+        # Copy the symbol table, and re-add "Self" to this table.
+        new_internal_table = copy.deepcopy(self._internal_table, memodict or {})
+        if temp_self_symbol:
+            temp_self_symbol.associated_scope = temp_self_scope
+
+        # Wrap the new symbol table and return it.
+        new_symbol_table = SymbolTable()
+        new_symbol_table._internal_table = new_internal_table
+        return new_symbol_table
+
+    def __copy__(self):
+        c = self._internal_table.copy()
+        s = SymbolTable()
+        s._internal_table = c
+        return s
