@@ -59,8 +59,6 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
 
     def pre_process(self, context: "ModulePrototypeAst") -> None:
         # Replace "Self" in the generic parameters and attribute types so that they refer to the current class.
-        Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
-        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
 
     def generate(self, scope_handler: ScopeHandler) -> None:

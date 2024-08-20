@@ -48,14 +48,13 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         return s
 
     def pre_process(self, context: "ModulePrototypeAst") -> None:
-        # Substitute the "Self" type to the identifier of the class, and preprocess the members.
+        # Preprocess the members.
         from SPPCompiler.SemanticAnalysis.ASTs import SubroutinePrototypeAst, CoroutinePrototypeAst
-        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
         self.body.members = Seq(self.body.members).filter_not_type(SubroutinePrototypeAst, CoroutinePrototypeAst).list()
 
     def generate(self, scope_handler: ScopeHandler) -> None:
-        # Create a new scope, and add the "Self" type to the scope.
+        # Create a new scope.
         scope_handler.into_new_scope(f"{self.identifier}#SUP-functions")
 
         # Generate the body members (prototype), and register the generic parameters types.
@@ -77,7 +76,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
             associated_scope=self_symbol.associated_scope))
 
         # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
+        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
         cls_scope._normal_sup_scopes.append((scope_handler.current_scope, self))
 
