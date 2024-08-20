@@ -29,7 +29,7 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
 
     def __post_init__(self):
         # Set the "self" symbol's type to the "Self" type.
-        self.type_declaration = CommonTypes.self()
+        self.type_declaration = CommonTypes.self(self.pos)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

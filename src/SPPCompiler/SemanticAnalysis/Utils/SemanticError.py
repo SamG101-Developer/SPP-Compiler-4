@@ -215,16 +215,6 @@ class SemanticErrors:
         return exception
 
     @staticmethod
-    def SELF_PARAMETER_OUTSIDE_CLASS(ast: Ast) -> SemanticError:
-        exception = SemanticError()
-        exception.add_error(
-            pos=ast.pos, error_type=SemanticErrorType.NAME_ERROR,
-            message=f"Cannot use a 'self' parameter in module global space",
-            tag_message=f"Parameter '{ast}' declared here",
-            tip="Move the function into a 'sup' block")
-        return exception
-
-    @staticmethod
     def MULTIPLE_VARIADIC_PARAMETERS(first: Ast, second: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
