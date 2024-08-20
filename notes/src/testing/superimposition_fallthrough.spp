@@ -24,7 +24,7 @@ fun test_sup() -> std::Void {
     let test_class = TestClass(a=100)
     let mut x = test_class.test_method_a(1)
     let mut y = test_class.test_method_b(2)
-    x = y
+    x = 123
 
     # let sub_class = TestSubClass(b=100, sup=(1, test_class))
 }

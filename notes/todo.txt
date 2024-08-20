@@ -1,7 +1,6 @@
 NOW
 
 Generics:
--- All things generic constraints (functions, classes, sup-blocks, member access).
 -- Sup scopes for certain generics only.
 -- Function specialization.
 -- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
@@ -51,6 +50,10 @@ Typedefs:
 -- Sup-typedefs (and check they exist on the superclass; modify existing method checks).
 -- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec}
 -- Change typedefs to work like "destructures" (recursive) in the parser & analysis.
+
+Types:
+-- Generic constraints
+-- Intersection types
 
 Patterns:
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
