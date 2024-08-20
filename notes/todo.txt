@@ -1,7 +1,7 @@
 NOW
 
 Generics:
--- Sup scopes for certain generics only.
+-- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
 -- Function specialization.
 -- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
 
@@ -15,11 +15,9 @@ Object initialization:
     -- What about inheriting the same superclass with different generics?)
 
 Functions:
--- Re-add the "cannot use self in module function" check (removed for false positives)
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
 -- Partial functions? Use "_" to convert functions to lambdas with some values set.
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
--- Take out the check allowing empty-functions to be called (it is for testing purposes only).
 -- Overriding a function doesn't remove the base overload from consideration.
 
 Global constants:
@@ -32,10 +30,6 @@ Types:
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls).
 -- Numerical type indexing
 -- Serious consideration of `Self` being moved into a regular type-definition, just in the scope above?
-
-Self-type:
--- Disallow "Self" being used as a generic argument in "sup" blocks as arguments (recursive types)
--- Disallow "Self" being used as a generic parameter's default value in `cls` blocks (recursive types).
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
