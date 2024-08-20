@@ -74,7 +74,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         # Move through each type, ensuring it exists at least in non-generic form.
         for i, type_part in enumerate(self.types):
             if isinstance(type_part, GenericIdentifierAst):
-                # If the non-generic type doesn't exist, raise an error.
+
+                # If the type doesn't exist, raise an error.
                 if not type_scope.has_symbol(type_part.without_generics()):
                     raise SemanticErrors.UNKNOWN_IDENTIFIER(type_part, [], "type")
 
@@ -107,19 +108,13 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                 # If the generic type doesn't exist, create a symbol and scope for it.
                 if not type_scope.parent.has_symbol(type_part):
-
                     # Create the new scope for this type and add it to the parent scope.
                     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
-                    new_scope.name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
+                    new_scope._scope_name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
                     new_scope._sup_scopes = type_scope._sup_scopes
                     new_scope._normal_sup_scopes = type_scope._normal_sup_scopes
-
-                    # Disassociate the "Self" symbol temporarily because of self-reference.
-                    temp_self_symbol = type_scope.get_symbol(CommonTypes.self())
-                    temp_self_scope = temp_self_symbol.associated_scope
-                    temp_self_symbol.associated_scope = None
+                    new_scope._children_scopes = type_scope._children_scopes
                     new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
-                    temp_self_symbol.associated_scope = temp_self_scope
 
                     # Create the new symbol.
                     new_cls_ast = copy.deepcopy(type_symbol.type)

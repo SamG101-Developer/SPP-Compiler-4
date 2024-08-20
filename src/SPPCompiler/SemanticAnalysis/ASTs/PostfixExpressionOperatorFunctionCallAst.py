@@ -160,52 +160,23 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     func_body = func_overload.body
                     func_overload.body = None
 
-                    # Remove the generic arguments from the specialization, and re-link the body.
+                    # Remove the generic arguments from the specialisation, and re-link the body.
                     specialized_func_overload = copy.deepcopy(func_overload)
                     specialized_func_overload.generic_parameters.parameters = []
                     specialized_func_overload.body = func_body
+                    specialized_func_overload._orig = func_overload._orig
+                    func_overload.body = func_body
 
                     # Substitute the generics types in the parameter and return type declarations.
                     for generic_argument in generic_arguments.arguments:
                         for parameter in specialized_func_overload.parameters.parameters:
                             parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+                            parameter.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
                         specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                        specialized_func_overload.return_type.do_semantic_analysis(scope_handler, **kwargs)
 
                     parameters = Seq(specialized_func_overload.parameters.parameters)
-
-                    # Register the specialization to the module or "sup" block, and pre-process the overload.
-                    func_overload._ctx.body.members.append(specialized_func_overload)
-                    specialized_func_overload.pre_process(func_overload._ctx)
-
-                    # Generate a scope for the specialization at the end of the parent-scopes child scopes.
-                    temp_scope_handler = ScopeHandler(scope_handler.global_scope)
-                    temp_scope_handler.current_scope = func_scope.parent
-                    specialized_func_overload.generate(temp_scope_handler)
-
-                    specialized_func_inner_scope = func_scope.parent.children[-1]
-
-                    # Set the type symbols for the generic types.
-                    for generic_argument in generic_arguments.arguments:
-                        type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
-                        generic_type_symbol = TypeSymbol(name=generic_argument.identifier, type=type_symbol.type, associated_scope=type_symbol.associated_scope)
-                        specialized_func_inner_scope.parent.add_symbol(generic_type_symbol)
-
-                    temp_scope_handler.current_scope = specialized_func_inner_scope
-                    specialized_func_overload.do_semantic_analysis(temp_scope_handler, override_scope=True)
-                    del temp_scope_handler
-
-                    # Function to unregister the scope if type-checking fails
-                    def unregister_specialized_scope():
-                        func_scope.parent.children.remove(specialized_func_inner_scope)
-                        # todo: remove from the ".ctx" too?
-
-                    # Register the information in the "specialized_scope_info"
-                    specialized_scope_info["created"] = True
-                    specialized_scope_info["remove_function"] = unregister_specialized_scope
-
-                    # Override the current scope being analysed to the specialized scope.
                     func_overload = specialized_func_overload
-                    func_scope = specialized_func_inner_scope
 
                 # Type checking arguments against the parameters. This has to come after generic substitution.
                 sorted_arguments = arguments.sort(key=lambda a: parameter_identifiers.index(a.identifier))
