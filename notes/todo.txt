@@ -24,10 +24,8 @@ Functions:
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
 -- Overriding a function doesn't remove the base overload from consideration.
 
-Global constants:
--- How to do arrays with no array literal => might need to add one?
-
 Types:
+-- Add an array literal syntax, and consider empty arrays.
 -- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?.
 -- Numerical type indexing
