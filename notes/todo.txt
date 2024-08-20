@@ -25,7 +25,6 @@ Functions:
 -- Overriding a function doesn't remove the base overload from consideration.
 
 Global constants:
--- Prevent unpinning global constants.
 -- How to do arrays with no array literal => might need to add one?
 -- Using global constants from other modules doesn't work.
 
