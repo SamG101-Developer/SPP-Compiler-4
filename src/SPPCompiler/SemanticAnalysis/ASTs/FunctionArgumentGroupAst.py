@@ -61,6 +61,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         # Edit tuple-expansion argument into multiple arguments. For example, "..tuple" -> "tuple.0, tuple.1".
         for argument in Seq(self.arguments).filter_to_type(FunctionArgumentNormalAst):
             if argument.unpack_token:
+
                 # Make sure any arguments being unpacked are tuples.
                 tuple_argument_type = argument.value.infer_type(scope_handler, **kwargs).type
                 if not tuple_argument_type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
@@ -69,7 +70,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                 # Remove the "..argument", and replace it with each part of the tuple.
                 tuple_argument_index = self.arguments.index(argument)
                 self.arguments.remove(argument)
-                for i in range(len(tuple_argument_type.parts[-1].generic_arguments.arguments)):
+                for i in range(len(tuple_argument_type.types[-1].generic_arguments.arguments)):
                     tuple_subscript_code = Parser(Lexer(f"{argument.value}.{i}").lex(), "").parse_expression().parse_once()
                     self.arguments.insert(tuple_argument_index + i, FunctionArgumentNormalAst(argument.pos, argument.convention, None, tuple_subscript_code))
 

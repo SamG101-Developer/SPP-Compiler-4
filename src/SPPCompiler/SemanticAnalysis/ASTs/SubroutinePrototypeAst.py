@@ -22,9 +22,11 @@ class SubroutinePrototypeAst(FunctionPrototypeAst):
 
         # Check a "ret" statement exists at the end of the function, as long as it is a subroutine with a non-Void
         # return type, and contains statements.
-        if (not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope)
-                and self.body.members  # Todo: filter the "header" let-destructure asts from this check.
-                and not isinstance(self.body.members[-1], ReturnStatementAst)):
+        # Todo: Once STL is implemented, enable "c2".
+        c1 = self.body.members and not isinstance(self.body.members[-1], ReturnStatementAst)
+        c2 = False  # not self.body.members
+
+        if not self.return_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope) and (c1 or c2):
             raise SemanticErrors.MISSING_RETURN_STATEMENT(self.return_type, self.body.brace_r_token)
 
         scope_handler.exit_cur_scope()

@@ -77,23 +77,21 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     def pre_process(self, context: "ModulePrototypeAst | SupPrototypeAst") -> None:
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            ModulePrototypeAst, ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
-            IdentifierAst, InnerScopeAst, TokenAst)
+            ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
+            IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         self._ctx = context
 
         # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
         # function parameters, and the return type.
-        if not isinstance(context, ModulePrototypeAst):
-            Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), context.identifier))
-            Seq(self.parameters.parameters).for_each(lambda p: p.type_declaration.substitute_generics(CommonTypes.self(), context.identifier))
-            self.return_type.substitute_generics(CommonTypes.self(), context.identifier)
+        if not isinstance(context, ModulePrototypeAst) and self.parameters.get_self():
+            self.parameters.get_self().type_declaration.substitute_generics(CommonTypes.self(), context.identifier)
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
         mock_class_name = IdentifierAst(self.pos, f"MOCK_{self.identifier.value}")
-        mock_class_name = TypeAst(self.pos, [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
+        mock_class_name = TypeAst(self.pos, [], [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
 
         # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or
         # "FunMov/call_mov".
@@ -109,10 +107,14 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             mock_cls = f"cls MOCK_{self.identifier.value} {{}}"
             mock_let = f"let {self.identifier.value} = MOCK_{self.identifier.value}()"
 
+            # Todo:
+            #  - Consider parsing as a global constant?
+            #  - Could have issues with pinning though, unless the Copy type is superimposed too.
+
             # Parse the mock class and let statement code to generate the respective ASTs.
             mock_cls_ast = Parser(Lexer(mock_cls).lex(), "").parse_class_prototype().parse_once()
             mock_let_ast = Parser(Lexer(mock_let).lex(), "").parse_let_statement_initialized().parse_once()
-            mock_let_ast._sup_let_type = function_class_type
+            mock_let_ast._sup_let_type = mock_cls_ast.identifier
 
             # Append both of these ASTs to the module or sup prototype ("context" will be either one).
             context.body.members.append(mock_cls_ast)
@@ -165,7 +167,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         has_self_parameter = self.parameters.parameters and isinstance(self.parameters.parameters[0], FunctionParameterSelfAst)
 
         # Get the parameter types and return type, to move into the function class type being created.
-        parameter_types = Seq(self.parameters.parameters).map(lambda p: p.type_declaration).value
+        parameter_types = Seq(self.parameters.parameters).map(lambda p: p.type_declaration).list()
         return_type = self.return_type
 
         # If the method is a non-static class method, then base the function type off the "self" parameter's convention.
@@ -185,7 +187,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         # Map the function class type to a function call name with a simple match-case statement.
-        match function_class_type.parts[-1].value:
+        match function_class_type.types[-1].value:
             case "FunRef": return IdentifierAst(self.identifier.pos, "call_ref")
             case "FunMut": return IdentifierAst(self.identifier.pos, "call_mut")
             case "FunMov": return IdentifierAst(self.identifier.pos, "call_mov")
@@ -198,7 +200,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Create and move into a new scope for the function prototype's scope. Within this scope, generate type symbols
         # for each generic parameter. Exit the newly created function scope.
         scope_handler.into_new_scope(f"<function:{self._orig}>")
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
 
         # Convert non-single parameters into single parameters, and inject the destructure operation into the body.
         for i, parameter in Seq(self.parameters.parameters).filter_not_type(FunctionParameterSelfAst).enumerate():
@@ -272,8 +274,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             that_required_conventions = Seq(that_parameters.get_req()).map(lambda p: p.convention)
 
             # Check if the required parameter types and conventions are the same.
-            check_1 = all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).value)
-            check_2 = all(this_required_conventions.zip(that_required_conventions).map(lambda p: p[0] == p[1]).value)
+            check_1 = all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).list())
+            check_2 = all(this_required_conventions.zip(that_required_conventions).map(lambda p: p[0] == p[1]).list())
 
             # If the required parameter types and conventions are the same, the function prototypes are conflicting.
             if check_1 and check_2:

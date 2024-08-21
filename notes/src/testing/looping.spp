@@ -1,10 +1,13 @@
 mod testing::looping
 
 
-fun test_loop_analysis() -> std::Void {
+fun test_loop_analysis() -> std::BigInt {
     let x = 123
+    let y = std::Vec[std::BigInt]()
 
-    loop true {
-        let y = x
+    loop mut i in y.iter_mov() {
+        i = 123
     }
+
+    ret 4
 }

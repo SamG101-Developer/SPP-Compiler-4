@@ -1,0 +1,16 @@
+mod testing::static_function_test
+
+
+cls StaticClass { }
+
+
+sup StaticClass {
+    fun func(&self) -> std::Void { }
+    fun stat() -> std::Void { }
+}
+
+
+fun test_static_functions() -> std::Void {
+    let s = StaticClass()
+    StaticClass::stat()
+}

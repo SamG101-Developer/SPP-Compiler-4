@@ -3,15 +3,17 @@ mod std::iterator
 
 cls IterMov[T] { }
 sup [T] IterMov[T] {
-    fun iter_mov(self) -> std::GenMov[Yield=T] { }
+    cor iter_mov(self) -> GenMov[Yield=T] { }
 }
 
 cls IterMut[T] { }
 sup [T] IterMut[T] {
-    fun iter_mut(&mut self) -> std::GenMut[Yield=T] { }
+    cor iter_mut(&mut self) -> GenMut[Yield=T] { }
 }
 
 cls IterRef[T] { }
 sup [T] IterRef[T] {
-    fun iter_ref(&self) -> std::GenRef[Yield=T] { }
+    cor iter_ref(&self) -> GenRef[Yield=T] { }
+    cor iter_ref(&self, p: Str) -> GenRef[Yield=T] { }
+    cor iter_ref(&self, p: U64) -> GenRef[Yield=T] { }
 }

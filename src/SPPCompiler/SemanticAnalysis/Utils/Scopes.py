@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
-
-# TODO: tidy property accessors
 
 
 class Scope:
@@ -32,79 +31,96 @@ class Scope:
         # For TypeAst, shift the scope if a namespaced type is being added.
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         scope = self
-        if isinstance(symbol.name, TypeAst):
-            name = TypeAst(pos=symbol.name.pos, parts=symbol.name.parts.copy())
-            namespace = name.parts[:-1].copy()
 
-            for part in namespace.copy():
-                if Seq(scope.children).map(lambda s: s.name).contains(part):
-                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
-                    namespace.pop(0)
-                else:
-                    break
-            name.parts[:-1] = namespace
-            symbol.name = name
+        if isinstance(symbol.name, TypeAst):
+            for part in symbol.name.namespace + symbol.name.types[:-1]:
+                inner_symbol = scope.get_symbol(part)
+                match inner_symbol:
+                    case None: break
+                    case _: scope = inner_symbol.associated_scope
+            symbol.name = symbol.name.types[-1]
 
         # Add a symbol to the symbol table.
         scope._symbol_table.add(symbol)
         return symbol
 
-    def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
-
-        match name:
-            case IdentifierAst():
-                identifier = name
-            case PostfixExpressionAst():
-                while isinstance(name, PostfixExpressionAst) and isinstance(name.op, PostfixExpressionOperatorMemberAccessAst): name = name.lhs
-                identifier = name
-            case _:
-                return None
-
-        return self.get_symbol(identifier) if isinstance(identifier, IdentifierAst) else None
-
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
-        assert type(name) in [IdentifierAst, TypeAst], f"Expected IdentifierAst or TypeAst, got {type(name)}"
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
+        assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)), type(name)
         scope = self
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
         if isinstance(name, TypeAst):
-            name = TypeAst(pos=name.pos, parts=name.parts.copy())
-            namespace = name.parts[:-1].copy()
-
-            # For each part in the namespace, enter the child scope if it exists.
-            for part in namespace.copy():
-                if Seq(scope.children).map(lambda s: s.name).contains(part):
-                    scope = Seq(scope.children).filter(lambda s: s.name == part).first()
-                    namespace.pop(0)
-                else:
-                    break
-
-            name.parts[:-1] = namespace
+            for part in name.namespace + name.types[:-1]:
+                inner_symbol = scope.get_symbol(part)
+                # print(inner_symbol, inner_symbol.associated_scope)
+                match inner_symbol:
+                    case None: break
+                    case _: scope = inner_symbol.associated_scope
+            name = name.types[-1]
 
         # Get the symbol from the symbol table. If it doesn't exist, then get the symbol from the parent scope. This is
         # done recursively until the symbol is found, or the global scope is reached.
-        sym = scope._symbol_table.get(name)
+        symbol = scope._symbol_table.get(name)
 
-        if not sym and self._parent_scope and not exclusive:
-            sym = self._parent_scope.get_symbol(name)
-        if sym:
-            return sym
+        if symbol:
+            return symbol
+        if self._parent_scope and not exclusive:
+            symbol = self._parent_scope.get_symbol(name)
+            if symbol:
+                return symbol
 
         # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
         # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
         # contain inherited symbols.
-        if isinstance(name, IdentifierAst) or isinstance(name, TypeAst) and name.parts[-1].value.startswith("MOCK_"):
+        if isinstance(name, IdentifierAst) or isinstance(name, GenericIdentifierAst) and name.value.startswith("MOCK_"):
             for sup_scope, _ in self._sup_scopes:
-                sym = sup_scope.get_symbol(name)
-                if sym:
-                    return sym
+                symbol = sup_scope.get_symbol(name, exclusive)
+                if symbol:
+                    return symbol
 
-    def get_all_symbols(self, name: TypeAst) -> List[VariableSymbol]:
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
-        assert isinstance(name, TypeAst)
+    def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
+
+        # Match the name against a set of ASTs to get the identifier.
+        match name:
+
+            # For an IdentifierAst, the name is already the outermost identifier.
+            case IdentifierAst():
+                identifier = name
+
+            # For a PostfixExpressionAst, the outermost symbol is reached by recursively getting the lhs.
+            case PostfixExpressionAst():
+                while isinstance(name, PostfixExpressionAst) and isinstance(name.op, PostfixExpressionOperatorMemberAccessAst) and name.op.dot_token.token.token_type == TokenType.TkDot:
+                    name = name.lhs
+                identifier = name
+
+            # Otherwise, there is no identifier.
+            case _:
+                return None
+
+        # For namespaced constants, like "std::none", shift the scope to the namespace.
+        if isinstance(identifier, PostfixExpressionAst) and isinstance(identifier.op, PostfixExpressionOperatorMemberAccessAst):
+            scope, rhs = self, identifier.op.identifier
+            while isinstance(identifier, PostfixExpressionAst) and isinstance(identifier.op, PostfixExpressionOperatorMemberAccessAst):
+                scope = scope.get_symbol(identifier.lhs).associated_scope
+                identifier = identifier.lhs
+            symbol = scope.get_symbol(rhs)
+
+        # For identifiers, get the symbol from the symbol table.
+        elif isinstance(identifier, IdentifierAst):
+            symbol = self.get_symbol(identifier)
+
+        # Otherwise, this is a symbol-less expression.
+        else:
+            symbol = None
+
+        return symbol
+
+    def get_all_symbols(self, name: GenericIdentifierAst) -> List[VariableSymbol]:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+        assert isinstance(name, GenericIdentifierAst)
         scope = self
 
         syms = [scope._symbol_table.get(name)]
@@ -138,10 +154,19 @@ class Scope:
             "symbol_table": self._symbol_table
         }
 
+    def depth_to(self, that_scope: Scope) -> int:
+        def _depth_to(scope: Scope, target: Scope, depth: int) -> int:
+            if scope is target:
+                return depth
+            for child in scope._sup_scopes:
+                result = _depth_to(child[0], target, depth + 1)
+                if result:
+                    return result
+            return 0
+        return _depth_to(self, that_scope, 0)
+
     @property
     def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
-        # The sup scopes are a tree of scopes however, due to inheritance, say C inherits A and B, and B inherits A,
-        # then the sup scopes must be B and B'a A, so use a set to make sure that the 2nd A isn't added too.
         all_sup_scopes = []
         scopes_read = []
         for sup_scope, ast in self._sup_scopes:
@@ -155,10 +180,6 @@ class Scope:
     @property
     def name(self) -> Any:
         return self._scope_name
-
-    @property
-    def is_global(self) -> bool:
-        return self._is_global
 
     @property
     def parent(self) -> Optional[Scope]:
@@ -177,17 +198,19 @@ class Scope:
         return self._children_scopes
 
     @property
-    def exclusive_sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
-        return self._sup_scopes
-
-    @property
     def scopes_as_namespace(self) -> List[IdentifierAst]:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
         scope = self._parent_scope
         namespace = []
         while scope.parent:
-            namespace.insert(0, scope.name)
+            if isinstance(scope.name, IdentifierAst):
+                namespace.insert(0, scope.name)
             scope = scope.parent
         return namespace
+
+    def __str__(self):
+        return str(self._scope_name)
 
 
 class ScopeIterator:
@@ -218,12 +241,12 @@ class ScopeHandler:
     _current_scope: Scope
     _iterator: ScopeIterator
 
-    def __init__(self, global_scope: Optional[Scope] = None):
+    def __init__(self, global_scope: Optional[Scope] = None, current_scope: Optional[Scope] = None):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         # Create the global scope, set the current scope to the global scope, and initialize the scope iterator.
-        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "Global"))
-        self._current_scope = self._global_scope
+        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "_global"))
+        self._current_scope = current_scope or self._global_scope
         self._iterator = iter(self)
 
         # The Analyzer adds namespace symbols to each namespace it creates (ie "std"). The Global scope is overlooked

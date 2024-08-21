@@ -1,14 +1,20 @@
 mod testing::global_constants
 
 
-let constant_1 = 1
+let constant_1 = "1"
 let constant_2 = 2
 let constant_3 = 3
+
+cls TestGlobalType {
+    a: std::BigInt
+}
+
+let constant_4 = TestGlobalType(a=1)
 
 
 fun glob_func(a: &std::BigInt) -> std::BigInt { ret 5 }
 
 
 fun test_global_constant() -> std::Void {
-    glob_func(&constant_1)
+    glob_func(&constant_2)
 }

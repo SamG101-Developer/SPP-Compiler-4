@@ -3,6 +3,7 @@ from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
@@ -27,7 +28,16 @@ class RelStatementAst(Ast, SemanticAnalyser):
     rel_keyword: "TokenAst"
     expressions: List["ExpressionAst"]
 
+    def print(self, printer: AstPrinter) -> str:
+        # Print the RelStatementAst.
+        s = ""
+        s += f"{self.rel_keyword.print(printer)} "
+        s += f"{Seq(self.expressions).print(printer, ", ")};"
+        return s
+
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import GlobalConstantAst
+
         # Analyse each expression.
         expressions = Seq(self.expressions)
         expressions.for_each(lambda e: e.do_semantic_analysis(scope_handler, **kwargs))
@@ -41,15 +51,13 @@ class RelStatementAst(Ast, SemanticAnalyser):
         symbols.remove_none()
         for pin_target in expressions:
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(pin_target)
+            existing_pins = symbol.memory_info.ast_pins
 
-            match = False
-            for existing_pin in symbol.memory_info.ast_pins:
-                if str(pin_target) == str(existing_pin):
-                    match = True
-                    break
-
-            if not match:
+            if not any(str(pin_target) == str(existing_pin) for existing_pin in existing_pins):
                 raise SemanticErrors.UNPINNING_NON_PINNED(self, pin_target)
+            if isinstance(symbol.memory_info.ast_initialized, GlobalConstantAst):
+                raise SemanticErrors.UNPINNING_CONSTANT(pin_target, symbol.memory_info.ast_initialized)
+
             symbol.memory_info.ast_pins.remove(pin_target)
 
 

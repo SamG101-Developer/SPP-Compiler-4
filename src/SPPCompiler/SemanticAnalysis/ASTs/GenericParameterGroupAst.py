@@ -55,7 +55,7 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
             GenericParameterRequiredAst, GenericParameterOptionalAst, GenericParameterVariadicAst)
 
         # Check there are no duplicate parameter names for this function, and raise an exception if there are.
-        if Seq(self.parameters).map(lambda p: p.identifier).contains_duplicates():
+        if Seq(self.parameters).map(lambda p: p.identifier.types[-1]).contains_duplicates():
             duplicate_parameters = Seq(self.parameters).map(lambda p: p.identifier).non_unique_items()[0]
             raise SemanticErrors.DUPLICATE_ITEM(duplicate_parameters, "parameters")
 

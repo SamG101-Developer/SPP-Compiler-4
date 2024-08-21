@@ -55,7 +55,7 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNormalAst, GenericArgumentNamedAst
 
         # Check there are no duplicate named-argument identifiers for this group, and raise an exception if there are.
-        named_arguments = Seq(self.arguments).filter_to_type(GenericArgumentNamedAst).map(lambda a: a.identifier)
+        named_arguments = Seq(self.arguments).filter_to_type(GenericArgumentNamedAst).map(lambda a: a.identifier.types[-1])
         if named_arguments.contains_duplicates():
             duplicate_named_argument_identifiers = named_arguments.non_unique_items()[0]
             raise SemanticErrors.DUPLICATE_ITEM(duplicate_named_argument_identifiers, "named generic argument")
@@ -73,27 +73,11 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
 
     def __getitem__(self, item: str) -> Optional["GenericArgumentAst"]:
         # Get the generic argument with the given identifier.
-        return Seq(self.arguments).find(lambda a: a.identifier.parts[-1].to_identifier().value == item)
+        return Seq(self.arguments).find(lambda a: a.identifier.types[-1].to_identifier().value == item)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same arguments.
         return self.arguments == other.arguments
-
-    @staticmethod
-    def from_dict(dictionary: Dict["TypeAst", "TypeAst"]) -> GenericArgumentGroupAst:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNamedAst, TokenAst
-
-        arguments = [GenericArgumentNamedAst(
-            pos=-1,
-            raw_identifier=identifier.parts[-1].to_identifier(),
-            assignment_token=TokenAst.dummy(TokenType.TkAssign),
-            type=type) for identifier, type in dictionary.items()]
-
-        return GenericArgumentGroupAst(
-            pos=-1,
-            bracket_l_token=TokenAst.dummy(TokenType.TkBrackL),
-            arguments=arguments,
-            bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
 
     @staticmethod
     def from_list(list: List["GenericArgumentAst"]) -> GenericArgumentGroupAst:

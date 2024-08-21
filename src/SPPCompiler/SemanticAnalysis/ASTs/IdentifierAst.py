@@ -38,7 +38,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
 
             # Raise an exception if the identifier does not exist in the current or parent scopes, and include the
             # closest match if one exists.
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, similar.value, "identifier")
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(self, similar.list(), "identifier")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionRefAst, ConventionMutAst, ConventionMovAst
@@ -59,6 +59,11 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
             case NamespaceSymbol():
                 # Namespaces are not types, so return the namespace symbol itself.
                 return InferredType(convention=ConventionMovAst, type=self)
+
+    def to_generic_identifier(self) -> "GenericIdentifierAst":
+        # Convert the identifier to a generic identifier.
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+        return GenericIdentifierAst(self.pos, self.value, None)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value.

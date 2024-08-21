@@ -4,7 +4,7 @@ mod std::boolean
 cls Bool { }
 
 
-sup std::ops::And[Rhs=Self] on Bool {
-    fun and_(self, that: Self) -> Bool { }
+sup std::ops::And[Rhs=Bool] on Bool {
+    fun and_(self, that: Bool) -> Bool { }
 }
 

@@ -82,7 +82,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "object initializer", "attribute")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         class_type = kwargs["class-type"]
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
@@ -152,7 +152,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         named_arguments = Seq(self.arguments).filter_to_type(ObjectInitializerArgumentNamedAst)
         token_arguments = named_arguments.filter(lambda a: isinstance(a.identifier, TokenAst))
         default_arguments = token_arguments.filter(lambda a: a.identifier.token.token_type == TokenType.KwElse)
-        return default_arguments.value
+        return default_arguments.list()
 
     def get_sup_args(self) -> List["ObjectInitializerArgumentAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
@@ -161,7 +161,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         named_arguments = Seq(self.arguments).filter_to_type(ObjectInitializerArgumentNamedAst)
         token_arguments = named_arguments.filter(lambda a: isinstance(a.identifier, TokenAst))
         default_arguments = token_arguments.filter(lambda a: a.identifier.token.token_type == TokenType.KwSup)
-        return default_arguments.value
+        return default_arguments.list()
 
     @staticmethod
     def get_argument_value(ast: "ObjectInitializerArgumentAst") -> Ast:

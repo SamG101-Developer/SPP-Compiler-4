@@ -90,14 +90,14 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                     lhs_symbol.memory_info.ast_consumed = None
 
                 case PostfixExpressionAst():
-                    lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda x: x != self.lhs[i]).value
+                    lhs_symbol.memory_info.ast_partial_moves = Seq(lhs_symbol.memory_info.ast_partial_moves).filter(lambda x: x != self.lhs[i]).list()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
 
         # Assignment never returns anything, so return the Void type. This is so that the memory rules of the language
         # can be adhered to.
-        return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
 
 
 __all__ = ["AssignmentStatementAst"]

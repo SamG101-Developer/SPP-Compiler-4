@@ -27,4 +27,5 @@ if __name__ == "__main__":
         p.disable()
 
         s = pstats.Stats(p)
+        p.print_stats()
         p.dump_stats("profile.prof")

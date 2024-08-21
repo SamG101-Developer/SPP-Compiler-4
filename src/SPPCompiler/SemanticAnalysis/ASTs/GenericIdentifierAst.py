@@ -1,3 +1,4 @@
+import hashlib
 from dataclasses import dataclass
 from typing import Optional
 
@@ -36,9 +37,19 @@ class GenericIdentifierAst(Ast):
         from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
         return IdentifierAst(self.pos, self.value)
 
+    def without_generics(self) -> "GenericIdentifierAst":
+        return GenericIdentifierAst(self.pos, self.value, None)
+
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same value and generic arguments.
         return self.value == other.value and self.generic_arguments == other.generic_arguments
+
+    def __hash__(self):
+        return int.from_bytes(hashlib.md5(self.value.encode()).digest())
+
+    def __json__(self) -> str:
+        # Return the value of the identifier.
+        return self.print(AstPrinter())
 
 
 __all__ = ["GenericIdentifierAst"]

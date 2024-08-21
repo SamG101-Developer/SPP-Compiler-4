@@ -4,5 +4,5 @@ mod std::ops::add
 cls Add[Rhs] {}
 
 sup Add[Rhs=Phantom] {
-    fun add(self, that: Rhs) -> Self { }
+    fun add(self, that: Add[Rhs=Phantom]::Rhs) -> std::Void { }
 }

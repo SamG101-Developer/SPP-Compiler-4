@@ -22,10 +22,17 @@ class TypeTupleAst(Ast):
     paren_l_token: "TokenAst"
     items: List["TypeAst"]
     paren_r_token: "TokenAst"
+    other: List["TypePartAst"]
 
     def as_single_type(self) -> "TypeAst":
         # Convert the TypeTupleAst to a TypeSingleAst.
-        return CommonTypes.tuple(self.items, self.paren_l_token.pos)
+        tuple_type = CommonTypes.tuple(self.items, self.paren_l_token.pos)
+
+        if not self.other:
+            return tuple_type
+        else:
+            tuple_type.types += self.other.copy()
+            return tuple_type
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

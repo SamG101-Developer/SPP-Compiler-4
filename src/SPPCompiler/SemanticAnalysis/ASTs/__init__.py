@@ -32,6 +32,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterInlineConstraintAst impor
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterOptionalAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterRequiredAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterVariadicAst import *
+from SPPCompiler.SemanticAnalysis.ASTs.GenExpressionAst import GenExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.GlobalConstantAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.InnerScopeAst import *
@@ -104,17 +105,9 @@ from SPPCompiler.SemanticAnalysis.ASTs.SupMemberAst import SupMemberAst
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeAst import SupPrototypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeInheritanceAst import SupPrototypeInheritanceAst
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
-from SPPCompiler.SemanticAnalysis.ASTs.SupTypedefAst import SupTypedefAst
 from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from SPPCompiler.SemanticAnalysis.ASTs.TupleLiteralAst import TupleLiteralAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAllItemsAst import TypedefStatementAllItemsAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAst import TypedefStatementAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementItemAst import TypedefStatementItemAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementOldNamespaceAst import TypedefStatementOldNamespaceAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemAliasAst import TypedefStatementSpecificItemAliasAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemAst import TypedefStatementSpecificItemAst
-from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementSpecificItemsAst import TypedefStatementSpecificItemsAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeOptionalAst import TypeOptionalAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypePartAst import TypePartAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
@@ -127,7 +120,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.WhereConstraintsAst import WhereConstrain
 from SPPCompiler.SemanticAnalysis.ASTs.WhereConstraintsGroupAst import WhereConstraintsGroupAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAliasAst import WithExpressionAliasAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAst import WithExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpressionAst
 
 # Inherit FunctionPrototypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.CoroutinePrototypeAst import CoroutinePrototypeAst

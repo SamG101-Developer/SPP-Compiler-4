@@ -12,7 +12,7 @@ from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 
 @dataclass
-class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
+class GenExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     """
     The YieldExpressionAst node is used to represent a yield expression in a coroutine (always yields to a generator
     object). Yield expressions are expression to allow "sending" a value into the coroutine with "let x = yield 5", and
@@ -23,13 +23,13 @@ class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     how the convention of coroutine yielding is enforced.
 
     Attributes:
-        yield_keyword: The "gen" keyword.
+        gen_keyword: The "gen" keyword.
         with_keyword: The "with" keyword.
         convention: The optional convention of the yield expression.
         expression: The optional expression of the yield expression.
     """
 
-    yield_keyword: "TokenAst"
+    gen_keyword: "TokenAst"
     with_keyword: Optional["TokenAst"]
     convention: "ConventionAst"
     expression: Optional["ExpressionAst"]
@@ -40,7 +40,7 @@ class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the YieldExpressionAst.
         s = ""
-        s += f"{self.yield_keyword.print(printer)}"
+        s += f"{self.gen_keyword.print(printer)}"
         s += f"{self.with_keyword.print(printer)}" if self.with_keyword else ""
         s += f"{self.convention.print(printer)}"
         s += f"{self.expression.print(printer)}"
@@ -68,8 +68,8 @@ class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Check the yielded convention and type matches the coroutine's return type.
         expected_yield_type = InferredType(
-            convention=CommonTypes.type_variant_to_convention(coroutine_ret_type.parts[-1]),
-            type=coroutine_ret_type.parts[-1].generic_arguments["Yield"].type)
+            convention=CommonTypes.type_variant_to_convention(coroutine_ret_type.types[-1]),
+            type=coroutine_ret_type.types[-1].generic_arguments["Yield"].type)
 
         if not given_yield_type.symbolic_eq(expected_yield_type, scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH(self, expected_yield_type, given_yield_type)
@@ -78,8 +78,8 @@ class YieldExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The yield expression's typeis based on the data being sent into the coroutine (the "Send" generic parameter).
-        expected_send_type = self._coro_type.parts[-1].generic_arguments["Send"].type
+        expected_send_type = self._coro_type.types[-1].generic_arguments["Send"].type
         return InferredType(convention=ConventionMovAst, type=expected_send_type)
 
 
-__all__ = ["YieldExpressionAst"]
+__all__ = ["GenExpressionAst"]

@@ -60,7 +60,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                         raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_TYPE(lhs, self.identifier, lhs_type)
 
                     # Check if the index is within bounds, i.e. it is less than the number of elements in the tuple.
-                    if int(self.identifier.token.token_metadata) >= len(lhs_type.parts[-1].generic_arguments.arguments):
+                    if int(self.identifier.token.token_metadata) >= len(lhs_type.types[-1].generic_arguments.arguments):
                         raise SemanticErrors.NUMERICAL_MEMBER_ACCESS_OUT_OF_BOUNDS(lhs, self.identifier, lhs_type)
 
                 # Identifier member access.
@@ -68,16 +68,17 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     lhs_symbol = scope_handler.current_scope.get_symbol(lhs_type)
                     lhs_type_scope = lhs_symbol.associated_scope
 
-                    # Check if the left side is a generic type.
+                    # Check if the left side is a generic type - can not access members off these.
+                    # Todo: Allow with constraints / intersection types
                     if not lhs_type_scope:
-                        raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)  # todo: allow with constraints / intersection types
+                        raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)
 
                     # Check the identifier is a variable and not a namespace.
                     if isinstance(lhs_symbol, NamespaceSymbol):
                         raise SemanticErrors.STATIC_MEMBER_TYPE_ACCESS(lhs, self.dot_token, "namespace")
 
                     # Check if the member being accessed exists on the left side type.
-                    if not lhs_type_scope.has_symbol(self.identifier):
+                    if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                         raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
 
                 # Namespaced member access.
@@ -112,7 +113,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
         # correct element.
         elif isinstance(self.identifier, TokenAst):
             lhs_type = lhs.infer_type(scope_handler, **kwargs)
-            return InferredType(convention=ConventionMovAst, type=lhs_type.type.parts[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type)
+            return InferredType(convention=ConventionMovAst, type=lhs_type.type.types[-1].generic_arguments.arguments[int(self.identifier.token.token_metadata)].type)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.

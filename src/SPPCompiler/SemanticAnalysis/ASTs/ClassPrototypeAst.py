@@ -40,10 +40,10 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
     _mod: "ModuleIdentifierAst" = field(default=None, init=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs.GenericParameterGroupAst import GenericParameterGroupAst
-        from SPPCompiler.SemanticAnalysis.ASTs.WhereBlockAst import WhereBlockAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, TypeAst, WhereBlockAst
 
         # Fill the generic parameters and where block with empty objects if they are None.
+        self.identifier = TypeAst(self.identifier.pos, [], [self.identifier.to_generic_identifier()])
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
 
@@ -59,24 +59,21 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
 
     def pre_process(self, context: "ModulePrototypeAst") -> None:
         # Replace "Self" in the generic parameters and attribute types so that they refer to the current class.
-        Seq(self.body.members).for_each(lambda m: m.type_declaration.substitute_generics(CommonTypes.self(), self.identifier))
-        Seq(self.generic_parameters.get_opt()).for_each(lambda p: p.default_value.substitute_generics(CommonTypes.self(), self.identifier))
         self._mod = context.identifier
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Add a new TypeSymbol to the current scope, representing this class being generated. Move into the new scope
         # (representing the new type symbol). Associate the scope with the symbol.
-        sym = TypeSymbol(name=self.identifier, type=self)
-        scope_handler.current_scope.add_symbol(sym)
-
         scope_handler.into_new_scope(self.identifier)
-        sym.associated_scope = scope_handler.current_scope
+
+        symbol = TypeSymbol(name=self.identifier, type=self, associated_scope=scope_handler.current_scope)
+        scope_handler.current_scope.parent.add_symbol(symbol)
 
         # Add new TypeSymbols for each generic parameter to the scope, representing "None". This is because the
         # attributes may rely on these generic types. Build VariableSymbols for each attribute of the class. Add "Self"
         # as a TypeSymbol pointing to the current class.
-        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self(), type=self))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None)))
+        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self(), type=self, associated_scope=scope_handler.current_scope))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: scope_handler.current_scope.add_symbol(VariableSymbol(name=m.identifier, type=m.type_declaration)))
 
         # Move back into the parent scope.

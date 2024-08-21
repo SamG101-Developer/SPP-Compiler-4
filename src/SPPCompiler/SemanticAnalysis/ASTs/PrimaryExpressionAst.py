@@ -9,11 +9,11 @@ from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
 from SPPCompiler.SemanticAnalysis.ASTs.LoopExpressionAst import LoopExpressionAst
 from SPPCompiler.SemanticAnalysis.ASTs.WithExpressionAst import WithExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.YieldExpressionAst import YieldExpressionAst
+from SPPCompiler.SemanticAnalysis.ASTs.GenExpressionAst import GenExpressionAst
 
 type PrimaryExpressionAst = (
         LiteralAst | IdentifierAst | ParenthesizedExpressionAst | ObjectInitializerAst | LambdaPrototypeAst |
-        CaseExpressionAst | LoopExpressionAst | WithExpressionAst | YieldExpressionAst | InnerScopeAst | TypeAst |
+        CaseExpressionAst | LoopExpressionAst | WithExpressionAst | GenExpressionAst | InnerScopeAst | TypeAst |
         TokenAst)
 
 __all__ = ["PrimaryExpressionAst"]

@@ -58,7 +58,7 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
                 raise SemanticErrors.INVALID_OPERAND_COMPOUND_ASSIGNMENT(self.op, self.lhs)
 
         if isinstance(self.lhs, TokenAst):
-            tuple_element_count = len(self.rhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+            tuple_element_count = len(self.rhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
             ensure_memory_integrity(self, self.rhs, self.op, scope_handler, mark_symbols=False)
 
             # Form an expanded AST for the tuple elements.
@@ -73,7 +73,7 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
                 self.lhs, self.rhs = part, BinaryExpressionAst(self.pos, self.lhs, self.op, self.rhs)
 
         elif isinstance(self.rhs, TokenAst):
-            tuple_element_count = len(self.lhs.infer_type(scope_handler, **kwargs).type.parts[-1].generic_arguments.arguments)
+            tuple_element_count = len(self.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
             ensure_memory_integrity(self, self.lhs, self.op, scope_handler, mark_symbols=False)
 
             # Form an expanded AST for the tuple elements.
