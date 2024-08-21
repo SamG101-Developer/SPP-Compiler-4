@@ -47,10 +47,11 @@ class LetStatementUninitializedAst(Ast, SemanticAnalyser):
             raise SemanticErrors.VOID_USAGE(self.type_declaration)
 
         # Create a symbol for the variable being assigned to, and add it to the current scope.
+        # Todo: lhs dependant? works for single identifiers
         symbol = VariableSymbol(
             name=self.assign_to.identifier,
             type=self.type_declaration,
-            is_mutable=self.assign_to.is_mutable,  # todo: lhs dependant? works for single identifiers
+            is_mutable=self.assign_to.is_mutable,
             memory_info=MemoryStatus(ast_consumed=self))
         scope_handler.current_scope.add_symbol(symbol)
 
