@@ -82,7 +82,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "object initializer", "attribute")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst, SupPrototypeInheritanceAst
 
         class_type = kwargs["class-type"]
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
@@ -108,42 +108,65 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         # Todo: super-class checks
 
         # Ensure all the "sup" arguments are present in the object initializer.
-        # sup_types = type_symbol.associated_scope.sup_scopes
-        # sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
-        # expected_sup_types = Seq()
-        # for sup_scope, sup_block in sup_types:
-        #
-        #     # Only stateful superclasses must be present, so check the number of attributes.
-        #     super_class_type = scope_handler.current_scope.get_symbol(sup_scope.name)
-        #     super_class_attribute_count = len(super_class_type.type.body.members)
-        #
-        #     if super_class_attribute_count > 0:
-        #         expected_sup_types.append(super_class_type.fq_type)
-        #
-        # # Check a "sup" argument is given if there are expected superclasses.
-        # if not self.get_sup_args() and expected_sup_types:
-        #     raise SemanticErrors.MISSING_OBJ_INIT_SUP_ARGUMENT(self)
-        # elif self.get_sup_args() and not expected_sup_types:
-        #     raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUP_ARGUMENT(self, self.get_sup_args()[0])
-        #
-        # if self.get_sup_args():
-        #     # Check the superclass argument is a tuple.
-        #     given_sup_argument = self.get_sup_args()[0]
-        #     given_sup_argument_type = given_sup_argument.value.infer_type(scope_handler, **kwargs)
-        #     if not given_sup_argument_type.type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
-        #         raise SemanticErrors.TYPE_MISMATCH(given_sup_argument, CommonTypes.tuple([]), given_sup_argument_type)
-        #
-        #     # Check all the expected superclasses are present in the superclass argument.
-        #     given_sup_argument_individual_types = Seq(given_sup_argument_type.type.parts[-1].generic_arguments.arguments.copy())
-        #     print("-" * 100)
-        #     print(expected_sup_types.map(str))
-        #     print(given_sup_argument_individual_types.map(str))
-        #     for expected_sup_type in expected_sup_types:
-        #         if not given_sup_argument_individual_types.contains(expected_sup_type):
-        #             raise SemanticErrors.MISSING_OBJ_INIT_SUPER_CLASS(given_sup_argument, expected_sup_type.without_generics())
-        #         given_sup_argument_individual_types.remove(expected_sup_type)
-        #     if given_sup_argument_individual_types:
-        #         raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types[0])
+        sup_types = type_symbol.associated_scope.sup_scopes
+        sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
+        expected_sup_types = Seq()
+        for sup_scope, sup_block in sup_types:
+            if not isinstance(sup_block, SupPrototypeInheritanceAst): continue
+
+            # Only stateful superclasses must be present, so check the number of attributes.
+            super_class_symbol = scope_handler.current_scope.get_symbol(sup_block.super_class)
+            super_class_attribute_count = len(super_class_symbol.type.body.members)
+
+            # If the class is stateful, append the superclass type.
+            if super_class_attribute_count > 0:
+                expected_sup_types.append(super_class_symbol.fq_type)
+
+        # Check a "sup" argument is given if there are expected superclasses.
+        if not self.get_sup_args() and expected_sup_types:
+            raise SemanticErrors.MISSING_OBJ_INIT_SUP_ARGUMENT(self)
+        elif self.get_sup_args() and not expected_sup_types:
+            raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUP_ARGUMENT(self, self.get_sup_args()[0])
+
+        if self.get_sup_args():
+            # Check the superclass argument is a tuple.
+            given_sup_argument = self.get_sup_args()[0]
+            given_sup_argument_type = given_sup_argument.value.infer_type(scope_handler, **kwargs)
+            if not given_sup_argument_type.type.without_generics().symbolic_eq(CommonTypes.tuple([]), scope_handler.current_scope):
+                raise SemanticErrors.TYPE_MISMATCH(given_sup_argument, CommonTypes.tuple([]), given_sup_argument_type)
+
+            # Get the individual types of the superclass argument.
+            given_sup_argument_individual_types = Seq(given_sup_argument_type.type.types[-1].generic_arguments.arguments).map(lambda g: g.type)
+            given_sup_argument_individual_types_no_generics = Seq(given_sup_argument_individual_types).map(lambda t: t.without_generics())
+
+            # Check all the expected superclasses are present in the superclass argument.
+            for expected_sup_type in expected_sup_types:
+                expected_sup_type_no_generics = expected_sup_type.without_generics()
+
+                # Handle error is a superclass is not provided.
+                if not any(expected_sup_type_no_generics.symbolic_eq(g, scope_handler.current_scope) for g in given_sup_argument_individual_types_no_generics):
+                    raise SemanticErrors.MISSING_OBJ_INIT_SUPER_CLASS(given_sup_argument, expected_sup_type.without_generics())
+
+                # Remove the superclass from the list to check from, as it has been found in the "sup=" argument.
+                given_sup_argument_individual_types_no_generics.remove(expected_sup_type_no_generics)
+
+            # Raise an error for any leftover superclasses that haven't been provided.
+            if given_sup_argument_individual_types_no_generics:
+                raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types[0])
+
+            # Sort the expected and given superclass types to ensure they are in the same order.
+            expected_sup_types = expected_sup_types.sort()
+            given_sup_argument_individual_types = given_sup_argument_individual_types.sort()
+
+            # Change the non-substituted generic sup-scopes in the scope handler to the substituted ones.
+            for i, s in enumerate(type_symbol.associated_scope._sup_scopes):
+                if not isinstance(s[1], SupPrototypeInheritanceAst) or isinstance(s[0].name, str):
+                    continue
+
+                for expected, given in expected_sup_types.zip(given_sup_argument_individual_types):
+                    if s[1].super_class == expected:
+                        given_scope = scope_handler.current_scope.get_symbol(given).associated_scope
+                        type_symbol.associated_scope._sup_scopes[i] = (given_scope, s[1])
 
     def get_def_args(self) -> List["ObjectInitializerArgumentNamedAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
