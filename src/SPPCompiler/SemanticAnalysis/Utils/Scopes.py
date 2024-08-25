@@ -5,6 +5,7 @@ from typing import Any, Final, Optional, Iterator, List, Tuple
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
+from SPPCompiler.Utils.OneWayRefList import OneWayRefList
 
 
 class Scope:
@@ -12,8 +13,8 @@ class Scope:
     _parent_scope: Optional[Scope]
     _children_scopes: List[Scope]
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
-    _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
-    _normal_sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst]]
+    _sup_scopes: OneWayRefList[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
+    _normal_sup_scopes: OneWayRefList[Tuple[Scope, SupPrototypeNormalAst]]
 
     def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
         # Set the attributes to the parameters or default values.
@@ -24,8 +25,8 @@ class Scope:
 
         # The "sup_scopes" are normal and inheritance superimpositions. The "normal_sup_scopes" are only normal
         # superimpositions. These are necessary for checking members exist on the sup-class directly.
-        self._sup_scopes = []
-        self._normal_sup_scopes = []
+        self._sup_scopes = OneWayRefList([])
+        self._normal_sup_scopes = OneWayRefList([])
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
