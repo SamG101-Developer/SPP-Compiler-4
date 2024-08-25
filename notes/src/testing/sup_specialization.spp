@@ -1,0 +1,23 @@
+mod testing::sup_specialization
+
+
+cls TestSupSpecialization[T] {
+    a: T
+}
+
+
+sup [T] TestSupSpecialization[T] {
+    fun test_a(&self) -> std::Void { }
+}
+
+
+sup TestSupSpecialization[std::BigInt] {
+    fun test_b(&self) -> std::Void { }
+}
+
+
+fun test_sup_specialization() -> std::Void {
+    let a = TestSupSpecialization(a=false)
+    a.test_a()
+    a.test_b()
+}

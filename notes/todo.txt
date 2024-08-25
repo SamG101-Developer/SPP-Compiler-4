@@ -20,9 +20,10 @@ Object initialization:
 
 Functions:
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
--- Partial functions? Use "_" to convert functions to lambdas with some values set.
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
 -- Overriding a function doesn't remove the base overload from consideration.
+    -- Move the function prototypes conflict checker to a function
+    -- Use the conflict checker to eliminate base methods (only way to have a conflict is if the base method is still in consideration).
 
 Types:
 -- Add an array literal syntax, and consider empty arrays.
@@ -39,11 +40,7 @@ Other:
 FUTURE
 
 Typedefs:
--- Remove for now & redo the lot
--- Importing typedefs (see TypedefStatementAst::generate() comments).
--- Sup-typedefs (and check they exist on the superclass; modify existing method checks).
--- Nested typedefs: use std::(ops::Add, ops::Sub) works, but not std::{ops::{Add, Sub}, Vec}
--- Change typedefs to work like "destructures" (recursive) in the parser & analysis.
+-- Add support for generic typedefs
 
 Types:
 -- Generic constraints
@@ -51,3 +48,8 @@ Types:
 
 Patterns:
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
+
+Lambdas:
+-- Everything to do with lambdas
+-- Pinning captured values?
+-- Map partial functions into lambdas with fixed captures.
