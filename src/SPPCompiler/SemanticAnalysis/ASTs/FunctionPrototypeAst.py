@@ -50,9 +50,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True, repr=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst, InnerScopeAst
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
+        self.body = self.body or InnerScopeAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

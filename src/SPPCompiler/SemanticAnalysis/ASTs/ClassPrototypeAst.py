@@ -40,12 +40,13 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
     _mod: "ModuleIdentifierAst" = field(default=None, init=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, TypeAst, WhereBlockAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, TypeAst, WhereBlockAst, InnerScopeAst
 
         # Fill the generic parameters and where block with empty objects if they are None.
         self.identifier = TypeAst(self.identifier.pos, [], [self.identifier.to_generic_identifier()])
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
+        self.body = self.body or InnerScopeAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

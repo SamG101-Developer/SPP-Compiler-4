@@ -33,16 +33,19 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     body: "InnerScopeAst[SupMemberAst]"
 
     def __post_init__(self):
-        # Set the default values for the optional attributes
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst
+        # Set the default values for the optional attributes.
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst, InnerScopeAst
         self.generic_parameters = self.generic_parameters or GenericParameterGroupAst.default()
         self.where_block = self.where_block or WhereBlockAst.default()
+        self.body = self.body or InnerScopeAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the SupPrototypeNormalAst.
         s = ""
-        s += f"{self.sup_keyword.print(printer)}{self.generic_parameters.print(printer)} {self.identifier.print(printer)}"
+        s += f"{self.sup_keyword.print(printer)}"
+        s += f"{self.generic_parameters.print(printer)} " if self.generic_parameters else ""
+        s += f"{self.identifier.print(printer)}"
         s += f" {self.where_block.print(printer)} " if self.where_block else ""
         s += f"{self.body.print(printer)}"
         return s

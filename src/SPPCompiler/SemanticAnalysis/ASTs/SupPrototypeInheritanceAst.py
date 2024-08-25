@@ -31,7 +31,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Print the SupPrototypeInheritanceAst.
         s = ""
         s += f"{self.sup_keyword.print(printer)}"
-        s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
+        s += f"{self.generic_parameters.print(printer)} " if self.generic_parameters else ""
         s += f"{self.super_class.print(printer)} "
         s += f"{self.on_keyword.print(printer)}"
         s += f"{self.identifier.print(printer)}"
@@ -69,8 +69,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
             name=CommonTypes.self(),
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
-
-        # scope_handler.current_scope.get_symbol(self.identifier).associated_scope
 
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
