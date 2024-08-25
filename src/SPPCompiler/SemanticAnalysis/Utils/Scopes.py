@@ -13,8 +13,8 @@ class Scope:
     _parent_scope: Optional[Scope]
     _children_scopes: List[Scope]
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
-    _sup_scopes: OneWayRefList[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
-    _normal_sup_scopes: OneWayRefList[Tuple[Scope, SupPrototypeNormalAst]]
+    _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
+    _normal_sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst]]
 
     def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
         # Set the attributes to the parameters or default values.
@@ -25,8 +25,8 @@ class Scope:
 
         # The "sup_scopes" are normal and inheritance superimpositions. The "normal_sup_scopes" are only normal
         # superimpositions. These are necessary for checking members exist on the sup-class directly.
-        self._sup_scopes = OneWayRefList([])
-        self._normal_sup_scopes = OneWayRefList([])
+        self._sup_scopes = []
+        self._normal_sup_scopes = []
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
@@ -55,7 +55,6 @@ class Scope:
         if isinstance(name, TypeAst):
             for part in name.namespace + name.types[:-1]:
                 inner_symbol = scope.get_symbol(part)
-                # print(inner_symbol, inner_symbol.associated_scope)
                 match inner_symbol:
                     case None: break
                     case _: scope = inner_symbol.associated_scope
@@ -136,11 +135,6 @@ class Scope:
     def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> bool:
         return self.get_symbol(name, exclusive) is not None
 
-    def set_symbol(self, name: IdentifierAst | TypeAst, symbol: TypeSymbol | VariableSymbol) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
-        assert isinstance(name, IdentifierAst) or type(symbol) in TypeAst.__value__.__args__
-        self._symbol_table.set(name, symbol)
-
     def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])
 
@@ -199,7 +193,7 @@ class Scope:
         return self._children_scopes
 
     @property
-    def scopes_as_namespace(self) -> List[IdentifierAst]:
+    def scopes_as_namespace(self) -> List["IdentifierAst"]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         scope = self._parent_scope

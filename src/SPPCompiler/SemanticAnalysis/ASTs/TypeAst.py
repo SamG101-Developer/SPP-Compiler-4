@@ -122,8 +122,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     # Create the new scope for this type and add it to the parent scope.
                     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
                     new_scope._scope_name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
-                    new_scope._sup_scopes = OneWayRefList([], master_list=type_scope._sup_scopes)
-                    new_scope._normal_sup_scopes = OneWayRefList([], master_list=type_scope._normal_sup_scopes)
+                    new_scope._sup_scopes = type_scope._sup_scopes
+                    new_scope._normal_sup_scopes = type_scope._normal_sup_scopes
                     new_scope._children_scopes = type_scope._children_scopes
                     new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
 
@@ -231,6 +231,9 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
     def __json__(self) -> str:
         printer = AstPrinter()
         return self.print(printer)
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
 
 __all__ = ["TypeAst"]
