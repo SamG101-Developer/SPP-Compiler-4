@@ -31,12 +31,14 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
         # Load generic information for type-analysis.
         base_type_symbol = scope_handler.current_scope.get_symbol(self.class_type.without_generics())
         if not base_type_symbol:
             raise SemanticErrors.UNKNOWN_IDENTIFIER(self.class_type, [], "type")
 
-        generic_infer_from = Seq(self.arguments.arguments).map(lambda a: (a.identifier, self.arguments.get_argument_value(a).infer_type(scope_handler, **kwargs).type)).dict()
+        generic_infer_from = Seq(self.arguments.arguments).filter(lambda a: isinstance(a.identifier, IdentifierAst)).map(lambda a: (a.identifier, self.arguments.get_argument_value(a).infer_type(scope_handler, **kwargs).type)).dict()
         generic_map_to = Seq(base_type_symbol.type.body.members).map(lambda a: (a.identifier, a.type_declaration)).dict()
 
         # Analyse the type, and ensure that it isn't a generic type being instantiated.
