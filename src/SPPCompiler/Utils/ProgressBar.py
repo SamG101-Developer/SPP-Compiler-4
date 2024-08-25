@@ -3,6 +3,8 @@ import os
 
 import colorama
 
+SHOW_PROGRESS_BARS = True
+
 
 class ProgressBar:
     _title: str
@@ -24,6 +26,9 @@ class ProgressBar:
         self._print()
 
     def _print(self) -> None:
+        if not SHOW_PROGRESS_BARS:
+            return
+
         # Calculate the percentage done, and the number of characters to print.
         percentage = self._current_value / self._max_value * 100
         bar = self._character * math.floor(percentage)
