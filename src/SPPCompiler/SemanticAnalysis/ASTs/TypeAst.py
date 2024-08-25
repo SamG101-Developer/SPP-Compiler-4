@@ -117,7 +117,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     type_part.generic_arguments.do_semantic_analysis(scope_handler, **kwargs)
 
                 # If the generic type doesn't exist, create a symbol and scope for it.
-                if not type_scope.parent.has_symbol(type_part):
+                if not type_scope.parent.has_symbol(type_part) and not type_symbol.is_alias:
 
                     # Create the new scope for this type and add it to the parent scope.
                     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
@@ -172,7 +172,8 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Finally, add the namespace to this symbol (fully qualifying it).
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
-        if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
+
+        if type_scope and isinstance(type_scope.parent.name, IdentifierAst) and not type_symbol.is_alias:
             self.namespace = type_scope.scopes_as_namespace
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
