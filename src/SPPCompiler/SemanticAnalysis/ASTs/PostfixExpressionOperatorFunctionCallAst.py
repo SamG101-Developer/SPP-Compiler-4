@@ -222,7 +222,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         called_signature = f"\n\nCalled signature:\n  - {display_name}("
         for argument in self.arguments.arguments:
-            called_signature += f"{argument.infer_type(scope_handler, **kwargs).type}, "
+            called_signature += f"{argument.infer_type(scope_handler, **kwargs)}, "
         called_signature = called_signature[:-2] + ")"
 
         # Error if there are no valid overloads for this function call.
