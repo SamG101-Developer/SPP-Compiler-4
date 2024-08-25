@@ -77,6 +77,7 @@ class TypeSymbol(Symbol):
     type: Optional[ClassPrototypeAst]  # None for generic types
     associated_scope: Optional[Scope] = dataclasses.field(default=None)
     is_generic: bool = dataclasses.field(default=False)
+    is_alias: bool = dataclasses.field(default=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
