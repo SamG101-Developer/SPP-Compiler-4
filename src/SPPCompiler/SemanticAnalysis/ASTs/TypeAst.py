@@ -12,7 +12,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredT
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
 from SPPCompiler.Utils.OneWayRefList import OneWayRefList
 
@@ -71,6 +71,15 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         match self.namespace:
             case []: type_scope = scope_handler.current_scope
             case _ : type_scope = scope_handler.get_namespaced_scope(self.namespace)
+
+        # Check the type-scope exists (valid namespace).
+        temp_namespace = []
+        for part in self.namespace:
+            temp_namespace.append(part)
+            if not scope_handler.get_namespaced_scope(temp_namespace):
+                valid_namespaces = Seq(scope_handler.get_namespaced_scope(temp_namespace[:-1]).all_symbols(exclusive=True))
+                valid_namespaces = valid_namespaces.filter_to_type(NamespaceSymbol).map(lambda s: s.name).map(str).list()
+                raise SemanticErrors.UNKNOWN_IDENTIFIER(part, valid_namespaces, "namespace")
 
         # Move through each type, ensuring it exists at least in non-generic form.
         for i, type_part in enumerate(self.types):
