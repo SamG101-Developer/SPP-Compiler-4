@@ -797,7 +797,7 @@ class SemanticErrors:
         exception.add_error(
             pos=given.pos,
             error_type=SemanticErrorType.VALUE_ERROR,
-            tag_message="Unexpected superclass.",
+            tag_message=f"Unexpected superclass '{given}'.",
             message="Unexpected superclass in object initialization.",
             tip="Remove the unexpected superclass.")
         return exception

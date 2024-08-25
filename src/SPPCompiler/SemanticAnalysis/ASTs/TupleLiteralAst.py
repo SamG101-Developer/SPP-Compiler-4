@@ -40,22 +40,7 @@ class TupleLiteralAst(Ast, SemanticAnalyser, TypeInfer):
         for item in self.items:
             # Analyse the item in the tuple
             item.do_semantic_analysis(scope_handler, **kwargs)
-
-            # Get the symbol of the item.
-            symbol = scope_handler.current_scope.get_outermost_variable_symbol(item)
             ensure_memory_integrity(self, item, item, scope_handler)
-
-            # Make sure the item is not uninitialised.
-            # if symbol and symbol.memory_info.ast_consumed:
-            #     raise SemanticErrors.USING_NON_INITIALIZED_VALUE(self, symbol)
-            #
-            # # Make sure the item is not partially moved.
-            # if symbol and symbol.memory_info.ast_partial_moves:
-            #     raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(self, symbol)
-            #
-            # # Make sure the item is not borrowed.
-            # if symbol and symbol.memory_info.is_borrow:
-            #     raise SemanticErrors.MOVING_FROM_BORROWED_CONTEXT(self, item, symbol)
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
