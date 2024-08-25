@@ -30,8 +30,12 @@ class OneWayRefList[T]:
     def __iter__(self) -> Iterable[T]:
         return iter(self._complete_list)
 
-    def __getitem__(self, item: int) -> T:
-        return self._complete_list[item]
+    def __getitem__(self, key: int) -> T:
+        return self._complete_list[key]
+
+    def __setitem__(self, key: int, value: T) -> None:
+        print("Setting item", key, "in list of length", len(self))
+        self._this_list[key] = value
 
     def __len__(self) -> int:
         return len(self._complete_list)
@@ -41,20 +45,6 @@ class OneWayRefList[T]:
 
     def __repr__(self) -> str:
         return repr(self._complete_list)
-
-
-if __name__ == "__main__":
-    original_list1 = OneWayRefList([])
-    link_1 = OneWayRefList([], master_list=original_list1)
-    link_2 = OneWayRefList([], master_list=original_list1)
-
-    link_1.append(11)
-    link_2.append(12)
-    original_list1.append(10)
-
-    print(original_list1)
-    print(link_1)
-    print(link_2)
 
 
 __all__ = ["OneWayRefList"]
