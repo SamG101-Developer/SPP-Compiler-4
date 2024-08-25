@@ -94,9 +94,9 @@ class Parser:
         p2 = self.parse_class_prototype().for_alt()
         p3 = self.parse_sup_prototype_inheritance().for_alt()
         p4 = self.parse_sup_prototype_normal().for_alt()
-        # p5 = self.parse_typedef_statement().for_alt()
+        p5 = self.parse_use_statement().for_alt()
         p6 = self.parse_global_constant().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p6).parse_once()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
         return p7
 
     @parser_rule
@@ -154,12 +154,12 @@ class Parser:
     @parser_rule
     def parse_sup_member(self) -> SupMemberAst:
         p1 = self.parse_sup_method_prototype().parse_once()
-        # p2 = self.parse_sup_typedef().for_alt()
+        # p2 = self.parse_sup_use_statement().for_alt()
         # p3 = (p1 | p2).parse_once()
         return p1
 
     # @parser_rule
-    # def parse_sup_typedef(self) -> SupTypedefAst:
+    # def parse_sup_use_statement(self) -> SupTypedefAst:
     #     p1 = self.parse_annotation().parse_zero_or_more()
     #     p2 = self.parse_typedef_statement().parse_once()
     #     return SupTypedefAst(**p2.__dict__, annotations=p1)
@@ -557,7 +557,7 @@ class Parser:
 
     @parser_rule
     def parse_gen_expression(self) -> GenExpressionAst:
-        # todo: alter the parsing to add convention+expression in own method (currently can do "yield &mut" nothing)
+        # Todo: alter the parsing to add convention+expression in own method (currently can do "gen &mut" nothing)
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwGen).parse_once()
         p2 = self.parse_token(TokenType.KwWith).parse_optional()
@@ -637,7 +637,7 @@ class Parser:
 
     @parser_rule
     def parse_statement(self) -> StatementAst:
-        # p1 = self.parse_typedef_statement().for_alt()
+        p1 = self.parse_use_statement().for_alt()
         p2 = self.parse_let_statement().for_alt()
         p3 = self.parse_return_statement().for_alt()
         p4 = self.parse_loop_control_flow_statement().for_alt()
@@ -645,14 +645,66 @@ class Parser:
         p6 = self.parse_rel_statement().for_alt()
         p7 = self.parse_assignment_statement().for_alt()
         p8 = self.parse_expression().for_alt()
-        p9 = (p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
+        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
         return p9
 
     # ===== TYPEDEFS =====
 
-    # @parser_rule
-    # def parse_typedef_statement(self) -> TypedefStatementAst:
-    #     ...
+    @parser_rule
+    def parse_use_statement(self) -> UseStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwUse).parse_once()
+        p2 = self.parse_use_statement_type_alias().for_alt()
+        p3 = self.parse_use_statement_import().for_alt()
+        p4 = (p2 | p3).parse_once()
+        return UseStatementAst(c1, p1, p4)
+
+    @parser_rule
+    def parse_use_statement_import(self) -> UseStatementImportAst:
+        c1 = self.current_pos()
+        p1 = self.parse_use_statement_import_body().parse_once()
+        return UseStatementImportAst(c1, p1)
+
+    @parser_rule
+    def parse_use_statement_import_multiple_types(self) -> UseStatementImportMultipleTypesAst:
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
+        p2 = self.parse_token(TokenType.TkBraceL).parse_once()
+        p3 = self.parse_use_statement_import_body().parse_one_or_more(TokenType.TkComma)
+        p4 = self.parse_token(TokenType.TkBraceR).parse_once()
+        return UseStatementImportMultipleTypesAst(c1, p1, p2, p3, p4)
+
+    @parser_rule
+    def parse_use_statement_import_single_type(self) -> UseStatementImportSingleTypeAst:
+        c1 = self.current_pos()
+        p1 = self.parse_identifier().parse_zero_or_more(TokenType.TkDblColon)
+        p2 = self.parse_generic_identifier().parse_one_or_more(TokenType.TkDblColon)
+        p3 = self.parse_use_statement_import_alias().parse_optional()
+        return UseStatementImportSingleTypeAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_use_statement_import_alias(self) -> UseStatementImportAliasAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwAs).parse_once()
+        p2 = self.parse_upper_identifier().parse_once()
+        return UseStatementImportAliasAst(c1, p1, p2)
+
+    @parser_rule
+    def parse_use_statement_import_body(self) -> UseStatementImportBodyAst:
+        c1 = self.current_pos()
+        p1 = self.parse_use_statement_import_multiple_types().for_alt()
+        p2 = self.parse_use_statement_import_single_type().for_alt()
+        p3 = (p1 | p2).parse_once()
+        return UseStatementImportBodyAst(c1, p3)
+
+    @parser_rule
+    def parse_use_statement_type_alias(self) -> UseStatementTypeAliasAst:
+        c1 = self.current_pos()
+        p1 = self.parse_upper_identifier().parse_once()
+        p2 = self.parse_generic_parameters().parse_optional()
+        p3 = self.parse_token(TokenType.TkAssign).parse_once()
+        p4 = self.parse_type().parse_once()
+        return UseStatementTypeAliasAst(c1, p1, p2, p3, p4)
 
     # ===== LET-DECLARATIONS =====
 
