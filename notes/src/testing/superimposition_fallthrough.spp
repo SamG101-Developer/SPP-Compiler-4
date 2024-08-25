@@ -5,6 +5,10 @@ cls TestClass[T] {
     a: T
 }
 
+cls OtherBase {
+    a: std::Bool
+}
+
 
 sup [T] TestClass[T] {
     fun test_method_a(&self, a: T) -> T { }
@@ -19,6 +23,8 @@ cls TestSubClass[T] {
 
 sup [T] TestClass[T] on TestSubClass[T] { }
 
+sup [T] OtherBase on TestSubClass[T] { }
+
 
 fun test_sup() -> std::Void {
     let test_class = TestClass(a=100)
@@ -26,5 +32,7 @@ fun test_sup() -> std::Void {
     let mut y = test_class.test_method_b(2)
     x = 123
 
-    # let sub_class = TestSubClass(b=100, sup=(1, test_class))
+    let o = OtherBase(a=true)
+
+    let sub_class_object = TestSubClass(b=100, sup=(o, test_class))
 }

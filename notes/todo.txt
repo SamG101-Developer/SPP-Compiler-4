@@ -2,7 +2,7 @@ NOW
 
 Superimposition:
 -- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
--- Disallow sup-scopes with overlapping attributes.
+-- Disallow multiple sup-scopes with overlapping attributes.
 
 Generics:
 -- Function specialization.
@@ -12,11 +12,6 @@ Pins:
 -- Can unpin a value being borrowed, but the coroutine or future must be invalidated.
 -- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
 -- What about "ret coroutine(&argument)" => the argument is pinned, but the coroutine doesn't exist as a symbol.
-
-Object initialization:
--- Sup initialization
-    -- Replace sup-scopes with the generically-filled scopes?
-    -- What about inheriting the same superclass with different generics?)
 
 Functions:
 -- Generic fall-through for sup-inheritance blocks => see sup-initialization.
@@ -40,11 +35,11 @@ Other:
 FUTURE
 
 Typedefs:
--- Add support for generic typedefs
+-- Add support for generic typedefs (type MyVector[T] = std::Vec[T])
 
 Types:
 -- Generic constraints
--- Intersection types
+-- Intersection types => make a temporary type and superimpose all composite types onto it.
 
 Patterns:
 -- Boolean field access ie `case object then .empty() { ... } .is_value() { ... } etc`
