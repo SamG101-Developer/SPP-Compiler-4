@@ -76,7 +76,7 @@ class SemanticErrors:
         # TODO: accept the lhs_type_symbol, so the name of the class + namespace can be used (bypass aliases)
         exception = SemanticError()
         if lhs_symbol: exception.add_info(
-            pos=lhs_symbol.memory_info.ast_initialized.pos,
+            pos=(lhs_symbol.memory_info.ast_initialized or lhs_symbol.memory_info.ast_consumed).pos,
             tag_message=f"Variable '{lhs_symbol.name}' declared as '{lhs_type}'.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
