@@ -4,7 +4,7 @@ from typing import Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import get_owner_type_of_sup_block
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupNormalIdentifier, get_owner_type_of_sup_block
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -58,10 +58,11 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Create a new scope.
-        scope_handler.into_new_scope(f"{self.identifier}#SUP-functions")
+        scope_name = SupNormalIdentifier(this_class=self.identifier)
+        scope_handler.into_new_scope(scope_name)
 
         # Generate the body members (prototype), and register the generic parameters types.
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
         # Exit the new scope.
@@ -72,22 +73,16 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         self_symbol = get_owner_type_of_sup_block(self.identifier, scope_handler)
 
         # Register the "Self" type and analyse the identifier.
-        self.identifier.do_semantic_analysis(scope_handler)
         self_symbol and scope_handler.current_scope.add_symbol(TypeSymbol(
             name=CommonTypes.self(),
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
 
-        # Check for a non-generic identifier.
-        if scope_handler.current_scope.get_symbol(self.identifier).is_generic:
-            raise SemanticErrors.CANNOT_USE_GENERIC_HERE(self.identifier)
-
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
-        cls_scope._normal_sup_scopes.append((scope_handler.current_scope, self))
 
-        # Skip internal functions scopes.
+        # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
         scope_handler.exit_cur_scope()
 
