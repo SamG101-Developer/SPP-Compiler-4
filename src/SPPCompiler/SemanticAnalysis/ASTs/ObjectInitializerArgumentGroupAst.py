@@ -155,18 +155,18 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types[0])
 
             # Sort the expected and given superclass types to ensure they are in the same order.
-            expected_sup_types = expected_sup_types.sort()
-            given_sup_argument_individual_types = given_sup_argument_individual_types.sort()
+            # expected_sup_types = expected_sup_types.sort()
+            # given_sup_argument_individual_types = given_sup_argument_individual_types.sort()
 
             # Change the non-substituted generic sup-scopes in the scope handler to the substituted ones.
-            for i, s in enumerate(type_symbol.associated_scope._sup_scopes):
-                if not isinstance(s[1], SupPrototypeInheritanceAst) or isinstance(s[0].name, str):
-                    continue
-
-                for expected, given in expected_sup_types.zip(given_sup_argument_individual_types):
-                    if s[1].super_class == expected:
-                        given_scope = scope_handler.current_scope.get_symbol(given).associated_scope
-                        type_symbol.associated_scope._sup_scopes[i] = (given_scope, s[1])
+            # for i, s in enumerate(type_symbol.associated_scope._sup_scopes):
+            #     if not isinstance(s[1], SupPrototypeInheritanceAst) or isinstance(s[0].name, str):
+            #         continue
+            #
+            #     for expected, given in expected_sup_types.zip(given_sup_argument_individual_types):
+            #         if s[1].super_class == expected:
+            #             given_scope = scope_handler.current_scope.get_symbol(given).associated_scope
+            #             type_symbol.associated_scope._sup_scopes[i] = (given_scope, s[1])
 
     def get_def_args(self) -> List["ObjectInitializerArgumentNamedAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
