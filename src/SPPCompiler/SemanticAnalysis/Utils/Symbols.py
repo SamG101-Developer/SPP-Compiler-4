@@ -97,8 +97,11 @@ class TypeSymbol(Symbol):
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
-        assert isinstance(self.name, (GenericIdentifierAst, TypeAst)), f"Got type symbol with name: {self.name} ({type(self.name)}"
+        assert isinstance(self.name, GenericIdentifierAst), f"Got type symbol with name: {self.name} ({type(self.name)}"
         assert isinstance(self.type, ClassPrototypeAst) or self.type is None, f"Got type symbol with type: {type(self.type)}"
+
+        if self.associated_scope and not self.is_generic and not self.name.value == "Self":
+            self.associated_scope._associated_type_symbol = self
 
     def __json__(self) -> dict:
         return {
