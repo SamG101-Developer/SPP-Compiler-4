@@ -47,6 +47,11 @@ class NamespaceSymbol(Symbol):
     def __str__(self) -> str:
         return json.dumps(self)
 
+    def __deepcopy__(self, memodict=None):
+        return NamespaceSymbol(
+            name=copy.deepcopy(self.name),
+            associated_scope=self.associated_scope)
+
 
 @dataclass(kw_only=True)
 class VariableSymbol(Symbol):
@@ -56,11 +61,13 @@ class VariableSymbol(Symbol):
     memory_info: MemoryStatus = dataclasses.field(default_factory=MemoryStatus)
 
     def __post_init__(self):
+        # Ensure that a variable symbol is created with the correct types.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst
         assert isinstance(self.name, IdentifierAst), f"Got variable symbol with name: {self.name} ({type(self.name)})"
         assert isinstance(self.type, TypeAst) or self.type is None, f"Got variable symbol with type: {type(self.type)}"
 
     def __json__(self) -> dict:
+        # JSON includes the critical information: the symbol variant, the name, and the type.
         return {
             "what": "variable",
             "name": self.name,
@@ -68,7 +75,16 @@ class VariableSymbol(Symbol):
         }
 
     def __str__(self) -> str:
+        # String representation of the symbol is the JSON representation.
         return json.dumps(self)
+
+    def __deepcopy__(self, memodict=None):
+        # Deep copying a symbol copies everything except the associated scope, which is reference-linked.
+        return VariableSymbol(
+            name=copy.deepcopy(self.name),
+            type=copy.deepcopy(self.type),
+            is_mutable=copy.deepcopy(self.is_mutable),
+            memory_info=copy.deepcopy(self.memory_info))
 
 
 @dataclass(kw_only=True)
@@ -95,6 +111,14 @@ class TypeSymbol(Symbol):
 
     def __str__(self) -> str:
         return json.dumps(self)
+
+    def __deepcopy__(self, memodict=None):
+        return TypeSymbol(
+            name=copy.deepcopy(self.name),
+            type=copy.deepcopy(self.type),
+            associated_scope=self.associated_scope,
+            is_generic=self.is_generic,
+            is_alias=self.is_alias)
 
     @property
     def fq_type(self) -> TypeAst:
