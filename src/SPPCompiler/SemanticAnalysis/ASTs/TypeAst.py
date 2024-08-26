@@ -8,13 +8,12 @@ from typing import List, Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types, substitute_generics_in_sup_scopes
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
-from SPPCompiler.Utils.OneWayRefList import OneWayRefList
 
 
 @dataclass
@@ -65,7 +64,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         return self
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, generic_infer_from=None, generic_map_to=None, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst, SupPrototypeNormalAst
 
         # Determine the scope to use for the type.
         match self.namespace:
@@ -122,10 +121,9 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     # Create the new scope for this type and add it to the parent scope.
                     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
                     new_scope._scope_name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
-                    new_scope._sup_scopes = type_scope._sup_scopes
-                    new_scope._normal_sup_scopes = type_scope._normal_sup_scopes
+                    new_scope._sup_scopes = substitute_generics_in_sup_scopes(type_scope._sup_scopes, type_part.generic_arguments.arguments, scope_handler)
                     new_scope._children_scopes = type_scope._children_scopes
-                    new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)
+                    new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)  # copy.copy?
 
                     # Create the new symbol.
                     new_cls_ast = copy.deepcopy(type_symbol.type)
@@ -228,8 +226,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         return int.from_bytes(hashlib.md5("".join([str(p) for p in self.namespace + self.types]).encode()).digest())
 
     def __json__(self) -> str:
-        printer = AstPrinter()
-        return self.print(printer)
+        return f"cls {self.print(AstPrinter())}"
 
     def __lt__(self, other):
         return str(self) < str(other)
