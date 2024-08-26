@@ -5,7 +5,6 @@ from typing import Any, Final, Optional, Iterator, List, Tuple
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
-from SPPCompiler.Utils.OneWayRefList import OneWayRefList
 
 
 class Scope:
@@ -14,7 +13,7 @@ class Scope:
     _children_scopes: List[Scope]
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
     _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
-    _normal_sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst]]
+    _associated_type_symbol: Optional[TypeSymbol]
 
     def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
         # Set the attributes to the parameters or default values.
@@ -22,11 +21,8 @@ class Scope:
         self._parent_scope = parent_scope
         self._children_scopes = []
         self._symbol_table = SymbolTable()
-
-        # The "sup_scopes" are normal and inheritance superimpositions. The "normal_sup_scopes" are only normal
-        # superimpositions. These are necessary for checking members exist on the sup-class directly.
         self._sup_scopes = []
-        self._normal_sup_scopes = []
+        self._associated_type_symbol = None
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
@@ -145,7 +141,6 @@ class Scope:
             "parent_scope": self._parent_scope._scope_name if self._parent_scope else None,
             "children_scopes": [child for child in self._children_scopes],
             "sup_scopes": [sup.name for sup, _ in self._sup_scopes],
-            "normal_sup_scopes": [sup.name for sup, _ in self._normal_sup_scopes],
             "symbol_table": self._symbol_table
         }
 
@@ -203,6 +198,10 @@ class Scope:
                 namespace.insert(0, scope.name)
             scope = scope.parent
         return namespace
+
+    @property
+    def associated_type_symbol(self) -> Optional[TypeSymbol]:
+        return self._associated_type_symbol
 
     def __str__(self):
         return str(self._scope_name)
