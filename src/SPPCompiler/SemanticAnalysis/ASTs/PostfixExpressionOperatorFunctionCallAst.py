@@ -9,7 +9,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -64,23 +63,18 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 lhs_type = lhs.lhs.infer_type(scope_handler, **kwargs).type
                 lhs_identifier = lhs.op.identifier
                 re_analyse = True
-                owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
+
             case PostfixExpressionAst() if lhs.op.dot_token.token.token_type == TokenType.TkDblColon:
                 lhs_type = lhs.lhs
                 lhs_identifier = lhs.op.identifier
                 re_analyse = False
-
-                # Namespace vs enclosing class
-                match lhs.lhs:
-                    case IdentifierAst(): owner_scope_generic_arguments = []
-                    case _: owner_scope_generic_arguments = Seq(lhs.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
-
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
+
             case IdentifierAst():
                 lhs_type = scope_handler.current_scope.parent_module.name
                 lhs_identifier = lhs
                 re_analyse = True
-                owner_scope_generic_arguments = Seq()
+
             case _:
                 raise SemanticErrors.UNCALLABLE_TYPE(lhs)
 
@@ -109,7 +103,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         valid_overloads = []
         func_overload_errors = []
 
-        for func_scope, func_overload in func_scopes:
+        for func_scope, func_overload, owner_scope_generic_arguments in func_scopes:
             # A try-except block is needed, to catch overload errors and allow the movement into the next overload.
             try:
                 # Get the parameter (+ identifiers) the arguments (+ named identifiers) and the generic arguments.
@@ -131,7 +125,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # Check for any named arguments that don't match the function's parameters.
                 if invalid_named_argument_identifiers := named_argument_identifiers.set_subtract(parameter_identifiers):
-                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_named_argument_identifiers[0], parameter_identifiers.map(str).value, "parameter")
+                    raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_named_argument_identifiers[0], parameter_identifiers.map(str).list(), "parameter")
 
                 # Remove all named arguments from the parameter identifiers list.
                 for argument in arguments.filter_to_type(FunctionArgumentNamedAst):
