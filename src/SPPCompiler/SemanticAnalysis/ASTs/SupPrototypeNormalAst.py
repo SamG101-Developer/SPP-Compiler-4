@@ -78,6 +78,10 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
 
+        # Check for a non-generic identifier.
+        if scope_handler.current_scope.get_symbol(self.identifier).is_generic:
+            raise SemanticErrors.CANNOT_USE_GENERIC_HERE(self.identifier)
+
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))

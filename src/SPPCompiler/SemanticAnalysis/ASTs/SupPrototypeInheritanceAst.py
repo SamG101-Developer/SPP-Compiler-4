@@ -70,12 +70,18 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
 
+        # Check for a non-generic identifier.
+        if scope_handler.current_scope.get_symbol(self.identifier).is_generic:
+            raise SemanticErrors.CANNOT_USE_GENERIC_HERE(self.identifier)
+
         # Add the superimposition scope to the class scope.
         cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
             self.super_class.do_semantic_analysis(scope_handler)
+            if scope_handler.current_scope.get_symbol(self.super_class).is_generic:
+                raise SemanticErrors.CANNOT_USE_GENERIC_HERE(self.super_class)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
 
         # Skip internal functions scopes.
@@ -103,7 +109,8 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         # Check all members on this superimposition are present on the superclass.
-        super_class_scope = scope_handler.current_scope.get_symbol(self.super_class).associated_scope
+        super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        super_class_scope = super_class_symbol.associated_scope
         super_class_implementations = Seq(super_class_scope._normal_sup_scopes)
 
         # Todo: as compiler develops, add the sup-typedefs here
