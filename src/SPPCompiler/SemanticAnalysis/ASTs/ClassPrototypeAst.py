@@ -67,14 +67,14 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         # (representing the new type symbol). Associate the scope with the symbol.
         scope_handler.into_new_scope(self.identifier)
 
-        symbol = TypeSymbol(name=self.identifier, type=self, associated_scope=scope_handler.current_scope)
+        symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
         scope_handler.current_scope.parent.add_symbol(symbol)
 
         # Add new TypeSymbols for each generic parameter to the scope, representing "None". This is because the
         # attributes may rely on these generic types. Build VariableSymbols for each attribute of the class. Add "Self"
         # as a TypeSymbol pointing to the current class.
-        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self(), type=self, associated_scope=scope_handler.current_scope))
-        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier, type=None, is_generic=True)))
+        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=self, associated_scope=scope_handler.current_scope))
+        Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: scope_handler.current_scope.add_symbol(VariableSymbol(name=m.identifier, type=m.type_declaration)))
 
         # Move back into the parent scope.

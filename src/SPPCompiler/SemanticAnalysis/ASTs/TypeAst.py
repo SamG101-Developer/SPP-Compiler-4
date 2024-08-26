@@ -131,18 +131,17 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     new_cls_ast = copy.deepcopy(type_symbol.type)
 
                     # Add the new "Self" type, and add the new scope to the parent scope.
-                    new_scope.add_symbol(TypeSymbol(name=CommonTypes.self(), type=new_cls_ast, associated_scope=new_scope))
-                    type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name, type=new_cls_ast, associated_scope=new_scope))
+                    new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_cls_ast, associated_scope=new_scope))
+                    type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope))
                     type_scope.parent.children.append(new_scope)
                     type_scope = new_scope
 
                     # Register the new generic arguments against the generic parameters in the new scope.
                     if self.without_generics() != CommonTypes.tuple([]):
                         for generic_argument in type_part.generic_arguments.arguments:
-
                             generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
                             generic_parameter_type_symbol = TypeSymbol(
-                                name=generic_argument.identifier,
+                                name=generic_argument.identifier.types[-1],
                                 type=generic_argument_type_symbol.type,
                                 associated_scope=generic_argument_type_symbol.associated_scope,
                                 is_generic=True)
