@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Type
 
@@ -221,47 +222,39 @@ def convert_function_arguments_to_named(
     return arguments
 
 
-def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> Seq[Tuple[Scope, "SupPrototypeNormalAst"]]:
+def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> Seq[Tuple[Scope, "SupPrototypeNormalAst", List["GenericArgumentAst"]]]:
     from SPPCompiler.LexicalAnalysis.Lexer import Lexer
     from SPPCompiler.SyntacticAnalysis.Parser import Parser
+    from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst, GenericArgumentNamedAst, TokenAst
 
-    # Create the mock identifier and get the scopes of the mock method classes.
-    converted_identifier = Parser(Lexer(f"MOCK_{identifier}").lex(), "").parse_generic_identifier().parse_once()
-    mock_scopes = Seq(type_scope.get_all_symbols(converted_identifier)).map(lambda sym: sym.associated_scope).list()
-    mock_scopes.sort(key=lambda scope: type_scope.depth_to(scope.parent), reverse=True)
+    converted_identifier = Parser(Lexer(f"MOCK_{identifier}").lex(), "").parse_type_single().parse_once()
 
-    # Remove overloads from further away classes that are overridden by closer classes.
-    # func_scopes_2 = {scope: scope.sup_scopes for scope in mock_scopes}
-    # for scope, sup_scopes in func_scopes_2.items():
-    #     for sup_scope in sup_scopes:
-    #         for following_scope, following_sup_scopes in func_scopes_2.items():
-    #             for following_sup_scope in following_sup_scopes:
-    #                 if type_scope.depth_to(scope.parent) < type_scope.depth_to(following_scope.parent):
-    #                     print("Potential override:", sup_scope[0], following_sup_scope[0])
-    #
-    #                     this_member = sup_scope[1]
-    #                     that_member = following_sup_scope[1]
-    #                     # super_class_scope =
-    #
-    #                     if matching_function_types(this_member, that_member, scope, following_scope):
-    #                         print("\t=> Overridden:", sup_scope[0], following_sup_scope[0])
+    sup_scopes = []
+    generics = []
+    match type_scope.name:
 
-    # for scope, sup_scopes in func_scopes_2.items():
-    #     print(f"{scope}")
-    #     for sup_scope in sup_scopes:
-    #         print(f"\t{sup_scope[0]}")
+        # Functions in a namespace / global namespace; there will be no inheritable generics.
+        case IdentifierAst():
+            if Seq(type_scope.children).map(lambda s: s.name).contains(converted_identifier):
+                sup_scope, ast = Seq(type_scope.children).filter(lambda s: s.name == converted_identifier).first().sup_scopes[0]
+                sup_scopes.append((sup_scope, ast, []))
 
-    func_scopes = Seq([mock_scope.sup_scopes for mock_scope in mock_scopes]).flat()
+        # Functions that belong to a class (methods). Generics must come from the specific superimposition that these
+        # methods belong to.
+        case _:
+            for sup_scope, _ in type_scope.sup_scopes:
+                if Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).map(lambda s: s.name).contains(converted_identifier):
+                    generics = Seq(sup_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda t: t.is_generic)
+                    generics = generics.map(lambda sym: GenericArgumentNamedAst(
+                        pos=-1,
+                        raw_identifier=sym.name.to_identifier(),
+                        assignment_token=TokenAst.dummy(TokenType.TkAssign),
+                        type=sym.associated_scope.associated_type_symbol.fq_type))
 
-    # Todo: just select the last one in the caller of this function?
+                    sup_scope, ast = Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).filter(lambda s: s.name == converted_identifier).first().sup_scopes[0]
+                    sup_scopes.append((sup_scope, ast, generics))
 
-    # Directly overridden functions must be removed from the available scopes.
-    # print("-" * 100)
-    # print(type_scope.name)
-    # for mock_scope in mock_scopes:
-    #     print(mock_scope.parent, type_scope.depth_to(mock_scope.parent))
-
-    return func_scopes
+    return Seq(sup_scopes)
 
 
 def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:
@@ -275,16 +268,96 @@ def matching_function_types(this_member, that_member, current_scope: Scope, supe
 def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: ScopeHandler) -> Optional[TypeSymbol]:
     self_symbol = None
     if identifier.types[-1].value.startswith("MOCK_"):
-        if isinstance(scope_handler.current_scope.parent.name, str) and "#" in scope_handler.current_scope.parent.name:
-            class_type = scope_handler.current_scope.parent.name.split("#")[0]
-            from SPPCompiler.SyntacticAnalysis.Parser import Parser
-            from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-            class_type = Parser(Lexer(class_type).lex(), "").parse_type().parse_once()
+        if isinstance(scope_handler.current_scope.parent.name, (SupNormalIdentifier, SupInheritanceIdentifier)):
+            class_type = scope_handler.current_scope.parent.name.this_class
             class_type.do_semantic_analysis(scope_handler)
-
             self_symbol = scope_handler.current_scope.get_symbol(class_type)
 
     return self_symbol
+
+
+def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototypeAst"]], generic_arguments: List["GenericArgmentAst"], scope_handler: ScopeHandler) -> List[Tuple[Scope, "SupPrototypeAst"]]:
+    from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
+    new_scopes = []
+    for scope, sup_ast in sup_scopes:
+
+        if isinstance(scope.name, TypeAst):
+            # Rename the scope with generic substitutions.
+            type_part_ast = copy.deepcopy(scope.name)
+            for g in generic_arguments:
+                type_part_ast.substitute_generics(g.identifier, g.type)
+            new_scope_name = type_part_ast
+
+            # The substituted superclass may not exist yet with these generics.
+            type_to_analyse = copy.deepcopy(sup_ast.super_class)
+            for g in generic_arguments:
+                type_to_analyse.substitute_generics(g.identifier, g.type)
+            type_to_analyse.do_semantic_analysis(scope_handler)
+
+        elif isinstance(scope.name, SupNormalIdentifier):
+            # Rename the scope with generic substitutions.
+            type_part_ast = copy.deepcopy(scope.name.this_class)
+            for g in generic_arguments:
+                type_part_ast.substitute_generics(g.identifier, g.type)
+            new_scope_name = SupNormalIdentifier(this_class=type_part_ast)
+
+        elif isinstance(scope.name, SupInheritanceIdentifier):
+            # Rename the scopes with generic substitutions.
+            type_part = scope.name.this_class
+            super_class_part = scope.name.super_class
+            for g in generic_arguments:
+                type_part.substitute_generics(g.identifier, g.type)
+                super_class_part.substitute_generics(g.identifier, g.type)
+            new_scope_name = SupInheritanceIdentifier(this_class=type_part, super_class=super_class_part)
+
+        else:
+            raise NotImplementedError(f"Unsupported scope name type: {scope.name}")
+
+        # Remove the generic arguments from the "sup" AST.
+        new_sup_ast = sup_ast
+        for p in new_sup_ast.generic_parameters.parameters.copy():
+            for g in generic_arguments:
+                if p.identifier == g.identifier:
+                    new_sup_ast.generic_parameters.parameters.remove(p)
+
+        # Create the new scope with the new name and parent scope.
+        new_scope = Scope(name=new_scope_name, parent_scope=scope.parent)
+        new_scope._children_scopes = scope._children_scopes  # substitute_generics_in_child_scopes(scope._children_scopes, generic_arguments, scope_handler)
+        new_scope._sup_scopes = substitute_generics_in_sup_scopes(scope._sup_scopes, generic_arguments, scope_handler)
+        new_scope._symbol_table = copy.copy(scope._symbol_table)
+        new_scopes.append((new_scope, new_sup_ast))
+        scope.parent.children.append(new_scope)
+
+        # Add the type symbols into the new scope.
+        for generic_argument in generic_arguments:
+            generic_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
+            new_scope.add_symbol(TypeSymbol(name=generic_argument.identifier.types[-1], type=generic_symbol.type, is_generic=True, associated_scope=generic_symbol.associated_scope))
+
+    return new_scopes
+
+
+@dataclass(kw_only=True)
+class SupInheritanceIdentifier:
+    super_class: "TypeAst"
+    this_class: "TypeAst"
+
+    def __str__(self):
+        return f"sup {self.super_class} on {self.this_class}"
+
+    def __json__(self) -> str:
+        return f"sup {self.super_class} on {self.this_class}"
+
+
+@dataclass(kw_only=True)
+class SupNormalIdentifier:
+    this_class: "TypeAst"
+
+    def __str__(self):
+        return f"sup {self.this_class}"
+
+    def __json__(self) -> str:
+        return f"sup {self.this_class}"
 
 
 class TypeInfer:
