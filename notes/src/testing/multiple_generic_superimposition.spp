@@ -1,0 +1,41 @@
+mod testing::multiple_generic_superimposition
+
+
+cls MyGenericBaseType[U] { }
+
+
+sup MyDerivedType {
+    fun some_other_function[U](&self, a: U) -> std::Void { }
+}
+
+
+sup [U] MyGenericBaseType[U] {
+    fun function_1(&self, a: U) -> U { }
+}
+
+
+cls MyDerivedType { }
+
+
+sup MyGenericBaseType[std::Str] on MyDerivedType { }
+
+sup MyGenericBaseType[std::Bool] on MyDerivedType { }
+
+
+cls RandomClassGenerics[T] { }
+sup [T] RandomClassGenerics[T] {
+    fun random_generic_test(&self, a: T) -> T { }
+}
+
+
+fun test_multiple_generic_superimposition() -> std::Void {
+    let this_variable = MyDerivedType()
+    let mut x = this_variable.function_1(false)
+    x = false
+
+    this_variable.some_other_function(1)
+
+    let f = RandomClassGenerics[std::Bool]()
+    let mut g = f.random_generic_test(true)
+    g = false
+}

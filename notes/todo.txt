@@ -4,17 +4,13 @@ Superimposition:
 -- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
 -- Disallow multiple sup-scopes with overlapping attributes.
 
-Generics:
--- Function specialization.
--- Using different generic identifiers for sup->cls doesn't work (currently have to be the same).
-
 Pins:
 -- Can unpin a value being borrowed, but the coroutine or future must be invalidated.
 -- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
 -- What about "ret coroutine(&argument)" => the argument is pinned, but the coroutine doesn't exist as a symbol.
 
 Functions:
--- Generic fall-through for sup-inheritance blocks => see sup-initialization.
+-- Conflicting overloads don't work for generic classes?
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
 -- Overriding a function doesn't remove the base overload from consideration.
     -- Move the function prototypes conflict checker to a function
@@ -26,10 +22,17 @@ Types:
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?.
 -- Numerical type indexing
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
+-- Too many generics or invalid name generics throw a Python error.
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Double analyse `loop` body, avoiding messing up `exit` loop counting.
+-- Expand `gen with` to `loop` and `gen`.
+
+Re-add:
+-- Conflicting function definitions
+-- Check members exist on superclasses
+-- Don't allow superimposition onto generic types
 
 
 FUTURE
@@ -48,3 +51,9 @@ Lambdas:
 -- Everything to do with lambdas
 -- Pinning captured values?
 -- Map partial functions into lambdas with fixed captures.
+
+UNDECIDED
+
+Generics:
+-- The "sup" generic identifiers should be able to be different from "cls" generic identifiers, otherwise error? Superclasses?
+-- Otherwise could use typedefs to map the generic identifiers to different names.

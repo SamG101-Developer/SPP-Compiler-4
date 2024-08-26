@@ -9,7 +9,6 @@ cls OtherBase {
     a: std::Bool
 }
 
-
 sup [T] TestClass[T] {
     fun test_method_a(&self, a: T) -> T { }
     fun test_method_b(&self, b: T) -> T { }
