@@ -80,8 +80,8 @@ class SemanticErrors:
             tag_message=f"Variable '{lhs_symbol.name}' declared as '{lhs_type}'.")
         exception.add_error(
             pos=ast.pos, error_type=SemanticErrorType.TYPE_ERROR,
-            tag_message=f"Expected type '{lhs_type}'{extra}, inferred '{rhs_type}'.",
-            message="Type mismatch.",
+            tag_message=f"Inferred '{rhs_type}'.",
+            message=f"Type mismatch between '{lhs_type}'{extra} and '{rhs_type}'.",
             tip="Ensure the RHS type exactly matches the LHS.")
         return exception
 
@@ -948,3 +948,14 @@ class SemanticErrors:
             message="Global constant redefinition.",
             tip="Ensure the global constant is only declared once.")
         return exception
+
+    @staticmethod
+    def CANNOT_USE_GENERIC_HERE(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            error_type=SemanticErrorType.TYPE_ERROR,
+            tag_message=f"Generic identifier '{ast}' used here.",
+            message="Cannot use a generic type here.",
+            tip="Use a non-generic type here.")
+        raise exception
