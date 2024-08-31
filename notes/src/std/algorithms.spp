@@ -2,10 +2,13 @@ mod std::algorithms
 
 
 cls Sortable[T] { }
+cls Comparable[T] { }
+
 
 sup [T] Sortable [T] {
     fun sort(&mut self) -> Void { }
     fun sort_by(&mut self, compare: FunRef[Bool, (T, T)]) -> Void { }
 }
+
 
 cls Comparable[T] { }

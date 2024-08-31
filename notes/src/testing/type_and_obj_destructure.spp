@@ -1,0 +1,15 @@
+mod testing::type_and_obj_destructure
+
+
+cls InnerA { a: std::Str }
+cls InnerB { b: std::Str }
+
+
+fun test_type_and_obj_destructure(t: InnerA | InnerB) -> std::Void {
+    ##
+    case t then
+        is InnerA(a) { }
+        is InnerB(b) { }
+    ##
+}
+

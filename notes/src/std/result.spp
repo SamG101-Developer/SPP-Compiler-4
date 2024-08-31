@@ -1,0 +1,7 @@
+mod std::result
+
+
+cls Res[T, E] { }
+
+cls Pass[T] { }
+cls Fail[T] { }

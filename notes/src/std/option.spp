@@ -1,0 +1,75 @@
+mod std::option
+
+
+cls Opt[T] {
+    value: Some[T] | None
+}
+
+
+##
+sup [T] Opt[T] {
+    fun and_[U](self, that: Opt[U]) -> Opt[U] {
+        ret case self then
+            is None { None() }
+            is Some { that }
+    }
+
+    fun and_then[U](self, that: FunMov[Opt[U], (T)]) -> Opt[U] {
+        ret case self then
+            is None { None() }
+            is Some { that(self.value) }
+    }
+
+    fun or_(self, that: Opt[T]) -> Opt[T] {
+        ret case self then
+            is None { that }
+            is Some { self }
+    }
+
+    fun or_else(self, that: FunMov[Opt[T], ()]) -> Opt[T] {
+        ret case self then
+            is None { that() }
+            is Some { self }
+    }
+}
+
+
+sup [T] Opt[T] {
+    fun take(&mut self) -> Opt[T] {
+        ret case self then
+            is None { None() }
+            is Some {
+                let value = self.value
+                self.value = None()
+                Some(value)
+            }
+    }
+
+    fun replace(&mut self, that: T) -> Opt[T] {
+        ret case self then
+            is None {
+                self.value = Some(that)
+                None()
+            }
+            is Some {
+                let value = self.value
+                self.value = Some(that)
+                Some(value)
+            }
+    }
+
+    fun zip[U](self, that: Opt[U]) -> Opt[(T, U)] {
+        ret case self then
+            is None { None() }
+            is Some {
+                case that then
+                    is None { None() }
+                    is Some { Some((self.value, that.value)) }
+            }
+    }
+}
+##
+
+
+cls Some[T] { }
+cls None { }

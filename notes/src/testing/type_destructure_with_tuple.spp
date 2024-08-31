@@ -1,0 +1,20 @@
+mod testing::type_destructure_with_tuple
+
+
+# use MyUnionType = std::Str | std::U64 | std::U32
+
+
+cls VariantA { a: std::Str }
+cls VariantB { b: std::Str }
+cls VariantC { c: std::Str }
+cls VariantD { d: std::Str }
+
+
+fun test_type_destructure_with_tuple(
+        x: VariantA | VariantB | VariantC,
+        y: VariantA | VariantB | VariantC) -> std::Void {
+
+    case x then
+        is VariantA(mut a) { a = "123" }
+        is VariantC(mut c), VariantB(b) { c = "false" }
+}

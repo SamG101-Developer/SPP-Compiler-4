@@ -24,10 +24,15 @@ Types:
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 -- Too many generics or invalid name generics throw a Python error.
 
+Case blocks
+-- Separate rule for `else case` for an `elif` like block (unrelated condition, related block).
+-- Union type destructure shouldn't allow for multiple types to be destructured if an attribute is used.
+
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Double analyse `loop` body, avoiding messing up `exit` loop counting.
 -- Expand `gen with` to `loop` and `gen`.
+-- Tuples as case conditions -> resetting symbols.
 
 Re-add:
 -- Conflicting function definitions
