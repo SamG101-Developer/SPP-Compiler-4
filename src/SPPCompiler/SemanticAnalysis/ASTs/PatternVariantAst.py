@@ -1,14 +1,14 @@
 from SPPCompiler.SemanticAnalysis.ASTs import (
     PatternVariantObjectDestructureAst, PatternVariantElseAst, PatternVariantLiteralAst,
     PatternVariantTupleDestructureAst, PatternVariantSingleIdentifierAst, PatternVariantAttributeBindingAst,
-    PatternVariantSkipArgumentAst, PatternVariantSkipArgumentsAst, PatternVariantUnionDestructureAst)
+    PatternVariantSkipArgumentAst, PatternVariantSkipArgumentsAst)
 
 type PatternVariantAst = (
     PatternVariantObjectDestructureAst | PatternVariantElseAst | PatternVariantLiteralAst |
     PatternVariantTupleDestructureAst | PatternVariantSingleIdentifierAst)
 
 type PatternVariantDestructureAst = (
-    PatternVariantTupleDestructureAst | PatternVariantObjectDestructureAst | PatternVariantUnionDestructureAst)
+    PatternVariantTupleDestructureAst | PatternVariantObjectDestructureAst)
 
 type PatternVariantNestedForObjectDestructureAst = (
     PatternVariantAttributeBindingAst, PatternVariantSingleIdentifierAst, PatternVariantSkipArgumentsAst)
