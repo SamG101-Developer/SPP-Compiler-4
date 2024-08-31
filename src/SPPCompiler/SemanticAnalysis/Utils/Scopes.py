@@ -134,6 +134,9 @@ class Scope:
     def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])
 
+    def rem_symbol(self, symbol: TypeSymbol | VariableSymbol) -> None:
+        self._symbol_table.rem(symbol)
+
     def __json__(self) -> dict:
         return {
             "what": "scope",

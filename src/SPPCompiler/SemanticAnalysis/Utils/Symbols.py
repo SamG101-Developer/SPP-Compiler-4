@@ -148,6 +148,9 @@ class SymbolTable[SymbolType]:
     def add(self, symbol: SymbolType) -> None:
         self._internal_table[symbol.name] = symbol
 
+    def rem(self, symbol: SymbolType) -> None:
+        del self._internal_table[symbol.name]
+
     def get(self, name: IdentifierAst | TypeAst, default=None) -> Optional[SymbolType]:
         return self._internal_table[name] if name in self._internal_table else default
 
