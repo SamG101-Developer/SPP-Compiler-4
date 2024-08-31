@@ -869,8 +869,7 @@ class Parser:
     def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
         p1 = self.parse_pattern_variant_tuple_destructure().for_alt()
         p2 = self.parse_pattern_variant_object_destructure().for_alt()
-        p3 = self.parse_pattern_variant_union_destructure().for_alt()
-        return (p1 | p2 | p3).parse_once()
+        return (p1 | p2).parse_once()
 
     @parser_rule
     def parse_pattern_variant_skip_argument(self) -> PatternVariantSkipArgumentAst:
@@ -916,12 +915,6 @@ class Parser:
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
         p3 = self.parse_pattern_variant_nested_for_attribute_binding().parse_once()
         return PatternVariantAttributeBindingAst(c1, p1, p2, p3)
-
-    @parser_rule
-    def parse_pattern_variant_union_destructure(self) -> PatternVariantUnionDestructureAst:
-        c1 = self.current_pos()
-        p1 = self.parse_type_single().parse_once()
-        return PatternVariantUnionDestructureAst(c1, p1)
 
     @parser_rule
     def parse_pattern_variant_literal(self) -> PatternVariantLiteralAst:
