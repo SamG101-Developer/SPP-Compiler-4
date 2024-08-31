@@ -59,7 +59,9 @@ class LocalVariableTupleDestructureAst(Ast, SemanticAnalyser):
         new_let_statements = []
         items = self.items.copy()
         for i, current_local_variable in Seq(self.items).enumerate():
-            if isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
+            if isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and not rhs_tuple_elements:
+                raise SemanticErrors.SKIPPING_ARGUMENTS_IN_STATELESS_TYPE(current_local_variable)
+            elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
                 number_elements_skipped = len(rhs_tuple_elements) - len(lhs_tuple_elements) + 1
                 current_local_variable._num_skipped = number_elements_skipped
                 dummy_replacements = [LocalVariableSkipArgumentAst(pos=current_local_variable.pos, underscore_token=TokenAst.dummy(TokenType.TkUnderscore))] * (number_elements_skipped - 1)

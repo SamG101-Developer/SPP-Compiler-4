@@ -59,7 +59,7 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
 
         # Check the RHS is the same type as the class type.
         value_type = value.infer_type(scope_handler, **kwargs)
-        if not InferredType(convention=ConventionMovAst, type=self.class_type).symbolic_eq(value_type, scope_handler.current_scope):
+        if not value_type.symbolic_eq(InferredType(convention=ConventionMovAst, type=self.class_type), scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
 
         nested_destructures = []
@@ -67,13 +67,15 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
             # Don't allow the binding unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
             if isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and current_local_variable.binding:
                 raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable)
+            elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and not attributes:
+                raise SemanticErrors.SKIPPING_ARGUMENTS_IN_STATELESS_TYPE(current_local_variable)
             elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
                 continue
 
             # Check the given variable exists as an attribute on the type: "let p = Point(x, ..)" requires "x" to be an
             # attribute of "Point".
             if not attributes.map(lambda a: a.identifier).contains(current_local_variable.identifier):
-                raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).value, "attribute")
+                raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).list(), "attribute")
 
             # Convert the destructure into a let statement, for "let Point(x, y, z) = point".
             if isinstance(current_local_variable, LocalVariableSingleIdentifierAst):
