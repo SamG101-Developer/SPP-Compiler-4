@@ -550,6 +550,16 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def SKIPPING_ARGUMENTS_IN_STATELESS_TYPE(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos, error_type=SemanticErrorType.ORDER_ERROR,
+            tag_message="Skipping arguments in a 0-attribute type.",
+            message="Skipping arguments is not allowed in a 0-attribute type.",
+            tip="Remove the skip argument.")
+        return exception
+
+    @staticmethod
     def TUPLE_SIZE_MISMATCH(lhs: Ast, rhs: Ast, lhs_c: int, rhs_c: int) -> SemanticError:
         exception = SemanticError()
         exception.add_info(
