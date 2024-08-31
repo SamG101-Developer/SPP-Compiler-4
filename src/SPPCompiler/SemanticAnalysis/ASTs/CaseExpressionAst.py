@@ -122,7 +122,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         if self.branches and self.branches[0].body.members:
             return self.branches[0].body.members[-1].infer_type(scope_handler, **kwargs)
 
-        # If there are no statements then every PatternBlockAst is returning the `Void` type.
+        # If there are no statements, then every PatternBlockAst is returning the `Void` type.
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void())
 
 
