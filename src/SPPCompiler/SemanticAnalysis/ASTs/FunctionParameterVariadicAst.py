@@ -61,8 +61,10 @@ class FunctionParameterVariadicAst(Ast, SemanticAnalyser):
             ast_initialized=self)
 
     def identifier_for_param(self) -> "IdentifierAst":
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
-        return IdentifierAst(self.pos, "variadic parameter")
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, LocalVariableSingleIdentifierAst
+        match self.variable:
+            case LocalVariableSingleIdentifierAst(): return self.variable.identifier
+            case _: return IdentifierAst(self.pos, "UNMATCHABLE")
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.
