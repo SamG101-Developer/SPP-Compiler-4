@@ -75,7 +75,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
         # Check all the arguments are attributes of the class.
         if invalid_arguments := argument_identifiers.set_subtract(attribute_identifiers):
-            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers.map(lambda i: i.value).value, "attribute")
+            raise SemanticErrors.UNKNOWN_IDENTIFIER(invalid_arguments[0], attribute_identifiers.map(lambda i: i.value).list(), "attribute")
 
         # Check all the attributes have been assigned a value.
         if not def_argument and (missing_arguments := attribute_identifiers.set_subtract(argument_identifiers)):
