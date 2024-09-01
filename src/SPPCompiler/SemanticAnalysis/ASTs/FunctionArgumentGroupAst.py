@@ -81,9 +81,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
         from SPPCompiler.SemanticAnalysis.ASTs import CoroutinePrototypeAst
 
-        # Note that the memory rules here are also implemented in AstUtils.ensure_memory_integrity, but have to be split
-        # here because of the multiple conventions that can be used.
-
+        # Log the caller for pin errors.
         is_coroutine = isinstance(function_prototype_ast, CoroutinePrototypeAst)
         is_coroutine_or_async = is_coroutine or is_async
         function_pin_error_ast = is_async if is_async else function_prototype_ast
@@ -99,33 +97,28 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(argument.value)
             ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move_from_borrowed_context=False, check_pinned_move=False, mark_symbols=False)
 
-            # Enforce the Law of Exclusivity: check the conventions for the borrowed arguments, to ensure there are no
-            # overlapping borrows.
+            # Enforce the Law of Exclusivity: check the borrow conventions, to ensure there are no overlaps.
             match argument.convention:
                 case ConventionMovAst() if symbol:
-                    # mark symbols are moves / partially move, and check for moving from a borrowed context.
+                    # Mark symbols as moved / partially moved, and check for moving from a borrowed context.
                     ensure_memory_integrity(self, argument.value, argument, scope_handler, check_move=False, check_partial_move=False, check_pinned_move=True)
 
-                    # Cannot move an identifier already borrowed as a previous argument. For example, "a" cannot be
-                    # moved into a function call if "a" or "a.b" is borrowed as a previous argument.
+                    # Cannot move an identifier that overlaps with an existing borrow.
                     for borrow in borrows_ref | borrows_mut:
-                        if str(borrow).startswith(str(argument.value)):
+                        if str(borrow).startswith(str(argument.value)) or str(argument.value).startswith(str(borrow)):
                             how = "immutably" if borrow in borrows_ref else "mutably"
                             raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, f"{how} borrow", "move")
 
                 case ConventionMutAst() if symbol:
-                    # Cannot take a mutable borrow from an object that is already an immutable borrow. For example, if a
-                    # parameter is "f(&a)", then "a" cannot be used as "call_func(&mut a)".
+                    # Cannot take a mutable borrow from an immutable borrow.
                     if symbol.memory_info.is_borrow_ref:
                         raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(symbol.memory_info.ast_borrow, argument.value, "mutably borrow", "immutably borrow")
 
-                    # Can only take a mutable borrow from a variable that has been marked as mutable on declaration.
-                    # This requires something like "let mut a = 0".
+                    # Cannot take a mutable borrow from an immutable object.
                     if not (symbol.is_mutable or symbol.memory_info.is_borrow_mut):
                         raise SemanticErrors.MUTABLE_BORROW_FROM_IMMUTABLE_SOURCE(argument, symbol)
 
-                    # Ensure that no overlapping part of the variable is already borrowed either immutably or mutably.
-                    # This enforces the law of exclusivity.
+                    # Cannot take a mutable borrow that overlaps with other borrows in the function call.
                     for borrow in borrows_ref | borrows_mut:
                         if str(borrow).startswith(str(argument.value)) or str(argument.value).startswith(str(borrow)):
                             how = "immutably" if borrow in borrows_ref else "mutably"
@@ -139,8 +132,7 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     borrows_mut.add(argument.value)
 
                 case ConventionRefAst() if symbol:
-                    # Ensure that no overlapping part of the variable is already mutably borrowed. This enforces the law
-                    # of exclusivity.
+                    # Cannot take an immutable borrow that overlaps with other mutable borrows in the function call.
                     for borrow in borrows_mut:
                         if str(borrow).startswith(str(argument.value)) or str(argument.value).startswith(str(borrow)):
                             raise SemanticErrors.MEMORY_OVERLAP_CONFLICT(borrow, argument.value, "mutably borrow", f"immutably borrow")

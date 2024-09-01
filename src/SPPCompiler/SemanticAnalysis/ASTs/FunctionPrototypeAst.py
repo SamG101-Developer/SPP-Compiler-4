@@ -106,10 +106,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
             mock_cls = f"cls MOCK_{self.identifier.value} {{}}"
             mock_let = f"let {self.identifier.value} = MOCK_{self.identifier.value}()"
 
-            # Todo:
-            #  - Consider parsing as a global constant?
-            #  - Could have issues with pinning though, unless the Copy type is superimposed too.
-
             # Parse the mock class and let statement code to generate the respective ASTs.
             mock_cls_ast = Parser(Lexer(mock_cls).lex(), "").parse_class_prototype().parse_once()
             mock_let_ast = Parser(Lexer(mock_let).lex(), "").parse_let_statement_initialized().parse_once()
