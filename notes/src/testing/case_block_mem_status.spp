@@ -7,6 +7,11 @@ cls Point {
     z: std::BigInt
 }
 
+cls Joint {
+    a: std::BigInt
+    b: std::BigInt
+}
+
 
 cls DirVec {
     point: Point
@@ -26,7 +31,7 @@ fun test_cases(y: std::U32 | std::Str) -> std::Void {
 
     let d = DirVec(point=Point(x=1, y=2, z=3), dir=4)
     case d then
-        is DirVec(point=Point(x=1, y=2, z=3), dir=4) { "1" }
+        is DirVec(point=Point(x=1, y=2, z=3), dir=4) and false { "1" }
         is DirVec(point=Point(x=1, y=2, z=3), ..) { "2" }
 
     let t = (1, 2, 3, 4)

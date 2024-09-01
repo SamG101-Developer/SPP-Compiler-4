@@ -7,16 +7,27 @@ cls PinTest {
 }
 
 
+cls BinTest {
+    c: std::BigInt
+    d: std::BigInt
+}
+
+
 fun test_pinning_async(string: &PinTest) -> std::Void { }
 
-cor test_pinning_coro(string: &PinTest) -> std::GenRef[std::BigInt] { }
+cor test_pinning_coro(string: &PinTest) -> std::GenMut[std::BigInt] {
+    let mut x = 1
+    gen &mut x
+}
 
 
 fun test_pinning() -> PinTest {
+    # let PinTest(a, b) = BinTest(c=1, d=2)
+
     let pin_test = PinTest(a=1, b=2)
     pin pin_test
 
-    let future = async test_pinning_async(&pin_test)
+    # let future = async test_pinning_async(&pin_test)
 
     rel pin_test
     ret pin_test

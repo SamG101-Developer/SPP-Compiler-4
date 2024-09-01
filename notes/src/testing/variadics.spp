@@ -1,0 +1,14 @@
+mod testing::variadics
+
+
+fun variadic_function_test[T](a: std::Bool, ..b: T) -> T { }
+
+fun variadic_function_test_2(..c: std::BigInt) -> std::Void { }
+
+
+fun call_variadic_function() -> std::Void {
+    let mut x = variadic_function_test(true, 1, 2, 3)
+    let mut y = variadic_function_test(true, "hello", "world")
+
+    variadic_function_test_2(1, 2, 3, 4)
+}
