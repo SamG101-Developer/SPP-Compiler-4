@@ -157,6 +157,9 @@ class SymbolTable[SymbolType]:
     def set(self, name: IdentifierAst | TypeAst, symbol: SymbolType) -> None:
         self._internal_table[name] = symbol
 
+    def has(self, name: IdentifierAst | TypeAst) -> bool:
+        return self.get(name) is not None
+
     def all(self) -> List[SymbolType]:
         return [x for x in self._internal_table.values()]
 
