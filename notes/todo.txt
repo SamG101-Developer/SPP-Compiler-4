@@ -2,7 +2,6 @@ NOW
 
 Superimposition:
 -- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
--- Disallow multiple sup-scopes with overlapping attributes.
 
 Pins:
 -- Can unpin a value being borrowed, but the coroutine or future must be invalidated.
@@ -33,6 +32,7 @@ Other:
 -- Double analyse `loop` body, avoiding messing up `exit` loop counting.
 -- Expand `gen with` to `loop` and `gen`.
 -- Tuples as case conditions -> resetting symbols.
+-- "??" and "is" binary expressions.
 
 Re-add:
 -- Conflicting function definitions

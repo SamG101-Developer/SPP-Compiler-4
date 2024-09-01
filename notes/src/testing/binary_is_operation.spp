@@ -1,0 +1,10 @@
+mod testing::binary_is_operation
+
+
+cls BinA { }
+cls BinB { }
+
+
+fun test_bin_is_op(a: BinA | BinB) -> std::Void {
+    # loop a is BinA() { }
+}

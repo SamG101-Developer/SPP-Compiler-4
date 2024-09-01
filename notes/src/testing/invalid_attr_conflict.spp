@@ -1,0 +1,15 @@
+mod testing::invalid_attr_conflict
+
+
+cls InvalidAttrConflict[T] {
+    a: T
+}
+
+
+cls DerivedInvalidAttrConflict {
+    a: std::Bool
+}
+
+
+sup InvalidAttrConflict[std::U32] on DerivedInvalidAttrConflict { }
+sup InvalidAttrConflict[std::U64] on DerivedInvalidAttrConflict { }

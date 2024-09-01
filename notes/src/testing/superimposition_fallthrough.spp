@@ -6,7 +6,7 @@ cls TestClass[T] {
 }
 
 cls OtherBase {
-    a: std::Bool
+    c: std::Bool
 }
 
 sup [T] TestClass[T] {
@@ -31,7 +31,7 @@ fun test_sup() -> std::Void {
     let mut y = test_class.test_method_b(2)
     x = 123
 
-    let o = OtherBase(a=true)
+    let o = OtherBase(c=true)
 
     let sub_class_object = TestSubClass(b=100, sup=(o, test_class))
 }
