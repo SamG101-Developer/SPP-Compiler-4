@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block, check_for_conflicting_attributes
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -78,6 +78,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
             self.super_class.do_semantic_analysis(scope_handler)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+
+        # Check there are no same-depth conflicting attributes.
+        check_for_conflicting_attributes(cls_scope, self.super_class, self, scope_handler)
 
         # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))

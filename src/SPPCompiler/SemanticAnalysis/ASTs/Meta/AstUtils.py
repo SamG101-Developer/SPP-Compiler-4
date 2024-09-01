@@ -8,7 +8,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -255,6 +255,36 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
                     sup_scopes.append((sup_scope, ast, generics))
 
     return Seq(sup_scopes)
+
+
+def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", super_class_ast: "SupInheritancePrototypeAst", scope_handler: ScopeHandler) -> None:
+    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+
+    # Get the attributes from the superclass.
+    new_super_class_symbol = scope_handler.current_scope.get_symbol(super_class.without_generics())
+    new_super_class_attributes = Seq(new_super_class_symbol.associated_scope.all_symbols(exclusive=True)).filter_to_type(VariableSymbol)
+
+    # Load the "depths" of the attributes from the superclass (checking if they exist on the type already).
+    for new_super_class_attribute in new_super_class_attributes:
+        depths = {}
+        for sup_scope, _ in [(type_scope, None), *type_scope.sup_scopes]:
+
+            if sup_scope._symbol_table.has(new_super_class_attribute.name):
+                depth = type_scope.depth_to(sup_scope)
+                new_symbol = sup_scope._symbol_table.get(new_super_class_attribute.name)
+
+                if depth not in depths.keys():
+                    depths[depth] = [(sup_scope, new_symbol)]
+                else:
+                    depths[depth].append((sup_scope, new_symbol))
+
+        # If a non-overridden attribute is found on multiple classes at the same depth from the current class, raise an
+        # error.
+        smallest_depth = min(depths.keys())
+        if len(depths[smallest_depth]) > 1:
+            old_scope, old_symbol = depths[smallest_depth][0]
+            new_scope, new_symbol = depths[smallest_depth][1]
+            raise SemanticErrors.CONFLICTING_ATTRIBUTES(old_symbol, new_symbol, old_scope, new_scope)
 
 
 def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:

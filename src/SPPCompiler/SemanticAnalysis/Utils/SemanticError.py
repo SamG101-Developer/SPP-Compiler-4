@@ -707,6 +707,20 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def CONFLICTING_ATTRIBUTES(old_symbol: VariableSymbol, new_symbol: VariableSymbol, old_type: TypeAst, new_type: TypeAst) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=old_symbol.name.pos,
+            tag_message=f"1st attribute '{old_symbol.name}' found here for '{old_type}'.")
+        exception.add_error(
+            pos=new_symbol.name.pos,
+            error_type=SemanticErrorType.NAME_ERROR,
+            tag_message=f"Conflicting attribute '{new_symbol.name}' found here for '{new_type}'.",
+            message="Conflicting attribute names.",
+            tip="Ensure that all attributes have unique names.")
+        return exception
+
+    @staticmethod
     def UNPACKING_NON_TUPLE_ARGUMENT(ast: Ast, ty: InferredType) -> SemanticError:
         exception = SemanticError()
         exception.add_error(
