@@ -730,3 +730,16 @@ class SemanticErrors:
             msg="Variadic arguments must have the same type.",
             tip="Ensure all variadic arguments have the same type.")
         return exception
+
+    @staticmethod
+    def SUPERIMPOSITION_ONTO_GENERIC(identifier: Ast, generic: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=generic.pos,
+            tag=f"Generic type '{generic}' defined here.")
+        exception.add_error(
+            pos=identifier.pos,
+            tag=f"Superimposition found here.",
+            msg="Cannot superimpose with a generic type.",
+            tip="Remove the superimposition, or superimpose a concrete type.")
+        return exception

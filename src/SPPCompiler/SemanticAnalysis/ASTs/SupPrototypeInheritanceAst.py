@@ -70,12 +70,20 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
 
+        # Can't superimpose over a generic type.
+        cls_symbol = scope_handler.current_scope.get_symbol(self.identifier.without_generics())
+        if cls_symbol.is_generic:
+            raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.identifier.without_generics(), cls_symbol.name)
+
         # Add the superimposition scope to the class scope.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
+        cls_scope = cls_symbol.associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Skip internal functions scopes.
         if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
+            if (super_class_symbol := scope_handler.current_scope.get_symbol(self.super_class)) and super_class_symbol.is_generic:
+                raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.super_class, super_class_symbol.name)
+
             self.super_class.do_semantic_analysis(scope_handler)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
 
