@@ -1,0 +1,6 @@
+mod testing::sup_gen_testing
+
+
+fun test_sup_gen() -> std::Void {
+    let x = 1
+}

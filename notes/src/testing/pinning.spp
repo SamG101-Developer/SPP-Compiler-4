@@ -27,7 +27,8 @@ fun test_pinning() -> PinTest {
     let pin_test = PinTest(a=1, b=2)
     pin pin_test
 
-    # let future = async test_pinning_async(&pin_test)
+    let mut future = async test_pinning_async(&pin_test)
+    let x = future
 
     rel pin_test
     ret pin_test
