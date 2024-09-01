@@ -47,10 +47,10 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
         # "x.y.z = 1", the symbol got is the "x" symbol.
         for lhs in self.lhs:
             lhs.do_semantic_analysis(scope_handler, **kwargs)
-            symbol = scope_handler.current_scope.get_outermost_variable_symbol(lhs)
-            lhs_symbols.append(symbol)
-            if not symbol:
-                raise SemanticErrors.INVALID_LHS_EXPR(lhs)
+            lhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(lhs)
+            lhs_symbols.append(lhs_symbol)
+            if not lhs_symbol:
+                raise SemanticErrors.INVALID_ASSIGNMENT_LHS_EXPR(lhs)
 
         # Analyse the rhs of the assignment.
         self.rhs.do_semantic_analysis(scope_handler, **kwargs)
@@ -77,6 +77,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
             if len(self.lhs) == 1:
                 lhs_type = self.lhs[0].infer_type(scope_handler, **kwargs)
                 rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
+
                 if not lhs_type.symbolic_eq(rhs_type, scope_handler.current_scope):
                     raise SemanticErrors.TYPE_MISMATCH(self.rhs, lhs_type, rhs_type, lhs_symbol)
             else:

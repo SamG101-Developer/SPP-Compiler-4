@@ -2,12 +2,19 @@ mod testing::invalid_attr_conflict
 
 
 cls InvalidAttrConflict[T] {
-    a: T
+    biscuit: T
+}
+
+
+sup [T] InvalidAttrConflict[T] {
+    fun test_method(&mut self, var: T) -> std::Void {
+        self.biscuit = var
+    }
 }
 
 
 cls DerivedInvalidAttrConflict {
-    a: std::Bool
+    biscuit: std::Bool
 }
 
 

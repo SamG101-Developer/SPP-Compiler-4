@@ -79,7 +79,6 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                         raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
 
-
                 # Namespaced member access.
                 if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
                     # Collect the namespace parts. (Keep collecting until the last part is found).

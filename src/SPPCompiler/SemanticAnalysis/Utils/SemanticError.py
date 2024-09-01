@@ -49,7 +49,7 @@ class SemanticError(Exception):
 
 class SemanticErrors:
     @staticmethod
-    def INVALID_LHS_EXPR(lhs: Ast) -> SemanticError:
+    def INVALID_ASSIGNMENT_LHS_EXPR(lhs: Ast) -> SemanticError:
         exception = SemanticError()
         exception.add_error(
             pos=lhs.pos, error_type=SemanticErrorType.VALUE_ERROR,
@@ -73,7 +73,8 @@ class SemanticErrors:
 
     @staticmethod
     def TYPE_MISMATCH(ast: Ast, lhs_type: InferredType, rhs_type: InferredType, lhs_symbol: Optional[VariableSymbol] = None, extra: str = "") -> SemanticError:
-        # TODO: accept the lhs_type_symbol, so the name of the class + namespace can be used (bypass aliases)
+        # Todo: Accept the lhs_type_symbol, so the name of the class + namespace can be used (bypass aliases)
+        # Todo: Change parameters to LHS, RHS, LHS-Type, RHS-Type, Extra
         exception = SemanticError()
         if lhs_symbol: exception.add_info(
             pos=(lhs_symbol.memory_info.ast_initialized or lhs_symbol.memory_info.ast_consumed).pos,
