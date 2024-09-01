@@ -206,9 +206,9 @@ def convert_function_arguments_to_named(
         if parameter_identifiers.length == 1 and is_variadic:
 
             # Value is a tuple of the remaining arguments.
-            final_arguments = TupleLiteralAst(argument.pos, TokenAst.dummy(TokenType.TkParenL), arguments[j:].map(lambda a: a.value).value, TokenAst.dummy(TokenType.TkParenR))
+            final_arguments = TupleLiteralAst(argument.pos, TokenAst.dummy(TokenType.TkParenL), arguments[j:].map(lambda a: a.value).list(), TokenAst.dummy(TokenType.TkParenR))
             parameter_identifier = parameter_identifiers[0]  # todo: make .pop(0)?
-            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, None, final_arguments)
+            new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, final_arguments)
             arguments = arguments[:j]
             arguments.append(new_argument)
             break
@@ -402,6 +402,11 @@ class InferredType:
 
     def symbolic_eq(self, other: InferredType, scope: Scope, that_scope: Optional[Scope] = None) -> bool:
         return self.convention == other.convention and self.type.symbolic_eq(other.type, scope, that_scope)
+
+    @staticmethod
+    def from_type_ast(type_ast: "TypeAst") -> "InferredType":
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        return InferredType(convention=ConventionMovAst, type=type_ast)
 
     def __str__(self):
         return f"{self.convention.dummy()}{self.type}"
