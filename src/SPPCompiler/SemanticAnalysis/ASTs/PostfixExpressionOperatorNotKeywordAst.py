@@ -35,7 +35,7 @@ class PostfixExpressionOperatorNotKeywordAst(Ast, SemanticAnalyser, TypeInfer):
         # Ensure the LHS is a boolean type.
         lhs_type = lhs.infer_type(scope_handler, **kwargs).type
         if not lhs_type.symbolic_eq(CommonTypes.bool(), scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(lhs, lhs_type, CommonTypes.bool())
+            raise SemanticErrors.CONDITION_NON_BOOLEAN(self.not_token, lhs, lhs_type, "not")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst

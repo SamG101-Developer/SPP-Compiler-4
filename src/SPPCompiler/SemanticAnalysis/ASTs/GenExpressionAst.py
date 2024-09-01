@@ -47,7 +47,9 @@ class GenExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, FunctionArgumentNormalAst
+        from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Ensure the yield expression is in a coroutine.
         if "is-subroutine" in kwargs:
@@ -72,7 +74,12 @@ class GenExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             type=coroutine_ret_type.types[-1].generic_arguments["Yield"].type)
 
         if not given_yield_type.symbolic_eq(expected_yield_type, scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(self, expected_yield_type, given_yield_type)
+            raise SemanticErrors.TYPE_MISMATCH_2(None, self.expression, expected_yield_type, given_yield_type, scope_handler)
+
+        # Apply the FunctionArgumentGroup memory checks to the yielded values.
+        mock_function_argument_group = Parser(Lexer("()").lex(), "").parse_function_call_arguments().parse_once()
+        mock_function_argument_group.arguments = [FunctionArgumentNormalAst(self.expression.pos, self.convention, None, self.expression)]
+        mock_function_argument_group.do_semantic_analysis(scope_handler, **kwargs)
 
         self._coro_type = coroutine_ret_type
 

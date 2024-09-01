@@ -29,13 +29,14 @@ class LoopExpressionConditionBooleanAst(Ast, SemanticAnalyser):
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
 
         # Analyse the expression.
+        loop_owner = kwargs.pop("loop-owner")
         self.expression.do_semantic_analysis(scope_handler, **kwargs)
 
         # Ensure the expression evaluates to a Bool type.
         condition_type = self.expression.infer_type(scope_handler, **kwargs)
-        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
+        target_type = InferredType(convention=ConventionMovAst, type=CommonTypes.bool(self.expression.pos))
         if not condition_type.symbolic_eq(target_type, scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(self.expression, target_type, condition_type)
+            raise SemanticErrors.CONDITION_NON_BOOLEAN(loop_owner, self.expression, condition_type, "loop")
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst

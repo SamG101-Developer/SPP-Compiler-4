@@ -79,7 +79,7 @@ class AssignmentStatementAst(Ast, SemanticAnalyser, TypeInfer):
                 rhs_type = self.rhs.infer_type(scope_handler, **kwargs)
 
                 if not lhs_type.symbolic_eq(rhs_type, scope_handler.current_scope):
-                    raise SemanticErrors.TYPE_MISMATCH(self.rhs, lhs_type, rhs_type, lhs_symbol)
+                    raise SemanticErrors.TYPE_MISMATCH_2(self.lhs[0], self.rhs, lhs_type, rhs_type, scope_handler)
             else:
                 raise NotImplementedError("Multiple assignment not yet implemented.")
 

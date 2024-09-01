@@ -59,8 +59,8 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
 
         # Check the RHS is the same type as the class type.
         value_type = value.infer_type(scope_handler, **kwargs)
-        if not value_type.symbolic_eq(InferredType(convention=ConventionMovAst, type=self.class_type), scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH(self, value_type, self.class_type)
+        if not value_type.symbolic_eq(InferredType.from_type_ast(self.class_type), scope_handler.current_scope):
+            raise SemanticErrors.TYPE_MISMATCH_2(None, value, InferredType.from_type_ast(self.class_type), value_type, scope_handler)
 
         nested_destructures = []
         for current_local_variable in Seq(self.items):
@@ -77,7 +77,7 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
             if not attributes.map(lambda a: a.identifier).contains(current_local_variable.identifier):
                 raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).list(), "attribute")
 
-            # Convert the destructure into a let statement, for "let Point(x, y, z) = point".
+            # Convert the destructure into a let statement, for example "let Point(x, y, z) = point".
             if isinstance(current_local_variable, LocalVariableSingleIdentifierAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
@@ -98,7 +98,7 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
 
                 nested_destructures.append(ast_2)
 
-            # Convert the destructure into a let statement, for "let Vec(point=Point(x, y, z)) = vec".
+            # Convert the destructure into a let statement, for example "let Vec(point=Point(x, y, z)) = vec".
             elif isinstance(current_local_variable, LocalVariableAttributeBindingAst):
                 ast_0 = PostfixExpressionOperatorMemberAccessAst(
                     pos=self.pos,
@@ -121,7 +121,7 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
                     value_type = current_local_variable.value.infer_type(scope_handler, **kwargs)
                     target_type = ast_1.infer_type(scope_handler, **kwargs)
                     if not value_type.symbolic_eq(target_type, scope_handler.current_scope):
-                        raise SemanticErrors.TYPE_MISMATCH(current_local_variable, target_type, value_type)
+                        raise SemanticErrors.TYPE_MISMATCH_2(None, current_local_variable.value, target_type, value_type, scope_handler)
 
                 nested_destructures.append(ast_2)
 

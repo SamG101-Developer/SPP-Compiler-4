@@ -88,6 +88,11 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
                     binary_ast = BinaryExpressionAst(branch.pos, self.condition, branch.comp_operator, pattern.expression)
                     binary_ast.do_semantic_analysis(scope_handler, **kwargs)
 
+                    target_type = InferredType.from_type_ast(CommonTypes.bool())
+                    return_type = binary_ast.infer_type(scope_handler, **kwargs)
+                    if not return_type.symbolic_eq(target_type, scope_handler.current_scope):
+                        raise SemanticErrors.CONDITION_NON_BOOLEAN(self, pattern, return_type, "case")
+
         # Mark the emory status of inconsistent symbols as "inconsistent" to prevent further use.
         for symbol_name, changes in symbol_memory_status_changes.items():
             if not all(c[0] == changes[0][0] for c in changes):
