@@ -7,6 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
@@ -107,7 +108,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             # A try-except block is needed, to catch overload errors and allow the movement into the next overload.
             try:
                 # Get the parameter (+ identifiers) the arguments (+ named identifiers) and the generic arguments.
-                func_overload = func_overload.body.members[-1]
+                original_func_overload = func_overload = func_overload.body.members[-1]
                 parameters = Seq(func_overload.parameters.parameters.copy())
                 parameter_identifiers = Seq(func_overload.parameters.parameters).map(lambda p: p.identifier_for_param())
                 parameter_identifiers_required = Seq(func_overload.parameters.get_req()).map(lambda p: p.identifier_for_param())
@@ -141,15 +142,17 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     raise SemanticErrors.MISSING_ARGUMENT(self, missing_parameter_identifiers[0], "function call", "parameter")
 
                 # Infer generic arguments, and inherit from the lhs type.
-                generic_arguments.arguments = infer_generics_types(
+                generic_arguments = infer_generics_types(
                     ast=self,
                     generic_parameters=Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
                     explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     infer_from=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     map_to=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
-                    scope_handler=scope_handler)
+                    scope_handler=scope_handler).list()
 
-                if generic_arguments.arguments:
+                # New overload generation for generic functions or variadic functions.
+                if generic_arguments or is_function_variadic:
+
                     # Temporarily remove the body of the overload before copying it (faster).
                     func_body = func_overload.body
                     func_overload.body = None
@@ -162,13 +165,19 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     func_overload.body = func_body
 
                     # Substitute the generics types in the parameter and return type declarations.
-                    for generic_argument in generic_arguments.arguments:
+                    for generic_argument in generic_arguments:
                         for parameter in specialized_func_overload.parameters.parameters:
                             parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
                             parameter.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
                         specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
                         specialized_func_overload.return_type.do_semantic_analysis(scope_handler, **kwargs)
 
+                    # If the variadic parameter is non-generic, substitute it with the correct tuple.
+                    if is_function_variadic and not func_scope.get_symbol(parameters[-1].type_declaration).is_generic:
+                        variadic_argument_tuple_type = CommonTypes.tuple([parameters[-1].type_declaration for _ in range(len(arguments[-1].value.items))])
+                        specialized_func_overload.parameters.parameters[-1].type_declaration = variadic_argument_tuple_type
+
+                    # Load the new parameters and function scope for type-checking post-generic substitution.
                     parameters = Seq(specialized_func_overload.parameters.parameters)
                     func_overload = specialized_func_overload
 
@@ -180,13 +189,12 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     parameter_type = InferredType(convention=type(parameter.convention), type=parameter.type_declaration)
 
                     # Special case for the variadic parameter: check all the elements in the tuple match.
-                    if i == parameters.length - 1 and is_function_variadic:
-                        for variadic_argument in argument.value.items:
-                            tuple_element_type = variadic_argument.infer_type(scope_handler, **kwargs)
-                            if not tuple_element_type.symbolic_eq(parameter_type, scope_handler.current_scope):
-                                raise SemanticErrors.TYPE_MISMATCH(variadic_argument, parameter_type, tuple_element_type, argument_symbol, extra=f" for '{parameter.identifier_for_param().value}'")
+                    if isinstance(parameter, FunctionParameterVariadicAst):
+                        unique_generics = Seq(parameter.type_declaration.types[-1].generic_arguments.arguments).map(lambda a: a.type).unique_items()
+                        if unique_generics.length > 1:
+                            raise SemanticErrors.VARIADIC_ARGUMENT_MULTIPLE_TYPES(parameter, unique_generics[0], unique_generics[1])
 
-                    elif isinstance(parameter, FunctionParameterSelfAst):
+                    if isinstance(parameter, FunctionParameterSelfAst):
                         argument_type.convention = parameter_type.convention
                         argument.convention = parameter.convention
 
@@ -200,7 +208,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             except SemanticError as e:
                 # Save the error to the list of overload errors.
-                func_overload_errors.append((func_overload, e))
+                func_overload_errors.append((original_func_overload, e))
 
                 # If a specialized scope was created for this overload, remove it.
                 if specialized_scope_info["created"]:
@@ -225,11 +233,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             # Merge all the overload errors.
             signatures = f"{called_signature}\n\nAvailable signatures:\n"
             for func_overload, func_overload_error in func_overload_errors:
-                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+                error_string = f"{display_name}{func_overload.print_signature(AstPrinter())}"
                 signatures += f"  - {error_string}\n"
 
             for func_overload, func_overload_error in func_overload_errors:
-                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+                error_string = f"{display_name}{func_overload.print_signature(AstPrinter())}"
                 error_string += func_overload_error.additional_info[-1][1].replace("\n", "\n\t")
                 signatures += f"\n{error_string}\n"
             raise SemanticErrors.NO_VALID_OVERLOADS(display_ast, signatures)
