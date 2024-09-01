@@ -59,7 +59,7 @@ class LoopControlFlowStatementAst(Ast, SemanticAnalyser):
             ensure_memory_integrity(self, self.skip_or_expr, self.exit_tokens[-1], scope_handler)
 
             match self.skip_or_expr:
-                case None: this_exit_type = InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.exit_tokens[-1].pos))
+                case None: this_exit_type = InferredType.from_type_ast(CommonTypes.void(self.exit_tokens[-1].pos))
                 case _: this_exit_type = self.skip_or_expr.infer_type(scope_handler, **kwargs)
 
             n = number_of_loops - number_of_controls + 1

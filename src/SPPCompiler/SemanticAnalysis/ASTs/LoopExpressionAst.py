@@ -43,7 +43,7 @@ class LoopExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse the condition
-        self.condition.do_semantic_analysis(scope_handler, **kwargs)
+        self.condition.do_semantic_analysis(scope_handler, **(kwargs | {"loop-owner": self}))
 
         kwargs["loop-count"] = kwargs.get("loop-count", 0) + 1
         kwargs["loop-types"] = kwargs.get("loop-types", {})
