@@ -150,6 +150,8 @@ class BinaryExpressionAstUtils:
     def convert_to_function(ast: BinaryExpressionAst) -> "PostfixExpressionAst":
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        
+        # Todo: Handle "??" and "is" operators => no function mapping.
 
         # Transform the binary expression to a function call.
         func_name = BIN_OP_FUNCS[ast.op.token.token_type]

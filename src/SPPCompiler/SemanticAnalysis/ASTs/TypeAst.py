@@ -125,7 +125,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     new_scope._children_scopes = type_scope._children_scopes
                     new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)  # copy.copy?
 
-                    # Create the new symbol.
+                    # Create the new symbol; deepcopy the class AST for attribute substitution.
                     new_cls_ast = copy.deepcopy(type_symbol.type)
 
                     # Add the new "Self" type, and add the new scope to the parent scope.

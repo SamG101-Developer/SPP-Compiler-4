@@ -74,7 +74,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
         # Register the "Self" type and analyse the identifier.
         self_symbol and scope_handler.current_scope.add_symbol(TypeSymbol(
-            name=CommonTypes.self(),
+            name=CommonTypes.self().types[-1],
             type=self_symbol.type,
             associated_scope=self_symbol.associated_scope))
 

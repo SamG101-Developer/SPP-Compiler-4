@@ -35,7 +35,6 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
     def do_semantic_analysis(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, IdentifierAst, PostfixExpressionAst, TypeAst
 
-        # Handle static member access from types
         match lhs:
             case TypeAst():
                 # Ensure static member access is being used on the type.
@@ -68,8 +67,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     lhs_symbol = scope_handler.current_scope.get_symbol(lhs_type)
                     lhs_type_scope = lhs_symbol.associated_scope
 
-                    # Check if the left side is a generic type - can not access members off these.
-                    # Todo: Allow with constraints / intersection types
+                    # Check if the left side is a generic type; cannot access members off these. Todo: Constraints
                     if not lhs_type_scope:
                         raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)
 
@@ -80,6 +78,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     # Check if the member being accessed exists on the left side type.
                     if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                         raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
+
 
                 # Namespaced member access.
                 if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
