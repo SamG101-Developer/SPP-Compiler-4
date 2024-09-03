@@ -167,7 +167,7 @@ class BinaryExpressionAstUtils:
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import PatternBlockAst, CaseExpressionAst, TokenAst, InnerScopeAst
         
-        # Todo: Handle "??" and "is" operators => no function mapping.
+        # Todo: Handle the "??" operator. Required residual type aliasing definition.
 
         # Transform the binary expression to a function call.
         if ast.op.token.token_type in BIN_OP_FUNCS.keys():

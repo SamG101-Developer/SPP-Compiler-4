@@ -85,7 +85,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             # Combine the condition with the non-"is" branch patterns to ensure functional compatibility.
             if branch.comp_operator.token.token_type != TokenType.KwIs:
                 for pattern in branch.patterns:
-                    binary_ast = BinaryExpressionAst(branch.pos, self.condition, branch.comp_operator, pattern.expression)
+                    binary_ast = BinaryExpressionAst(self.condition.pos, self.condition, branch.comp_operator, pattern.expression)
                     binary_ast.do_semantic_analysis(scope_handler, **kwargs)
 
                     target_type = InferredType.from_type_ast(CommonTypes.bool())
