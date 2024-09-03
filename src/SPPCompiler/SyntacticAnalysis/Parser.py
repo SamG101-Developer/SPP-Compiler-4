@@ -521,7 +521,7 @@ class Parser:
         p1 = self.parse_token(TokenType.KwCase).parse_once()
         p2 = self.parse_expression().parse_once()
         p3 = self.parse_token(TokenType.KwThen).parse_optional()
-        p4 = self.parse_pattern_statement().parse_one_or_more(TokenType.TkNewLine)
+        p4 = self.parse_pattern_statement().parse_one_or_more()
         return CaseExpressionAst(c1, p1, p2, p3, p4)
 
     @parser_rule
@@ -843,15 +843,16 @@ class Parser:
     def parse_pattern_statement(self) -> PatternBlockAst:
         p1 = self.parse_pattern_statement_flavour_destructuring().for_alt()
         p2 = self.parse_pattern_statement_flavour_non_destructuring().for_alt()
-        p3 = self.parse_pattern_statement_flavour_else().for_alt()
-        p4 = (p1 | p2 | p3).parse_once()
-        return p4
+        p3 = self.parse_pattern_statement_flavour_else_case().for_alt()
+        p4 = self.parse_pattern_statement_flavour_else().for_alt()
+        p5 = (p1 | p2 | p3 | p4).parse_once()
+        return p5
 
     @parser_rule
     def parse_pattern_statement_flavour_destructuring(self) -> PatternBlockAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwIs).parse_once()
-        p2 = self.parse_pattern_variant_destructure().parse_one_or_more(TokenType.TkComma)
+        p2 = self.parse_pattern_group_destructure().parse_one_or_more(TokenType.TkComma)
         p3 = self.parse_pattern_guard().parse_optional()
         p4 = self.parse_inner_scope(self.parse_statement).parse_once()
         return PatternBlockAst(c1, p1, p2, p3, p4)
@@ -872,7 +873,13 @@ class Parser:
         return PatternBlockAst(c1, None, [p1], None, p2)
 
     @parser_rule
-    def parse_pattern_variant_destructure(self) -> PatternVariantDestructureAst:
+    def parse_pattern_statement_flavour_else_case(self) -> PatternBlockAst:
+        c1 = self.current_pos()
+        p1 = self.parse_pattern_variant_else_case().parse_once()
+        return PatternBlockAst(c1, None, [p1], None, None)
+
+    @parser_rule
+    def parse_pattern_group_destructure(self) -> PatternGroupDestructureAst:
         p1 = self.parse_pattern_variant_tuple_destructure().for_alt()
         p2 = self.parse_pattern_variant_object_destructure().for_alt()
         return (p1 | p2).parse_once()
@@ -942,6 +949,13 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwElse).parse_once()
         return PatternVariantElseAst(c1, p1)
+
+    @parser_rule
+    def parse_pattern_variant_else_case(self) -> PatternVariantElseCaseAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.KwElse).parse_once()
+        p2 = self.parse_case_expression().parse_once()
+        return PatternVariantElseCaseAst(c1, p1, p2)
 
     @parser_rule
     def parse_pattern_variant_nested_for_object_destructure(self) -> PatternVariantNestedForObjectDestructureAst:
