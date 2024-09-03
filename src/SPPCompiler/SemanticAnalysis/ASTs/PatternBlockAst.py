@@ -28,9 +28,11 @@ class PatternBlockAst(Ast, SemanticAnalyser):
     body: "InnerScopeAst[StatementAst]"
 
     def __post_init__(self):
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst, InnerScopeAst
+
         # Add a "KwIs" for the "else" pattern, for semantic analysis.
-        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
         self.comp_operator = self.comp_operator or TokenAst.dummy(TokenType.KwIs)
+        self.body = self.body or InnerScopeAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
