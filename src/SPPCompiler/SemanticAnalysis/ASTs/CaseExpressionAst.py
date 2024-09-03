@@ -45,7 +45,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst, TypeAst, BinaryExpressionAst
 
         # Move into a new scope.
-        scope_handler.into_new_scope("<if-expression>")
+        scope_handler.into_new_scope("<case-block>")
 
         # Analyse the condition.
         self.condition.do_semantic_analysis(scope_handler, **kwargs)
