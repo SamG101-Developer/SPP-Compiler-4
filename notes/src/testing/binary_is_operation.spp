@@ -1,10 +1,20 @@
 mod testing::binary_is_operation
 
 
-cls BinA { }
-cls BinB { }
+cls BinA { c: std::Bool }
+cls BinB { d: std::Bool }
 
 
-fun test_bin_is_op(a: BinA | BinB) -> std::Void {
-    # loop a is BinA() { }
+fun test_bin_is_op(a: BinA | BinB, b: BinA | BinB) -> std::Void {
+    loop a is BinA(mut c) {
+        c = false
+    }
+
+    loop true {
+        exit
+    }
+
+    loop b is BinB(mut d) {
+        d = true
+    }
 }
