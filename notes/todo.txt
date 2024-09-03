@@ -7,7 +7,7 @@ Pins:
 
 Functions:
 -- Conflicting overloads don't work for generic classes?
--- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a". Do I want this?
+-- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
 -- Overriding a function doesn't remove the base overload from consideration.
     -- Move the function prototypes conflict checker to a function
     -- Use the conflict checker to eliminate base methods (only way to have a conflict is if the base method is still in consideration).
@@ -20,8 +20,7 @@ Types:
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 -- Too many generics or invalid name generics throw a Python error.
 
-Case blocks
--- Separate rule for `else case` for an `elif` like block (unrelated condition, related block).
+Case blocks:
 -- Union type destructure shouldn't allow for multiple types to be destructured if an attribute is used.
 
 Other:

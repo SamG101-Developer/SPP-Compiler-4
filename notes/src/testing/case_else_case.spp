@@ -1,0 +1,23 @@
+mod testing::case_else_case
+
+
+fun dummy_1() -> std::Bool { }
+fun dummy_2() -> std::Bool { }
+
+
+fun test_case_else_case() -> std::Void {
+    let x = 1
+
+    case x then == 1 {
+        let a = 1
+    }
+    else case dummy_1() then == true {
+        let b = 2
+    }
+    else case dummy_2() then == true {
+        let c = 3
+    }
+    else {
+        let d = 4
+    }
+}
