@@ -7,7 +7,7 @@ type PatternVariantAst = (
     PatternVariantObjectDestructureAst | PatternVariantElseAst | PatternVariantLiteralAst |
     PatternVariantTupleDestructureAst | PatternVariantSingleIdentifierAst)
 
-type PatternVariantDestructureAst = (
+type PatternGroupDestructureAst = (
     PatternVariantTupleDestructureAst | PatternVariantObjectDestructureAst)
 
 type PatternVariantNestedForObjectDestructureAst = (
@@ -22,5 +22,5 @@ type PatternVariantNestedForAttributeBindingAst = (
     PatternVariantLiteralAst)
 
 __all__ = [
-    "PatternVariantAst", "PatternVariantDestructureAst", "PatternVariantNestedForObjectDestructureAst",
+    "PatternVariantAst", "PatternGroupDestructureAst", "PatternVariantNestedForObjectDestructureAst",
     "PatternVariantNestedForTupleDestructureAst", "PatternVariantNestedForAttributeBindingAst"]
