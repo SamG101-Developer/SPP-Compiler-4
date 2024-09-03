@@ -7,6 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstOperators import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, ensure_memory_integrity
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
@@ -52,11 +53,12 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Compound assignment expressions must have a variable on the left-hand side.
-        if self.op.token.token_type in {TokenType.TkAddAssign, TokenType.TkSubAssign, TokenType.TkMulAssign, TokenType.TkDivAssign, TokenType.TkModAssign, TokenType.TkRemAssign, TokenType.TkExpAssign}:
+        if self.op.token.token_type.name.endswith("Assign"):
             lhs_symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.lhs)
             if not lhs_symbol:
                 raise SemanticErrors.INVALID_OPERAND_COMPOUND_ASSIGNMENT(self.op, self.lhs)
 
+        # Handle the left-fold operation.
         if isinstance(self.lhs, TokenAst):
             tuple_element_count = len(self.rhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
             ensure_memory_integrity(self, self.rhs, self.op, scope_handler, mark_symbols=False)
@@ -72,6 +74,7 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             for part in unfolded_parts[2:]:
                 self.lhs, self.rhs = part, BinaryExpressionAst(self.pos, self.lhs, self.op, self.rhs)
 
+        # Handle the right-fold operation.
         elif isinstance(self.rhs, TokenAst):
             tuple_element_count = len(self.lhs.infer_type(scope_handler, **kwargs).type.types[-1].generic_arguments.arguments)
             ensure_memory_integrity(self, self.lhs, self.op, scope_handler, mark_symbols=False)
@@ -93,9 +96,21 @@ class BinaryExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         ast = BinaryExpressionAstUtils.convert_all_to_function(ast)
         self._as_func = ast
         self._as_func.do_semantic_analysis(scope_handler, **kwargs)
+
+        # For the "is" operator, pull the generated symbols into this scope.
+        if self.op.token.token_type == TokenType.KwIs:
+            case_scope = scope_handler.current_scope.children[-1].children[0]
+            destructured_symbols = case_scope.all_symbols(exclusive=True)
+            for symbol in destructured_symbols:
+                scope_handler.current_scope.add_symbol(symbol)
+
         return self._as_func
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+
+        if self.op.token.token_type == TokenType.KwIs:
+            return InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
         return self._as_func.infer_type(scope_handler, **kwargs)
 
 
@@ -150,14 +165,22 @@ class BinaryExpressionAstUtils:
     def convert_to_function(ast: BinaryExpressionAst) -> "PostfixExpressionAst":
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
+        from SPPCompiler.SemanticAnalysis.ASTs import PatternBlockAst, CaseExpressionAst, TokenAst, InnerScopeAst
         
         # Todo: Handle "??" and "is" operators => no function mapping.
 
         # Transform the binary expression to a function call.
-        func_name = BIN_OP_FUNCS[ast.op.token.token_type]
-        code = f"{ast.lhs}.{func_name}({ast.rhs})"
-        mock_function_call = Parser(Lexer(code).lex(), "", pos_shift=ast.pos).parse_expression().parse_once()
-        return mock_function_call
+        if ast.op.token.token_type in BIN_OP_FUNCS.keys():
+            func_name = BIN_OP_FUNCS[ast.op.token.token_type]
+            code = f"{ast.lhs}.{func_name}({ast.rhs})"
+            mock_function_call = Parser(Lexer(code).lex(), "", pos_shift=ast.pos).parse_expression().parse_once()
+            return mock_function_call
+
+        # Convert the "is" expression into a case-pattern block.
+        if ast.op.token.token_type == TokenType.KwIs:
+            ast_0 = PatternBlockAst(ast.pos, ast.op, [ast.rhs], None, InnerScopeAst.default())
+            ast_1 = CaseExpressionAst(ast.pos, TokenAst.dummy(TokenType.KwCase), ast.lhs, TokenAst.dummy(TokenType.KwThen), [ast_0])
+            return ast_1
 
     @staticmethod
     def convert_all_to_function(ast: BinaryExpressionAst) -> "PostfixExpressionAst":
@@ -168,7 +191,6 @@ class BinaryExpressionAstUtils:
         ast.rhs = BinaryExpressionAstUtils.convert_all_to_function(ast.rhs)
         ast = BinaryExpressionAstUtils.convert_to_function(ast)
 
-        # print(ast)
         return ast
 
 
