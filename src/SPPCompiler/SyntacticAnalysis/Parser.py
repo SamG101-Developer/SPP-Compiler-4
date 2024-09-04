@@ -393,7 +393,7 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_type().parse_one_or_more(TokenType.TkComma)
         p2 = self.parse_token(TokenType.TkColon).parse_once()
-        p3 = self.parse_type().parse_one_or_more(TokenType.TkAdd)
+        p3 = self.parse_type().parse_once()
         return WhereConstraintsAst(c1, p1, p2, p3)
 
     # ===== ANNOTATIONS =====

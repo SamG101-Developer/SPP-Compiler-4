@@ -27,7 +27,15 @@ class Scope:
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+
         scope = self
+
+        # if isinstance(symbol, TypeSymbol) and self.has_symbol(symbol.name) and symbol.name.value != "Self":
+        #     if self.get_symbol(symbol.name).associated_scope != symbol.associated_scope:
+        #         old_symbol = self.get_symbol(symbol.name)
+        #         if not (old_symbol.is_generic and symbol.is_generic):
+        #             raise SemanticErrors.REDEFINED_TYPE(self.get_symbol(symbol.name).associated_scope.name, symbol.name)
 
         if isinstance(symbol.name, TypeAst):
             for part in symbol.name.namespace + symbol.name.types[:-1]:

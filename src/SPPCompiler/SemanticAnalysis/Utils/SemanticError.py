@@ -743,3 +743,16 @@ class SemanticErrors:
             msg="Cannot superimpose with a generic type.",
             tip="Remove the superimposition, or superimpose a concrete type.")
         return exception
+
+    @staticmethod
+    def REDEFINED_TYPE(old: Ast, new: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=old.pos,
+            tag=f"First definition of '{old}' found here.")
+        exception.add_error(
+            pos=new.pos,
+            tag=f"Redefined type '{new}' found here.",
+            msg="Type redefinition.",
+            tip="Ensure the type is only defined once.")
+        return exception
