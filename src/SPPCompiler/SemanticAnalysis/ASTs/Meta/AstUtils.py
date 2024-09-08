@@ -172,7 +172,7 @@ def convert_generic_arguments_to_named(
         else:
             generic_parameter_identifier = generic_parameter_identifiers.pop(0).types[-1].to_identifier()
             new_argument = GenericArgumentNamedAst(generic_argument.pos, generic_parameter_identifier, TokenAst.dummy(TokenType.TkAssign), generic_argument.type)
-            generic_arguments.replace(generic_argument, new_argument)
+            generic_arguments.replace(generic_argument, new_argument, 1)
 
     # Add default values for any remaining generic parameters.
     for generic_parameter in generic_parameters.filter_to_type(GenericParameterOptionalAst):
@@ -217,7 +217,7 @@ def convert_function_arguments_to_named(
         else:
             parameter_identifier = parameter_identifiers.pop(0)
             new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
-            arguments.replace(argument, new_argument)
+            arguments.replace(argument, new_argument, 1)
 
     return arguments
 
@@ -231,6 +231,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
 
     sup_scopes = []
     generics = []
+
     match type_scope.name:
 
         # Functions in a namespace / global namespace; there will be no inheritable generics.
@@ -306,7 +307,7 @@ def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: Scop
     return self_symbol
 
 
-def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototypeAst"]], generic_arguments: List["GenericArgmentAst"], scope_handler: ScopeHandler) -> List[Tuple[Scope, "SupPrototypeAst"]]:
+def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototypeAst"]], generic_arguments: List["GenericArgmentAst"], scope_handler: ScopeHandler, temp) -> List[Tuple[Scope, "SupPrototypeAst"]]:
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
 
     new_scopes = []
@@ -334,12 +335,13 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
 
         elif isinstance(scope.name, SupInheritanceIdentifier):
             # Rename the scopes with generic substitutions.
-            type_part = scope.name.this_class
-            super_class_part = scope.name.super_class
+            type_part_ast = copy.deepcopy(scope.name.this_class)
+            super_class_part = copy.deepcopy(scope.name.super_class)
             for g in generic_arguments:
-                type_part.substitute_generics(g.identifier, g.type)
+                type_part_ast.substitute_generics(g.identifier, g.type)
                 super_class_part.substitute_generics(g.identifier, g.type)
-            new_scope_name = SupInheritanceIdentifier(this_class=type_part, super_class=super_class_part)
+            super_class_part.do_semantic_analysis(scope_handler)
+            new_scope_name = SupInheritanceIdentifier(this_class=type_part_ast, super_class=super_class_part)
 
         else:
             raise NotImplementedError(f"Unsupported scope name type: {scope.name}")
@@ -353,8 +355,8 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
 
         # Create the new scope with the new name and parent scope.
         new_scope = Scope(name=new_scope_name, parent_scope=scope.parent)
-        new_scope._children_scopes = scope._children_scopes  # substitute_generics_in_child_scopes(scope._children_scopes, generic_arguments, scope_handler)
-        new_scope._sup_scopes = substitute_generics_in_sup_scopes(scope._sup_scopes, generic_arguments, scope_handler)
+        new_scope._children_scopes = scope._children_scopes
+        new_scope._sup_scopes = substitute_generics_in_sup_scopes(scope._sup_scopes, generic_arguments, scope_handler, temp)
         new_scope._symbol_table = copy.copy(scope._symbol_table)
         new_scopes.append((new_scope, new_sup_ast))
         scope.parent.children.append(new_scope)
@@ -418,8 +420,15 @@ class InferredType:
 __all__ = [
     "TypeInfer",
     "InferredType",
+    "SupNormalIdentifier",
+    "SupInheritanceIdentifier",
     "infer_generics_types",
     "ensure_memory_integrity",
     "convert_generic_arguments_to_named",
-    "convert_function_arguments_to_named"
+    "convert_function_arguments_to_named",
+    "get_all_function_scopes",
+    "check_for_conflicting_attributes",
+    "matching_function_types",
+    "get_owner_type_of_sup_block",
+    "substitute_generics_in_sup_scopes",
 ]
