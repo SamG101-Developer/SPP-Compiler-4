@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -21,7 +22,8 @@ class UseStatementImportAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
             UseStatementImportBodyAst, IdentifierAst, TypeAst, UseStatementImportSingleTypeAst,
-            UseStatementImportMultipleTypesAst)
+            UseStatementImportMultipleTypesAst, UseStatementTypeAliasAst, TokenAst, GenericArgumentNamedAst,
+            GenericArgumentGroupAst)
 
         def combine_layers(ast: UseStatementImportBodyAst, current_namespace: List[IdentifierAst], types: Dict[TypeAst, Optional[TypeAst]]):
             match ast.type:
@@ -57,14 +59,13 @@ class UseStatementImportAst(Ast, SemanticAnalyser):
         types = {}
         combine_layers(self.body, [], types)
 
-        for type in types.keys():
-            type.do_semantic_analysis(scope_handler, **kwargs)
-
+        # Convert the import aliases to type aliases: "use std::Str" => "use Str = std::Str".
         for type, alias in types.items():
-            alias = (alias or type).types[-1]
-            type_symbol = scope_handler.current_scope.get_symbol(type)
-            new_symbol = TypeSymbol(name=alias, type=type_symbol.type, associated_scope=type_symbol.associated_scope, is_alias=True)
-            scope_handler.current_scope.add_symbol(new_symbol)
+            generic_parameters = scope_handler.current_scope.get_symbol(type).type.generic_parameters
+            generic_arguments = Seq(generic_parameters.parameters).map(lambda p: GenericArgumentNamedAst(p.pos, p.identifier.types[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), p.identifier)).list()
+            type.types[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments)
+            new_ast = UseStatementTypeAliasAst(type.pos, (alias or type).types[-1].to_identifier(), generic_parameters, TokenAst.dummy(TokenType.TkAssign), type)
+            new_ast.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["UseStatementImportAst"]
