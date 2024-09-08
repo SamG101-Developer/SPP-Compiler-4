@@ -5,6 +5,9 @@ cls Opt[T] {
     value: Some[T] | None
 }
 
+cls Some[T] { }
+cls None { }
+
 
 ##
 sup [T] Opt[T] {
@@ -69,7 +72,3 @@ sup [T] Opt[T] {
     }
 }
 ##
-
-
-cls Some[T] { }
-cls None { }

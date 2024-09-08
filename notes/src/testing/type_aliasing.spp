@@ -1,0 +1,40 @@
+mod testing::type_aliasing
+
+
+cls TestClass100[T, U] {
+    a: std::Bool
+}
+
+sup [T, U] TestClass100[T, U] {
+    fun t(&self) -> T { }
+    fun u(&self) -> U { }
+}
+
+
+cls AAA[A, B, C, D] { }
+
+
+fun test_type_aliasing() -> std::Void {
+    use MyCustomVector[T] = std::Vec[T] | std::Bool
+    use MyOtherType[T]    = MyCustomVector[T]
+    use FinalType[Penis]  = TestClass100[std::Str, Penis]
+
+    use BBB[A, B, C] = AAA[A, B, C, std::Bool]
+    use CCC[A, B] = BBB[A, B, std::BigInt]
+    use DDD[A] = CCC[A, std::Str]
+
+    let d: DDD[std::Vec[std::BigInt]]
+    d = AAA[std::Vec[std::BigInt], std::Str, std::BigInt, std::Bool]()
+
+    let mut v = MyOtherType[std::BigInt]()
+    v = std::Vec[std::BigInt]()
+
+    let mut waka_waka = FinalType[std::BigInt](a=true)
+    waka_waka = TestClass100[std::Str, std::BigInt](a=false)
+
+    let mut tt = waka_waka.t()
+    let mut uu = waka_waka.u()
+
+    tt = "123"
+    uu = 123
+}
