@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol, \
+    TypeAliasSymbol, Symbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -16,6 +17,7 @@ class Scope:
     _associated_type_symbol: Optional[TypeSymbol]
 
     def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
+
         # Set the attributes to the parameters or default values.
         self._scope_name = name
         self._parent_scope = parent_scope
@@ -23,6 +25,12 @@ class Scope:
         self._symbol_table = SymbolTable()
         self._sup_scopes = []
         self._associated_type_symbol = None
+
+    def __confirm_symbol(self, symbol: Symbol, ignore_alias: bool) -> Symbol:
+        # return symbol
+        match symbol:
+            case TypeAliasSymbol() if symbol.old_type and not ignore_alias: return self.get_symbol(symbol.old_type)
+            case _: return symbol
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         # For TypeAst, shift the scope if a namespaced type is being added.
@@ -49,7 +57,7 @@ class Scope:
         scope._symbol_table.add(symbol)
         return symbol
 
-    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
+    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
         assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)), type(name)
@@ -69,20 +77,20 @@ class Scope:
         symbol = scope._symbol_table.get(name)
 
         if symbol:
-            return symbol
+            return self.__confirm_symbol(symbol, ignore_alias)
         if self._parent_scope and not exclusive:
-            symbol = self._parent_scope.get_symbol(name)
+            symbol = self._parent_scope.get_symbol(name, exclusive, ignore_alias)
             if symbol:
-                return symbol
+                return self.__confirm_symbol(symbol, ignore_alias)
 
         # If the parent scopes don't contain the symbol, then check the sup-scopes. Sup scopes only exist for
         # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
         # contain inherited symbols.
         if isinstance(name, IdentifierAst) or isinstance(name, GenericIdentifierAst) and name.value.startswith("MOCK_"):
             for sup_scope, _ in self._sup_scopes:
-                symbol = sup_scope.get_symbol(name, exclusive)
+                symbol = sup_scope.get_symbol(name, exclusive, ignore_alias)
                 if symbol:
-                    return symbol
+                    return self.__confirm_symbol(symbol, ignore_alias)
 
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
@@ -136,8 +144,8 @@ class Scope:
 
         return syms
 
-    def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False) -> bool:
-        return self.get_symbol(name, exclusive) is not None
+    def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> bool:
+        return self.get_symbol(name, exclusive, ignore_alias) is not None
 
     def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])

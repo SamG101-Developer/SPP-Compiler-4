@@ -5,11 +5,9 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, Seman
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
-
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol, TypeAliasSymbol
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -62,12 +60,14 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         # Replace "Self" in the generic parameters and attribute types so that they refer to the current class.
         self._mod = context.identifier
 
-    def generate(self, scope_handler: ScopeHandler) -> None:
+    def generate(self, scope_handler: ScopeHandler, *, type_alias: bool = False) -> None:
         # Add a new TypeSymbol to the current scope, representing this class being generated. Move into the new scope
         # (representing the new type symbol). Associate the scope with the symbol.
         scope_handler.into_new_scope(self.identifier)
 
-        symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
+        match type_alias:
+            case False: symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
+            case _    : symbol = TypeAliasSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
         scope_handler.current_scope.parent.add_symbol(symbol)
 
         # Add new TypeSymbols for each generic parameter to the scope, representing "None". This is because the

@@ -139,6 +139,27 @@ class TypeSymbol(Symbol):
         return fq_type
 
 
+@dataclass(kw_only=True)
+class TypeAliasSymbol(TypeSymbol):
+    old_type: Optional["TypeAst"] = field(default=None)
+    old_associated_scope: Optional["Scope"] = field(default=None)
+
+    def __deepcopy__(self, memodict=None):
+        return TypeAliasSymbol(
+            name=copy.deepcopy(self.name),
+            type=copy.deepcopy(self.type),
+            associated_scope=self.associated_scope,
+            is_generic=self.is_generic,
+            old_type=copy.deepcopy(self.old_type),
+            old_associated_scope=self.old_associated_scope)
+
+    def __json__(self) -> dict:
+        return super().__json__() | {
+            "old_type": self.old_type,
+            "old_associated_scope": self.old_associated_scope.name if self.old_associated_scope else None,
+        }
+
+
 class SymbolTable[SymbolType]:
     _internal_table: dict[str, SymbolType]
 
