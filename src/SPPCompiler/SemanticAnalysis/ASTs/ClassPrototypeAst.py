@@ -81,8 +81,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        if "no-scope" not in kwargs:
-            scope_handler.move_to_next_scope()
+        scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters and where block. This will load the generics into the current scope, and
         # ensure all their constraints are valid.
@@ -95,11 +94,10 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
             duplicate_attributes = Seq(self.body.members).map(lambda m: m.identifier).non_unique_items()[0]
             raise SemanticErrors.DUPLICATE_ITEM(duplicate_attributes, "attribute")
 
-        if "no-scope" not in kwargs:
-            scope_handler.exit_cur_scope()
+        scope_handler.exit_cur_scope()
 
     def __json__(self):
-        return self.identifier
+        return f"{self.identifier}{self.generic_parameters}"
 
 
 __all__ = ["ClassPrototypeAst"]

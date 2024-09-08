@@ -76,7 +76,7 @@ class SemanticErrors:
     def TYPE_MISMATCH_2(lhs: Optional[Ast], rhs: Ast, lhs_type: InferredType, rhs_type: InferredType, scope_handler: ScopeHandler, extra: str = "") -> SemanticError:
         exception = SemanticError()
         exception.add_info(
-            pos=scope_handler.current_scope.get_outermost_variable_symbol(lhs).memory_info.ast_initialized.pos if lhs else lhs_type.type.pos,
+            pos=scope_handler.current_scope.get_outermost_variable_symbol(lhs).memory_info.ast_initialized.pos if lhs and scope_handler.current_scope.get_outermost_variable_symbol(lhs).memory_info.ast_initialized else lhs_type.type.pos,
             tag=f"LHS type declared as '{lhs_type}'.")
         exception.add_error(
             pos=rhs.pos,
@@ -218,7 +218,7 @@ class SemanticErrors:
         closest = f" Did you mean '{closest[0]}'?" if closest else ""
 
         exception = SemanticError()
-        exception.add_error(pos=ast.pos, tag=f"{what.title()} '{ast}' does not exist.", msg=f"Undefined {what}.",
+        exception.add_error(pos=ast.pos, tag=f"{what.title()} '{ast}' does not exist.", msg=f"Undefined {what} '{ast}'.",
                             tip=f"Define the {what} in this scope.{closest}")
         return exception
 

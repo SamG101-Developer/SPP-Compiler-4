@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import copy, dataclasses
+import copy
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -11,14 +11,14 @@ from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 @dataclass(kw_only=True)
 class MemoryStatus:
-    is_borrow_ref: bool = dataclasses.field(default=False)
-    is_borrow_mut: bool = dataclasses.field(default=False)
+    is_borrow_ref: bool = field(default=False)
+    is_borrow_mut: bool = field(default=False)
 
-    ast_initialized: Optional[Ast] = dataclasses.field(default=None)
-    ast_consumed: Optional[Ast] = dataclasses.field(default=None)
-    ast_borrow: Optional[Ast] = dataclasses.field(default=None)
-    ast_partial_moves: List[Ast] = dataclasses.field(default_factory=list)
-    ast_pins: List[Ast] = dataclasses.field(default_factory=list)
+    ast_initialized: Optional[Ast] = field(default=None)
+    ast_consumed: Optional[Ast] = field(default=None)
+    ast_borrow: Optional[Ast] = field(default=None)
+    ast_partial_moves: List[Ast] = field(default_factory=list)
+    ast_pins: List[Ast] = field(default_factory=list)
 
     @property
     def is_borrow(self) -> bool:
@@ -31,8 +31,8 @@ class Symbol:
 
 @dataclass(kw_only=True)
 class NamespaceSymbol(Symbol):
-    name: IdentifierAst
-    associated_scope: Optional[Scope] = dataclasses.field(default=None)
+    name: "IdentifierAst"
+    associated_scope: Optional["Scope"] = field(default=None)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
@@ -55,10 +55,10 @@ class NamespaceSymbol(Symbol):
 
 @dataclass(kw_only=True)
 class VariableSymbol(Symbol):
-    name: IdentifierAst
-    type: TypeAst
-    is_mutable: bool = dataclasses.field(default=False)
-    memory_info: MemoryStatus = dataclasses.field(default_factory=MemoryStatus)
+    name: "IdentifierAst"
+    type: "TypeAst"
+    is_mutable: bool = field(default=False)
+    memory_info: MemoryStatus = field(default_factory=MemoryStatus)
 
     def __post_init__(self):
         # Ensure that a variable symbol is created with the correct types.
@@ -89,11 +89,10 @@ class VariableSymbol(Symbol):
 
 @dataclass(kw_only=True)
 class TypeSymbol(Symbol):
-    name: GenericIdentifierAst
-    type: Optional[ClassPrototypeAst]  # None for generic types
-    associated_scope: Optional[Scope] = dataclasses.field(default=None)
-    is_generic: bool = dataclasses.field(default=False)
-    is_alias: bool = dataclasses.field(default=False)
+    name: "GenericIdentifierAst"
+    type: Optional["ClassPrototypeAst"]
+    associated_scope: Optional["Scope"] = field(default=None)
+    is_generic: bool = field(default=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
@@ -120,15 +119,14 @@ class TypeSymbol(Symbol):
             name=copy.deepcopy(self.name),
             type=copy.deepcopy(self.type),
             associated_scope=self.associated_scope,
-            is_generic=self.is_generic,
-            is_alias=self.is_alias)
+            is_generic=self.is_generic)
 
     @property
-    def fq_type(self) -> TypeAst:
+    def fq_type(self) -> "TypeAst":
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst
 
         if not self.type:
-            return self.name
+            return TypeAst(self.name.pos, [], [self.name])
 
         associated_scope = self.associated_scope.parent
         fq_type = TypeAst(self.name.pos, [], [self.name])
