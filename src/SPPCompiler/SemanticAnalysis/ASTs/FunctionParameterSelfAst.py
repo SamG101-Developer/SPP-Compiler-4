@@ -16,10 +16,10 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
     parameter of a function. It can have conventions too (no convention means that the object is consumed in the call).
 
     Attributes:
-        - is_mutable: The token that represents the mutability of the "self" parameter.
-        - convention: The convention of the "self" parameter.
-        - identifier: The identifier of the "self" parameter.
-        - type_declaration: The type declaration of the "self" parameter.
+        is_mutable: The token representing the mutability of the "self" parameter.
+        convention: The convention of the "self" parameter.
+        identifier: The identifier of the "self" parameter.
+        type_declaration: The type declaration of the "self" parameter.
     """
 
     is_mutable: Optional["TokenAst"]
