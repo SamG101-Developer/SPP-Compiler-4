@@ -131,6 +131,12 @@ class CommonTypes:
         return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
+    def is_function_type(type: "TypeAst") -> bool:
+        t1 = len(type.namespace) == 1 and type.namespace[0].value == "std"
+        t2 = len(type.types) == 1 and type.types[0].value in ["FunRef", "FunMut", "FunMov"]
+        return t1 and t2
+
+    @staticmethod
     def type_variant_to_convention(identifier: "IdentifierAst", pos: int = -1) -> type:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, ConventionRefAst, ConventionMutAst
 

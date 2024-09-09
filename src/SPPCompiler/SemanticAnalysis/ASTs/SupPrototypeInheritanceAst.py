@@ -79,6 +79,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         cls_scope = cls_symbol.associated_scope
         cls_scope._sup_scopes.append((scope_handler.current_scope, self))
 
+        # Check there are no same-depth conflicting attributes.
+        check_for_conflicting_attributes(cls_scope, self.super_class, scope_handler)
+
         # Skip internal functions scopes.
         if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
             if (super_class_symbol := scope_handler.current_scope.get_symbol(self.super_class)) and super_class_symbol.is_generic:
@@ -86,9 +89,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
             self.super_class.do_semantic_analysis(scope_handler)
             cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
-
-        # Check there are no same-depth conflicting attributes.
-        check_for_conflicting_attributes(cls_scope, self.super_class, self, scope_handler)
 
         # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
@@ -106,7 +106,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Make sure every generic parameter is present in the identifier or superclass; otherwise it has no way to be
         # inferred.
         for generic_parameter in Seq(self.generic_parameters.parameters).map(lambda p: p.identifier):
-            if not (self.identifier.contains_generic(generic_parameter) or self.super_class.contains_generic(generic_parameter)):
+            if not self.identifier.contains_generic(generic_parameter):
+                if CommonTypes.is_function_type(self.super_class) and self.super_class.contains_generic(generic_parameter):
+                    continue
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
         # Make sure the superclass, and the identifier (the type being superimposed over), exists. If it does, analyse
