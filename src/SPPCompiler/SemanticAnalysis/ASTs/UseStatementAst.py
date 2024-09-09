@@ -17,6 +17,7 @@ class UseStatementAst(Ast, PreProcessor, SemanticAnalyser):
         s = ""
         s += f"{self.use_keyword.print(printer)} "
         s += f"{self.body.print(printer)}"
+        return s
 
     def pre_process(self, context) -> None:
         # Dummy implementation required as all module members must implement this method.

@@ -147,7 +147,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                             new_scope.add_symbol(generic_parameter_type_symbol)
 
                             # Substitute the attribute symbol's generic types.
-                            for attribute_symbol in Seq(new_scope._symbol_table.all()).filter_to_type(VariableSymbol):  # Seq(new_scope.all_symbols()).filter_to_type(VariableSymbol):
+                            for attribute_symbol in Seq(new_scope._symbol_table.all()).filter_to_type(VariableSymbol):
                                 attribute_symbol.type.substitute_generics(generic_argument.identifier, generic_argument.type)
 
                             # Substitute the ast attribute's generic types.
