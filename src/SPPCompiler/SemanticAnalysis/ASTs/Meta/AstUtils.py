@@ -260,7 +260,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
     return Seq(sup_scopes)
 
 
-def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", super_class_ast: "SupInheritancePrototypeAst", scope_handler: ScopeHandler) -> None:
+def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", scope_handler: ScopeHandler) -> None:
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     # Get the attributes from the superclass.
@@ -288,6 +288,26 @@ def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", 
             old_scope, old_symbol = depths[smallest_depth][0]
             new_scope, new_symbol = depths[smallest_depth][1]
             raise SemanticErrors.CONFLICTING_ATTRIBUTES(old_symbol, new_symbol, old_scope, new_scope)
+
+
+"""
+def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", scope_handler: ScopeHandler) -> None:
+    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+
+    # Get the symbols on the new superclass.
+    new_scope = scope_handler.current_scope.get_symbol(super_class.without_generics()).associated_scope
+    new_symbols = Seq(new_scope.all_symbols(exclusive=True)).filter_to_type(VariableSymbol)
+
+    # Iterate through each superclass scope, and check for conflicting attributes.
+    for sup_scope, _ in [(type_scope, None), *type_scope.sup_scopes]:
+
+        for new_symbol in new_symbols:
+
+            # If a symbol with the same name already exists, then there is a conflict.
+            if sup_scope._symbol_table.has(new_symbol.name):
+                old_symbol = sup_scope._symbol_table.get(new_symbol.name)
+                raise SemanticErrors.CONFLICTING_ATTRIBUTES(old_symbol, new_symbol, sup_scope, new_scope)
+"""
 
 
 def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:
