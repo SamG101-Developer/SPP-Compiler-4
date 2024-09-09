@@ -5,32 +5,14 @@ cls CArr[T] { }
 
 cls BoundsError { }
 
-
-cls UnsafeArr[T] {
+cls Arr[T] {
     data: CArr[T]
     length: U64
 }
 
-cls Arr[T] {
-    data: UnsafeArr[T]
-    length: U64
-}
-
-sup [T] UnsafeArr[T] {
-    # use ValueType as T
-    # use SizeType as U64
-    # use IndexType as U64
-}
-
-sup [T] UnsafeArr[T] {
-    fun get(&self, index: U64) -> T { }
-    fun set(&mut self, index: U64, value: T) -> Void { }
-    fun del(&mut self, index: U64) -> T { }
-    fun has(&self, index: U64) -> Bool { }
-}
-
-sup [T] UnsafeArr[T] on Arr[T] {
+sup [T] Arr[T] {
     fun get(&self, index: U64) -> Res[T, BoundsError] { }
     fun set(&mut self, index: U64, value: T) -> Res[Void, BoundsError] { }
     fun del(&mut self, index: U64) -> Res[T, BoundsError] { }
+    fun has(&self, index: U64) -> Bool { }
 }

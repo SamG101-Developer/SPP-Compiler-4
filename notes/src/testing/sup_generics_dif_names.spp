@@ -1,0 +1,27 @@
+mod testing::sup_generics_dif_names
+
+
+cls TesterBaseClass[T, U, V] { }
+
+sup [T, U, V] TesterBaseClass[T, U, V] {
+    fun t(&self) -> T { }
+    fun u(&self) -> U { }
+    fun v(&self) -> V { }
+}
+
+
+cls TesterDerivedClass[A, B] { }
+
+sup [A, B] TesterBaseClass[std::Bool, A, B] on TesterDerivedClass[A, B] { }
+
+
+fun test_sup_generics_dif_names() -> std::Void {
+    let x = TesterBaseClass[std::Bool, std::BigInt, std::Str]()
+    let mut t = x.t()
+    t = false
+
+    let y = TesterDerivedClass[std::Str, std::BigInt]()
+    let mut u = y.u()
+    u = "0"
+}
+

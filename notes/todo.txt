@@ -52,9 +52,3 @@ Lambdas:
 -- Everything to do with lambdas
 -- Pinning captured values?
 -- Map partial functions into lambdas with fixed captures.
-
-UNDECIDED
-
-Generics:
--- The "sup" generic identifiers should be able to be different from "cls" generic identifiers, otherwise error? Superclasses?
--- Otherwise could use typedefs to map the generic identifiers to different names.

@@ -20,3 +20,13 @@ cls DerivedInvalidAttrConflict {
 
 sup InvalidAttrConflict[std::U32] on DerivedInvalidAttrConflict { }
 sup InvalidAttrConflict[std::U64] on DerivedInvalidAttrConflict { }
+
+
+fun test_sup_obj_init() -> std::Void {
+    let a = InvalidAttrConflict(biscuit=1_u32)
+    let b = InvalidAttrConflict(biscuit=2_u64)
+    let c = DerivedInvalidAttrConflict(biscuit=true, sup=(a, b))
+
+    let mut x = c.biscuit
+    x = false
+}
