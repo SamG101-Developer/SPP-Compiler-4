@@ -126,6 +126,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         elif self.get_sup_args() and not expected_sup_types:
             raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUP_ARGUMENT(self, self.get_sup_args()[0])
 
+        # Todo: mark sup-args as moved.
         if self.get_sup_args():
             # Check the superclass argument is a tuple.
             given_sup_argument = self.get_sup_args()[0]
