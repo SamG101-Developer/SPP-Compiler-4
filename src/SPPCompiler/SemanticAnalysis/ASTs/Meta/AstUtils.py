@@ -232,6 +232,8 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
     sup_scopes = []
     generics = []
 
+    # print(f"Getting function scopes for '{identifier}' in '{type_scope}'")
+
     match type_scope.name:
 
         # Functions in a namespace / global namespace; there will be no inheritable generics.
@@ -245,7 +247,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
         case _:
             for sup_scope, _ in type_scope.sup_scopes:
                 if Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).map(lambda s: s.name).contains(converted_identifier):
-                    generics = Seq(sup_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda t: t.is_generic)
+                    generics = Seq(sup_scope._symbol_table.all()).filter_to_type(TypeSymbol).filter(lambda t: t.is_generic and t.associated_scope)
                     generics = generics.map(lambda sym: GenericArgumentNamedAst(
                         pos=-1,
                         raw_identifier=sym.name.to_identifier(),
@@ -308,29 +310,33 @@ def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: Scop
 
 
 def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototypeAst"]], generic_arguments: List["GenericArgmentAst"], scope_handler: ScopeHandler, temp) -> List[Tuple[Scope, "SupPrototypeAst"]]:
-    from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+    from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericArgumentNamedAst
 
     new_scopes = []
     for scope, sup_ast in sup_scopes:
 
         if isinstance(scope.name, TypeAst):
+
             # Rename the scope with generic substitutions.
             type_part_ast = copy.deepcopy(scope.name)
             for g in generic_arguments:
                 type_part_ast.substitute_generics(g.identifier, g.type)
-            new_scope_name = type_part_ast
 
             # The substituted superclass may not exist yet with these generics.
             type_to_analyse = copy.deepcopy(sup_ast.super_class)
             for g in generic_arguments:
                 type_to_analyse.substitute_generics(g.identifier, g.type)
-            type_to_analyse.do_semantic_analysis(scope_handler)
+
+            # type_part_ast != scope.name and type_part_ast.do_semantic_analysis(scope_handler)
+            new_scope_name = type_part_ast
 
         elif isinstance(scope.name, SupNormalIdentifier):
             # Rename the scope with generic substitutions.
             type_part_ast = copy.deepcopy(scope.name.this_class)
             for g in generic_arguments:
                 type_part_ast.substitute_generics(g.identifier, g.type)
+
+            # type_part_ast != scope.name.this_class and type_part_ast.do_semantic_analysis(scope_handler)
             new_scope_name = SupNormalIdentifier(this_class=type_part_ast)
 
         elif isinstance(scope.name, SupInheritanceIdentifier):
@@ -340,7 +346,9 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
             for g in generic_arguments:
                 type_part_ast.substitute_generics(g.identifier, g.type)
                 super_class_part.substitute_generics(g.identifier, g.type)
-            super_class_part.do_semantic_analysis(scope_handler)
+
+            # type_part_ast != scope.name.this_class and type_part_ast.do_semantic_analysis(scope_handler)
+            # super_class_part != scope.name.super_class and super_class_part.do_semantic_analysis(scope_handler)
             new_scope_name = SupInheritanceIdentifier(this_class=type_part_ast, super_class=super_class_part)
 
         else:
@@ -361,10 +369,14 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
         new_scopes.append((new_scope, new_sup_ast))
         scope.parent.children.append(new_scope)
 
-        # Add the type symbols into the new scope.
-        for generic_argument in generic_arguments:
-            generic_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
-            new_scope.add_symbol(TypeSymbol(name=generic_argument.identifier.types[-1], type=generic_symbol.type, is_generic=True, associated_scope=generic_symbol.associated_scope))
+        for generic_argument in Seq(type_part_ast.types[-1].generic_arguments.arguments).filter_to_type(GenericArgumentNamedAst):
+            generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
+            generic_parameter_type_symbol = TypeSymbol(
+                name=generic_argument.identifier.types[-1],
+                type=generic_argument_type_symbol.type,
+                associated_scope=generic_argument_type_symbol.associated_scope,
+                is_generic=True)
+            new_scope.add_symbol(generic_parameter_type_symbol)
 
     return new_scopes
 
