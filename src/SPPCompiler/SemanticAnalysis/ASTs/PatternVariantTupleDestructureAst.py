@@ -36,16 +36,11 @@ class PatternVariantTupleDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
     def convert_to_variable(self) -> "LocalVariableTupleDestructureAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableTupleDestructureAst, PatternVariantLiteralAst, PatternVariantSkipArgumentsAst,
-            PatternVariantSkipArgumentAst, PatternVariantAttributeBindingAst, PatternVariantSingleIdentifierAst)
+            LocalVariableTupleDestructureAst, PatternVariantNestedForTupleDestructureAst)
 
         # Convert inner patterns to variables.
         converted_items = Seq(self.items).filter_to_type(
-            PatternVariantAttributeBindingAst,
-            PatternVariantSkipArgumentAst,
-            PatternVariantSkipArgumentsAst,
-            PatternVariantSingleIdentifierAst,
-            PatternVariantLiteralAst,
+            *PatternVariantNestedForTupleDestructureAst.__value__.__args__
         ).map(lambda i: i.convert_to_variable())
 
         # Return the new LocalVariableTupleAst.
