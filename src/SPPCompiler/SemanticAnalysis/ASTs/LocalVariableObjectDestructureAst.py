@@ -42,94 +42,62 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
         from SPPCompiler.SemanticAnalysis.ASTs import (
-            LocalVariableSkipArgumentsAst, LocalVariableSingleIdentifierAst, LocalVariableAttributeBindingAst, ConventionMovAst,
+            LocalVariableSkipArgumentsAst, LocalVariableSingleIdentifierAst, LocalVariableAttributeBindingAst,
             PostfixExpressionOperatorMemberAccessAst, PostfixExpressionAst, LetStatementInitializedAst, TokenAst)
 
+        # Analyse the value, class type, and get the attributes of the class.
         value = kwargs["value"]
         value.do_semantic_analysis(scope_handler, **kwargs)
-
-        # Semantically analyse the class type, to make sure it exists.
         self.class_type.do_semantic_analysis(scope_handler, **kwargs)
         attributes = Seq(scope_handler.current_scope.get_symbol(self.class_type).type.body.members)
-
-        # Only allow 1 multi-skip inside a tuple.
-        skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentsAst)
-        if skips.length > 1:
-            raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
 
         # Check the RHS is the same type as the class type.
         value_type = value.infer_type(scope_handler, **kwargs)
         if not value_type.symbolic_eq(InferredType.from_type_ast(self.class_type), scope_handler.current_scope):
             raise SemanticErrors.TYPE_MISMATCH_2(None, value, InferredType.from_type_ast(self.class_type), value_type, scope_handler)
 
-        nested_destructures = []
+        # Only allow 1 ".." inside an object destructure.
+        skips = Seq(self.items).filter_to_type(LocalVariableSkipArgumentsAst)
+        if skips.length > 1:
+            raise SemanticErrors.MULTIPLE_ARGUMENT_SKIPS(skips[0], skips[1])
+
         for current_local_variable in Seq(self.items):
+
             # Don't allow the binding unpacking token for a type destructure: "let p = Point(..x)" makes no sense.
             if isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and current_local_variable.binding:
                 raise SemanticErrors.UNPACKING_TOKEN_IN_DESTRUCTURE(current_local_variable)
+
+            # Don't allow the ".." when there are 0 attributes (nothing to skip).
             elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst) and not attributes:
                 raise SemanticErrors.SKIPPING_ARGUMENTS_IN_STATELESS_TYPE(current_local_variable)
+
+            # Skip any other analysis for occurrences of the ".." token.
             elif isinstance(current_local_variable, LocalVariableSkipArgumentsAst):
                 continue
 
-            # Check the given variable exists as an attribute on the type: "let p = Point(x, ..)" requires "x" to be an
-            # attribute of "Point".
+            # Check the given variable exists as an attribute on the type.
             if not attributes.map(lambda a: a.identifier).contains(current_local_variable.identifier):
                 raise SemanticErrors.UNKNOWN_IDENTIFIER(current_local_variable.identifier, attributes.map(lambda a: a.identifier.value).list(), "attribute")
 
             # Convert the destructure into a let statement, for example "let Point(x, y, z) = point".
             if isinstance(current_local_variable, LocalVariableSingleIdentifierAst):
-                ast_0 = PostfixExpressionOperatorMemberAccessAst(
-                    pos=self.pos,
-                    dot_token=TokenAst.dummy(TokenType.TkDot),
-                    identifier=current_local_variable.identifier)
-
-                ast_1 = PostfixExpressionAst(
-                    pos=self.pos,
-                    lhs=value,
-                    op=ast_0)
-
-                ast_2 = LetStatementInitializedAst(
-                    pos=self.pos,
-                    let_keyword=TokenAst.dummy(TokenType.KwLet),
-                    assign_to=current_local_variable,
-                    assign_token=TokenAst.dummy(TokenType.TkAssign),
-                    value=ast_1)
-
-                nested_destructures.append(ast_2)
+                ast_0 = PostfixExpressionOperatorMemberAccessAst(self.pos, TokenAst.dummy(TokenType.TkDot), current_local_variable.identifier)
+                ast_1 = PostfixExpressionAst(self.pos, value, ast_0)
+                ast_2 = LetStatementInitializedAst(self.pos, TokenAst.dummy(TokenType.KwLet), current_local_variable, TokenAst.dummy(TokenType.TkAssign), ast_1)
+                ast_2.do_semantic_analysis(scope_handler, **kwargs)
 
             # Convert the destructure into a let statement, for example "let Vec(point=Point(x, y, z)) = vec".
             elif isinstance(current_local_variable, LocalVariableAttributeBindingAst):
-                ast_0 = PostfixExpressionOperatorMemberAccessAst(
-                    pos=self.pos,
-                    dot_token=TokenAst.dummy(TokenType.TkDot),
-                    identifier=current_local_variable.identifier)
-
-                ast_1 = PostfixExpressionAst(
-                    pos=self.pos,
-                    lhs=value,
-                    op=ast_0)
-
-                ast_2 = LetStatementInitializedAst(
-                    pos=self.pos,
-                    let_keyword=TokenAst.dummy(TokenType.KwLet),
-                    assign_to=current_local_variable.value,
-                    assign_token=TokenAst.dummy(TokenType.TkAssign),
-                    value=ast_1)
-
-                if not type(current_local_variable.value).__name__.startswith("Local"):
-                    value_type = current_local_variable.value.infer_type(scope_handler, **kwargs)
-                    target_type = ast_1.infer_type(scope_handler, **kwargs)
-                    if not value_type.symbolic_eq(target_type, scope_handler.current_scope):
-                        raise SemanticErrors.TYPE_MISMATCH_2(None, current_local_variable.value, target_type, value_type, scope_handler)
-
-                nested_destructures.append(ast_2)
-
-        for nested_destructure in nested_destructures:
-            nested_destructure.do_semantic_analysis(scope_handler, **kwargs)
+                ast_0 = PostfixExpressionOperatorMemberAccessAst(self.pos, TokenAst.dummy(TokenType.TkDot), current_local_variable.identifier)
+                ast_1 = PostfixExpressionAst(self.pos, value, ast_0)
+                ast_2 = LetStatementInitializedAst(self.pos, TokenAst.dummy(TokenType.KwLet), current_local_variable.value, TokenAst.dummy(TokenType.TkAssign), ast_1)
+                ast_2.do_semantic_analysis(scope_handler, **kwargs)
 
         # Make sure all the attributes have been assigned to, unless there is a ".." skip.
-        assigned_attributes = Seq(self.items).filter_not_type(LocalVariableSkipArgumentsAst)
-        missing_attributes = attributes.map(lambda a: a.identifier).set_subtract(assigned_attributes.map(lambda a: a.identifier))
+        assigned_attributes = Seq(self.items).filter_not_type(LocalVariableSkipArgumentsAst).map(lambda a: a.identifier)
+        missing_attributes = attributes.map(lambda a: a.identifier).set_subtract(assigned_attributes)
         if missing_attributes and not skips:
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_attributes[0], "destructure", "attribute")
+
+
+__all__ = ["LocalVariableObjectDestructureAst"]
