@@ -31,12 +31,10 @@ class LocalVariableSingleIdentifierAst(Ast, SemanticAnalyser):
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        kwargs |= {"assignment": True}
-
         # Get the value of the local variable, and semantically analyse it. This must happen before type-inference, as
         # inferring an invalid expression could cause an error.
         value = kwargs["value"]
-        value.do_semantic_analysis(scope_handler, **kwargs)
+        value.do_semantic_analysis(scope_handler, **(kwargs | {"assignment": self.identifier}))
 
         # Create a variable symbol for the local variable and add it to the current scope. Set the initialization AST to
         # the "let" statement AST that contains this local variable.
