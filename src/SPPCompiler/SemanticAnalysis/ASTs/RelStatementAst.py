@@ -58,6 +58,8 @@ class RelStatementAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.UNPINNING_NON_PINNED(self, pin_target)
             if isinstance(symbol.memory_info.ast_initialized, GlobalConstantAst):
                 raise SemanticErrors.UNPINNING_CONSTANT(pin_target, symbol.memory_info.ast_initialized)
+            if symbol.memory_info.sym_pin_target:
+                symbol.memory_info.sym_pin_target.memory_info.ast_consumed = self
 
             symbol.memory_info.ast_pins.remove(pin_target)
 

@@ -48,5 +48,12 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
             symbol = scope_handler.current_scope.get_outermost_variable_symbol(self.expression)
             raise SemanticErrors.TYPE_MISMATCH_2(None, self.expression or self.return_keyword, target_return_type, actual_return_type, scope_handler)
 
+        # Check there are no synbols pinned; exiting the function would destroy them.
+        symbols = Seq(scope_handler.current_scope.all_symbols()).filter_to_type(VariableSymbol)
+        for symbol in symbols:
+            if not isinstance(symbol.memory_info.ast_initialized, GlobalConstantAst):
+                if symbol.memory_info.ast_pins:
+                    raise SemanticErrors.MOVING_PINNED_VALUE(self, symbol.memory_info.ast_pins[0])
+
 
 __all__ = ["ReturnStatementAst"]

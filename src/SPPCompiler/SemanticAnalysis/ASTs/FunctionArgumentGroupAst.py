@@ -127,6 +127,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # Ensure the argument is pinned if it is borrowed for a coroutine or async function.
                     if is_coroutine_or_async and not any(str(argument.value).startswith(str(pin)) for pin in symbol.memory_info.ast_pins):
                         raise SemanticErrors.UNPINNED_BORROW(argument.value, function_pin_error_ast, is_async)
+                    elif is_coroutine_or_async and "assignment" in kwargs:
+                        symbol.memory_info.sym_pin_target = scope_handler.current_scope.get_symbol(kwargs["assignment"])
 
                     # Add the mutable borrow to the set of mutable borrows.
                     borrows_mut.add(argument.value)
@@ -140,6 +142,8 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
                     # Ensure the argument is pinned if it is borrowed for a coroutine or async function.
                     if is_coroutine_or_async and not any(str(argument.value).startswith(str(pin)) for pin in symbol.memory_info.ast_pins):
                         raise SemanticErrors.UNPINNED_BORROW(argument.value, function_pin_error_ast, is_async)
+                    elif is_coroutine_or_async and "assignment" in kwargs:
+                        symbol.memory_info.sym_pin_target = scope_handler.current_scope.get_symbol(kwargs["assignment"])
 
                     # Add the immutable borrow to the set of immutable borrows.
                     borrows_ref.add(argument.value)
