@@ -1,10 +1,5 @@
 NOW
 
-Pins:
--- Can unpin a value being borrowed, but the coroutine or future must be invalidated.
--- A coroutine or future is pinned if any of its arguments are pinned (ie are borrowed from a pinned value).
--- What about "ret coroutine(&argument)" => the argument is pinned, but the coroutine doesn't exist as a symbol.
-
 Functions:
 -- Conflicting overloads don't work for generic classes?
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".

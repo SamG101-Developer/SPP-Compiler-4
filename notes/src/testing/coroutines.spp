@@ -1,8 +1,17 @@
 mod testing::coroutines
 
 
-cor coroutine() -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
+cor coroutine(a: &std::BigInt) -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
     let x = 123
     let mut y = gen &mut 123
     y = "false"
+}
+
+
+fun test_coroutine() -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
+    let counter = 0
+    pin counter
+
+    let c = coroutine(&counter)
+    ret c
 }
