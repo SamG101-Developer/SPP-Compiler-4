@@ -1,4 +1,4 @@
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
 
 type UnaryOperatorAst = TokenAst
 

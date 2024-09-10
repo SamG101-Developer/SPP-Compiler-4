@@ -44,3 +44,6 @@ class WithExpressionAliasAst(Ast, SemanticAnalyser):
 
         # Do semantic analysis on it, handling symbol generation, etc.
         let_statement.do_semantic_analysis(scope_handler, **kwargs)
+
+
+__all__ = ["WithExpressionAliasAst"]

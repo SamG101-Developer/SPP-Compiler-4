@@ -1,5 +1,4 @@
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementInitializedAst import LetStatementInitializedAst
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementUninitializedAst import LetStatementUninitializedAst
+from SPPCompiler.SemanticAnalysis.ASTs import LetStatementInitializedAst, LetStatementUninitializedAst
 
 type LetStatementAst = LetStatementInitializedAst | LetStatementUninitializedAst
 

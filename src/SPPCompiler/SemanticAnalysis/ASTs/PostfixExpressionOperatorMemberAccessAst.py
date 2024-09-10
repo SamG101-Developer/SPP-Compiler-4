@@ -116,3 +116,6 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier.
         return isinstance(other, PostfixExpressionOperatorMemberAccessAst) and self.identifier == other.identifier
+
+
+__all__ = ["PostfixExpressionOperatorMemberAccessAst"]

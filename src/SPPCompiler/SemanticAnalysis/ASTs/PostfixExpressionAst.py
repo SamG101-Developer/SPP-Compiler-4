@@ -45,3 +45,6 @@ class PostfixExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def __hash__(self):
         # Hash the lhs and operator.
         return hash(self.lhs) * 2
+
+
+__all__ = ["PostfixExpressionAst"]

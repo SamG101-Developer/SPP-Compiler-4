@@ -36,3 +36,6 @@ class LoopElseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The type is the body's type (final expression's type).
         return self.body.infer_type(scope_handler, **kwargs)
+
+
+__all__ = ["LoopElseExpressionAst"]

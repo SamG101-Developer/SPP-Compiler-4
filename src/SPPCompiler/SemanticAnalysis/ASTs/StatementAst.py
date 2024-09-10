@@ -1,9 +1,9 @@
-from SPPCompiler.SemanticAnalysis.ASTs.AssignmentStatementAst import AssignmentStatementAst
-from SPPCompiler.SemanticAnalysis.ASTs.ExpressionAst import ExpressionAst
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementAst import LetStatementAst
-from SPPCompiler.SemanticAnalysis.ASTs.ReturnStatementAst import ReturnStatementAst
-# from SPPCompiler.SemanticAnalysis.ASTs.TypedefStatementAst import TypedefStatementAst
+from SPPCompiler.SemanticAnalysis.ASTs import (
+    AssignmentStatementAst, ExpressionAst, LetStatementAst, ReturnStatementAst, UseStatementAst, PinStatementAst,
+    RelStatementAst, LoopControlFlowStatementAst)
 
-type StatementAst = AssignmentStatementAst | LetStatementAst | ReturnStatementAst | ExpressionAst  # | TypedefStatementAst
+type StatementAst = (
+    AssignmentStatementAst | LetStatementAst | ReturnStatementAst | ExpressionAst | UseStatementAst | PinStatementAst |
+    RelStatementAst | LoopControlFlowStatementAst)
 
 __all__ = ["StatementAst"]

@@ -32,3 +32,6 @@ class RegexLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=CommonTypes.rgx(self.pos))
+
+
+__all__ = ["RegexLiteralAst"]

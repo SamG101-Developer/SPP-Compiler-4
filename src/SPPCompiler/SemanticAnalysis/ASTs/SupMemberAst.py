@@ -1,9 +1,7 @@
-from SPPCompiler.SemanticAnalysis.ASTs.ClassPrototypeAst import ClassPrototypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.LetStatementAst import LetStatementAst
-from SPPCompiler.SemanticAnalysis.ASTs.FunctionPrototypeAst import FunctionPrototypeAst
-from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeInheritanceAst import SupPrototypeInheritanceAst
-# from SPPCompiler.SemanticAnalysis.ASTs.SupTypedefAst import SupTypedefAst
+from SPPCompiler.SemanticAnalysis.ASTs import (
+    ClassPrototypeAst, LetStatementAst, FunctionPrototypeAst, SupPrototypeInheritanceAst)
+# from SPPCompiler.SemanticAnalysis.ASTs.SupTypedefAst import SupUseStatementAst
 
-type SupMemberAst = ClassPrototypeAst | LetStatementAst | FunctionPrototypeAst | SupPrototypeInheritanceAst  # | SupTypedefAst
+type SupMemberAst = ClassPrototypeAst | LetStatementAst | FunctionPrototypeAst | SupPrototypeInheritanceAst  # | SupUseStatementAst
 
 __all__ = ["SupMemberAst"]

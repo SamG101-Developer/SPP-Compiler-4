@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.NumberLiteralBaseNAst import NumberLiteralBaseNAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
 
 
 @dataclass
@@ -15,7 +14,7 @@ class NumberLiteralBase10Ast(NumberLiteralBaseNAst):
         sign: The optional sign of the number.
     """
 
-    sign: Optional[TokenAst]
+    sign: Optional["TokenAst"]
 
     def print(self, printer) -> str:
         # Print the NumberLiteralBase10Ast.

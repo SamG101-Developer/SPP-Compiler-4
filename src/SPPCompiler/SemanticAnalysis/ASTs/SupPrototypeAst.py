@@ -1,6 +1,5 @@
-from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeInheritanceAst import SupPrototypeInheritanceAst
-from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
+from SPPCompiler.SemanticAnalysis.ASTs import SupPrototypeInheritanceAst, SupPrototypeNormalAst
 
-type SupPrototypeAst = SupPrototypeNormalAst | SupPrototypeInheritanceAst
+type SupPrototypeAst = SupPrototypeInheritanceAst | SupPrototypeNormalAst
 
 __all__ = ["SupPrototypeAst"]

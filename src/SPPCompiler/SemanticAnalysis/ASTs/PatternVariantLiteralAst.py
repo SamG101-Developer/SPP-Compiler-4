@@ -37,3 +37,6 @@ class PatternVariantLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is the literal's type.
         return self.literal.infer_type(scope_handler, **kwargs)
+
+
+__all__ = ["PatternVariantLiteralAst"]

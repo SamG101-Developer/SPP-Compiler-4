@@ -1,5 +1,4 @@
-from SPPCompiler.SemanticAnalysis.ASTs import LoopExpressionConditionBooleanAst
-from SPPCompiler.SemanticAnalysis.ASTs import LoopExpressionConditionIterableAst
+from SPPCompiler.SemanticAnalysis.ASTs import LoopExpressionConditionBooleanAst, LoopExpressionConditionIterableAst
 
 type LoopExpressionConditionAst = LoopExpressionConditionBooleanAst | LoopExpressionConditionIterableAst
 

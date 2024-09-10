@@ -1,5 +1,4 @@
-from SPPCompiler.SemanticAnalysis.ASTs.IdentifierAst import IdentifierAst
-from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
+from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TokenAst
 
 type PostfixMemberPartAst = IdentifierAst | TokenAst
 

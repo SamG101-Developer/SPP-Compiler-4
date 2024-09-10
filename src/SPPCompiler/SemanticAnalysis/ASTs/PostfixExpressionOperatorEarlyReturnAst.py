@@ -24,3 +24,6 @@ class PostfixExpressionOperatorEarlyReturnAst(Ast):
         s = ""
         s += f"{self.return_token.print(printer)}"
         return s
+
+
+__all__ = ["PostfixExpressionOperatorEarlyReturnAst"]

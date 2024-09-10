@@ -67,3 +67,6 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         if self.body.members:
             return self.body.members[-1].infer_type(scope_handler, **kwargs)
         return InferredType(convention=ConventionMovAst, type=CommonTypes.void(pos=self.pos))
+
+
+__all__ = ["WithExpressionAst"]

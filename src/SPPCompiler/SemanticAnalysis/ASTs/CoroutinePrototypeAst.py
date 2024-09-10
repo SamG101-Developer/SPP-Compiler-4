@@ -45,3 +45,6 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
             return_type=copy.deepcopy(self.return_type),
             where_block=copy.deepcopy(self.where_block),
             body=self.body)
+
+
+__all__ = ["CoroutinePrototypeAst"]

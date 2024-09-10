@@ -42,3 +42,6 @@ class PostfixExpressionOperatorNotKeywordAst(Ast, SemanticAnalyser, TypeInfer):
 
         # The "not" keyword operator always returns a boolean.
         return InferredType(convention=ConventionMovAst, type=CommonTypes.bool())
+
+
+__all__ = ["PostfixExpressionOperatorNotKeywordAst"]

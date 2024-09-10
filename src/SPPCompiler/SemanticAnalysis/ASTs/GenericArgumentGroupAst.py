@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
@@ -80,13 +80,13 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
         return self.arguments == other.arguments
 
     @staticmethod
-    def from_list(list: List["GenericArgumentAst"]) -> GenericArgumentGroupAst:
+    def from_list(generic_arguments: List["GenericArgumentAst"]) -> GenericArgumentGroupAst:
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
 
         return GenericArgumentGroupAst(
             pos=-1,
             bracket_l_token=TokenAst.dummy(TokenType.TkBrackL),
-            arguments=list,
+            arguments=generic_arguments,
             bracket_r_token=TokenAst.dummy(TokenType.TkBrackR))
 
     def __copy__(self):

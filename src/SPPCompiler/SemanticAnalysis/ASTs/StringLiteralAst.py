@@ -34,3 +34,6 @@ class StringLiteralAst(Ast, SemanticAnalyser, TypeInfer):
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=CommonTypes.str(pos=self.pos))
+
+
+__all__ = ["StringLiteralAst"]
