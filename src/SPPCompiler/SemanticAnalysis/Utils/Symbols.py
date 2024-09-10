@@ -20,6 +20,8 @@ class MemoryStatus:
     ast_partial_moves: List[Ast] = field(default_factory=list)
     ast_pins: List[Ast] = field(default_factory=list)
 
+    sym_pin_target: Optional[VariableSymbol] = field(default=None)
+
     @property
     def is_borrow(self) -> bool:
         return self.is_borrow_ref or self.is_borrow_mut
