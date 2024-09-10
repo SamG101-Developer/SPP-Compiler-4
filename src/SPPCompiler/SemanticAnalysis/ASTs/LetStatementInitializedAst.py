@@ -66,9 +66,15 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the type being assigned is not std::Void.
-        value_type = self.value.infer_type(scope_handler).type
-        if value_type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
+        value_type = self.value.infer_type(scope_handler)
+        if value_type.type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
             raise SemanticErrors.VOID_USAGE(self.value)
+
+        # For nested variable transformations, the LHS won't be a LocalVariableAst.
+        if not type(self.assign_to).__name__.startswith("Local"):
+            given_type = self.assign_to.infer_type(scope_handler, **kwargs)
+            if not given_type.symbolic_eq(value_type, scope_handler.current_scope):
+                raise SemanticErrors.TYPE_MISMATCH_2(None, self.assign_to, value_type, given_type, scope_handler)
 
 
 __all__ = ["LetStatementInitializedAst"]
