@@ -8,10 +8,9 @@ cor coroutine(a: &std::BigInt) -> std::GenMut[Yield=std::BigInt, Send=std::Str] 
 }
 
 
-fun test_coroutine() -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
+fun test_coroutine() -> std::Void {
     let counter = 0
     pin counter
 
     let c = coroutine(&counter)
-    ret c
 }
