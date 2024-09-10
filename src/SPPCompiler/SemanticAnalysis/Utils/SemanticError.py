@@ -17,17 +17,6 @@ class SemanticErrorStringFormatType(Enum):
     NO_FORMAT = 2
 
 
-class SemanticErrorType(Enum):
-    _NONE = -1
-    TYPE_ERROR = 0
-    VALUE_ERROR = 1
-    LITERAL_ERROR = 2
-    NAME_ERROR = 3
-    ORDER_ERROR = 4
-    MEMORY_ERROR = 5
-    ASYNC_ERROR = 6
-
-
 class SemanticError(Exception):
     additional_info: List[Tuple[int, str, str, SemanticErrorStringFormatType]]
 
