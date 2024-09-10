@@ -644,8 +644,8 @@ class SemanticErrors:
     @staticmethod
     def MOVING_PINNED_VALUE(ast: Ast, pin: Ast) -> SemanticError:
         exception = SemanticError()
-        exception.add_info(pos=pin.pos, tag=f"'{ast}' pinned here.")
-        exception.add_error(pos=ast.pos, tag="Pinned value moved here.", msg="Cannot move a pinned value.",
+        exception.add_info(pos=pin.pos, tag=f"'{pin}' pinned here.")
+        exception.add_error(pos=ast.pos, tag="Pinned value moved here (could be through destruction).", msg="Cannot move a pinned value.",
                             tip="Unpin the value, or don't copy the pinned value.")
         return exception
 
