@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SupScopeLoader, SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity, TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -11,7 +11,7 @@ from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 
 
 @dataclass
-class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
+class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader, TypeInfer):
     """
     The LetStatementInitializedAst node is used to represent a variable being initialized with a value. The variable
     could be a single variable, a tuple or a destructure. Recursive destructuring is supported.
@@ -55,6 +55,8 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         ...
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleIdentifierAst
+
         # If the symbol was already generated (in .generate(), then nothing needs to be done)
         if self._sup_let_type is not None: return
 
@@ -62,7 +64,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         ensure_memory_integrity(self, self.value, self.assign_token, scope_handler)
 
         # Analyse the value being assigned to the variable.
-        kwargs |= {"value": self.value}
+        kwargs |= {"value": self.value, "assignment": None}
         self.assign_to.do_semantic_analysis(scope_handler, **kwargs)
 
         # Check the type being assigned is not std::Void.
@@ -75,6 +77,10 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             given_type = self.assign_to.infer_type(scope_handler, **kwargs)
             if not given_type.symbolic_eq(value_type, scope_handler.current_scope):
                 raise SemanticErrors.TYPE_MISMATCH_2(None, self.assign_to, value_type, given_type, scope_handler)
+
+    def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        return InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
 
 
 __all__ = ["LetStatementInitializedAst"]
