@@ -29,10 +29,16 @@ fun test_cases(y: std::U32 | std::Str) -> std::Void {
         is std::U32() { "num" }
         is std::Str() { "str" }
 
+    let a = ((1, 2), (3, "4"))
+    case a then
+        is ((6, 7), (8, mut j)) { j = "1" }
+        is ((5, l), mut t) { t = (4, "hello") }
+        else { "false" }
+
     let d = DirVec(point=Point(x=1, y=2, z=3), dir=4)
     case d then
         is DirVec(point=Point(x=1, y=2, z=3), dir=4) and false { "1" }
-        is DirVec(point=Point(x=1, y=2, z=3), ..) { "2" }
+        is DirVec(point=Point(x, ..), ..) { }
 
     let t = (1, 2, 3, 4)
     let val = case t then
