@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import copy
+import copy, operator
 from dataclasses import dataclass
+from fastenum import Enum
 from typing import Dict, List, Optional, Tuple, Type
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
@@ -106,11 +107,11 @@ def ensure_memory_integrity(
     if symbol.memory_info.ast_pins == "Inconsistent":
         raise SemanticErrors.INCONSISTENT_MEMORY_PIN_STATUS(value_ast)
 
-    # 1. Check the symbol has not been consumed by another move. This prevents double moves or using uninitialized values.
+    # 1. Check the symbol has not been consumed by another move (prevents double moves / uninitialized use).
     if check_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_consumed:
         raise SemanticErrors.USING_NON_INITIALIZED_VALUE(value_ast, symbol)
 
-    # 2. Check the symbol does not have any partial move.
+    # 2. Check the symbol does not have any partial moves (prevents partially uninitialized use).
     if check_partial_move and isinstance(value_ast, IdentifierAst) and symbol.memory_info.ast_partial_moves:
         raise SemanticErrors.USING_PARTIAL_MOVED_VALUE(value_ast, symbol)
 
@@ -132,6 +133,7 @@ def ensure_memory_integrity(
             if str_value_ast.startswith(str(existing_pin)) or str(existing_pin).startswith(str_value_ast):
                 raise SemanticErrors.MOVING_PINNED_VALUE(value_ast, existing_pin)
 
+    # Todo: Don't do this if the `Copy` type is superimposed over the symbol's type as a stage 1 superclass.
     # 6. Mark the symbol as consumed or partially moved.
     if mark_symbols:
         match value_ast:
@@ -222,7 +224,7 @@ def convert_function_arguments_to_named(
     return arguments
 
 
-def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> Seq[Tuple[Scope, "SupPrototypeNormalAst", List["GenericArgumentAst"]]]:
+def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", exclusive: bool = False) -> Seq[Tuple[Scope, "SupPrototypeNormalAst", List["GenericArgumentAst"]]]:
     from SPPCompiler.LexicalAnalysis.Lexer import Lexer
     from SPPCompiler.SyntacticAnalysis.Parser import Parser
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst, GenericArgumentNamedAst, TokenAst
@@ -245,7 +247,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
         # Functions that belong to a class (methods). Generics must come from the specific superimposition that these
         # methods belong to.
         case _:
-            for sup_scope, _ in type_scope.sup_scopes:
+            for sup_scope, _ in (type_scope.sup_scopes if not exclusive else type_scope._sup_scopes):
                 if Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).map(lambda s: s.name).contains(converted_identifier):
                     generics = Seq(sup_scope._symbol_table.all()).filter_to_type(TypeSymbol).filter(lambda t: t.is_generic and t.associated_scope)
                     generics = generics.map(lambda sym: GenericArgumentNamedAst(
@@ -261,6 +263,10 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst") -> S
 
 
 def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", scope_handler: ScopeHandler) -> None:
+    # Todo: Completely change this
+    #  - Method isn't called when a new superclass is added
+    #  - Method should be called when an attribute access is attempted
+
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     # Get the attributes from the superclass.
@@ -290,32 +296,12 @@ def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", 
             raise SemanticErrors.CONFLICTING_ATTRIBUTES(old_symbol, new_symbol, old_scope, new_scope)
 
 
-"""
-def check_for_conflicting_attributes(type_scope: Scope, super_class: "TypeAst", scope_handler: ScopeHandler) -> None:
-    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-
-    # Get the symbols on the new superclass.
-    new_scope = scope_handler.current_scope.get_symbol(super_class.without_generics()).associated_scope
-    new_symbols = Seq(new_scope.all_symbols(exclusive=True)).filter_to_type(VariableSymbol)
-
-    # Iterate through each superclass scope, and check for conflicting attributes.
-    for sup_scope, _ in [(type_scope, None), *type_scope.sup_scopes]:
-
-        for new_symbol in new_symbols:
-
-            # If a symbol with the same name already exists, then there is a conflict.
-            if sup_scope._symbol_table.has(new_symbol.name):
-                old_symbol = sup_scope._symbol_table.get(new_symbol.name)
-                raise SemanticErrors.CONFLICTING_ATTRIBUTES(old_symbol, new_symbol, sup_scope, new_scope)
-"""
-
-
-def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:
-    this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
-    that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
-    t1 = this_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[this_member_has_self_parameter:]
-    t2 = that_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[that_member_has_self_parameter:]
-    return all(tt1.type.symbolic_eq(tt2.type, current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
+# def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:
+#     this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
+#     that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
+#     t1 = this_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[this_member_has_self_parameter:]
+#     t2 = that_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[that_member_has_self_parameter:]
+#     return all(tt1.type.symbolic_eq(tt2.type, current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
 
 
 def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: ScopeHandler) -> Optional[TypeSymbol]:
@@ -399,6 +385,67 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
             new_scope.add_symbol(generic_parameter_type_symbol)
 
     return new_scopes
+
+
+class FunctionConflictCheckType(Enum):
+    InvalidOverload = 0
+    InvalidOverride = 1
+
+
+def check_for_conflicting_methods(
+        type_scope: Scope,
+        scope_handler: ScopeHandler,
+        new_function: FunctionPrototypeAst,
+        conflict_type: FunctionConflictCheckType) -> Optional[FunctionPrototypeAst]:
+
+    """
+    Check for conflicting methods in the current scope. This is used to detect a conflicting overload,or to ensure a
+    valid override. The same logic is used, with minor tweaks.
+
+    Args:
+        type_scope: The scope to get all the existing functions from.
+        scope_handler: The scope handler to use.
+        new_function: The new function prototype that is being added.
+        conflict_type: The conflict check to perform.
+
+    Returns:
+        The existing function prototype ast that is conflicting with the new function, if there is one, otherwise None.
+    """
+
+    # Get all the existing functions with the same identifier belonging to the type scope.
+    existing_function_scopes = get_all_function_scopes(type_scope, new_function._orig, exclusive=True).map(operator.itemgetter(0))
+    existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive=True).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
+
+    # For overloads, the required parameters must have different types or conventions.
+    if conflict_type == FunctionConflictCheckType.InvalidOverload:
+        parameter_filter = lambda f: f.parameters.get_req()
+        parameter_comparison = lambda p1, p2: p1.type_declaration.symbolic_eq(p2.type_declaration, type_scope, scope_handler.current_scope) and p1.convention == p2.convention
+        extra_check = lambda f1, f2: True
+
+    # For overrides, all parameters must be direct matches.
+    else:
+        parameter_filter = lambda f: Seq(f.parameters.parameters)
+        parameter_comparison = lambda p1, p2: p1.type_declaration.symbolic_eq(p2.type_declaration, type_scope, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier == p2.identifier and type(p1) is type(p2)
+        extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
+
+    # Check each parameter set for each overload. 1 match means there is a conflict.
+    for existing_function, existing_function_scope in existing_functions.zip(existing_function_scopes):
+        parameter_set_1 = parameter_filter(existing_function)
+        parameter_set_2 = parameter_filter(new_function)
+
+        # Pre-checks that bypass type checking (parameter length, extra checks, same ast).
+        if parameter_set_1.length != parameter_set_2.length: continue
+        if not extra_check(existing_function, new_function): continue
+        if existing_function is new_function: continue
+
+        # Type-check the parameters (or already a match for 0-parameter functions).
+        if parameter_set_1.length == 0 and parameter_set_2.length == 0:
+            return existing_function
+        if parameter_set_1.zip(parameter_set_2).all(lambda params: parameter_comparison(*params)):
+            return existing_function
+
+    # No conflicts found.
+    return False
 
 
 @dataclass(kw_only=True)

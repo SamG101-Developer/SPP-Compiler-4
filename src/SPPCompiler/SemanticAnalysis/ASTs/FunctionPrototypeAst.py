@@ -6,6 +6,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import check_for_conflicting_methods, FunctionConflictCheckType
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -118,7 +119,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # At this point, either the class existed, or it exists now, so superimpose the "Fun___" type onto it. Create
         # the call function, like "call_ref", and carry through the generic parameters, function parameters,
         # return type, etc.
-        # Todo: don't deepcopy body and just link it?
         self._ctx = None
         fun_ast = copy.deepcopy(self)
         fun_ast.identifier = function_call_name
@@ -147,55 +147,20 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ModulePrototypeAst
+        from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
         scope_handler.move_to_next_scope()
 
         # Load generic-version of a type in for comparisons.
         self.return_type.do_semantic_analysis(scope_handler)
 
-        # Check there are no conflicting function overloads. First, get all the overload function scopes.
-        # Todo: this inadvertently bans overriding a super-class function implementation
-        # match self._ctx:
-        #     case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
-        #     case _: owner_type = self._ctx.identifier.without_generics()
-        #
-        # type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
-        # func_scopes = get_all_function_scopes(type_scope, self._orig)
-        #
-        # # Iterate through each function scope, skipping the current scope (don't compare self against self).
-        # for func_scope in func_scopes:
-        #     overload_definition = func_scope[1].body.members[0]
-        #     overload_scope = func_scope[0].children[0]
-        #     if overload_definition == self: continue
-        #     that_parameters = overload_definition.parameters
-        #
-        #     # Check if a "self" parameter exists on nether or both
-        #     this_self_parameter = self.parameters.get_self()
-        #     that_self_parameter = that_parameters.get_self()
-        #     if (this_self_parameter is not None) ^ (that_self_parameter is not None): continue
-        #
-        #     # Check if "self" is the same (allows override detection)
-        #     if this_self_parameter is not None:
-        #         this_self_type = scope_handler.current_scope.parent.name
-        #         that_self_type = overload_scope.parent.name
-        #         if this_self_type != that_self_type: continue
-        #
-        #     # Compare the required parameter types and conventions of the function prototypes.
-        #     this_required_parameter_types = Seq(self.parameters.get_req()).map(lambda p: p.type_declaration)
-        #     that_required_parameter_types = Seq(that_parameters.get_req()).map(lambda p: p.type_declaration)
-        #     if this_required_parameter_types.length != that_required_parameter_types.length: continue
-        #
-        #     # Compare the required parameter conventions of the function prototypes.
-        #     this_required_conventions = Seq(self.parameters.get_req()).map(lambda p: p.convention)
-        #     that_required_conventions = Seq(that_parameters.get_req()).map(lambda p: p.convention)
-        #
-        #     # Check if the required parameter types and conventions are the same.
-        #     check_1 = all(this_required_parameter_types.zip(that_required_parameter_types).map(lambda p: p[0] == p[1]).list())
-        #     check_2 = all(this_required_conventions.zip(that_required_conventions).map(lambda p: p[0] == p[1]).list())
-        #
-        #     # If the required parameter types and conventions are the same, the function prototypes are conflicting.
-        #     if check_1 and check_2:
-        #         raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, self, overload_definition)
+        match self._ctx:
+            case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
+            case _: owner_type = self._ctx.identifier.without_generics()
+        type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
+
+        if conflict := check_for_conflicting_methods(type_scope, scope_handler, self, FunctionConflictCheckType.InvalidOverload):
+            raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, conflict, self)
 
         scope_handler.exit_cur_scope()
 
