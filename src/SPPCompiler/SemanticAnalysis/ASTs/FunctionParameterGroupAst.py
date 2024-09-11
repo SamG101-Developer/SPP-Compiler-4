@@ -18,9 +18,9 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
     the arguments to a function call (see FunctionArgumentGroupAst).
 
     Attributes:
-        - paren_l_token: The left parenthesis token.
-        - parameters: The parameters of the function prototype.
-        - paren_r_token: The right parenthesis token.
+        paren_l_token: The left parenthesis token.
+        parameters: The parameters of the function prototype.
+        paren_r_token: The right parenthesis token.
     """
 
     paren_l_token: "TokenAst"

@@ -50,8 +50,19 @@ class PatternBlockAst(Ast, SemanticAnalyser):
         return isinstance(self.patterns[0], PatternVariantElseAst)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import PatternVariantElseAst, PatternVariantElseCaseAst
+
         # Each block needs a new scope.
         scope_handler.into_new_scope("<pattern-block>")
+
+        # Todo: for "is" destructure patterns, a compatibility checker is needed.
+        #  - Check the same variables are introduced for each pattern.
+        #  - Check if 2+ variant types are being introduced, that no variables are being introduced.
+        # print("-" * 100)
+        # for p in self.patterns:
+        #     non_generative_patterns = (PatternVariantElseAst, PatternVariantElseCaseAst)
+        #     if self.comp_operator.token.token_type == TokenType.KwIs and not isinstance(p, non_generative_patterns):
+        #         variable = p.convert_to_variable()
 
         # Analyse the patterns, the guard, and the body of the block.
         Seq(self.patterns).for_each(lambda p: p.do_semantic_analysis(scope_handler, **kwargs))
