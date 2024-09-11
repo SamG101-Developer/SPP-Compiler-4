@@ -12,7 +12,7 @@ class PreProcessor:
 
 class SymbolGenerator:
     def generate(self, scope_handler: ScopeHandler) -> None:
-        ...
+        pass
 
 
 class SemanticAnalyser:

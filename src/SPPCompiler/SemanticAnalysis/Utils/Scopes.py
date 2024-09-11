@@ -130,28 +130,20 @@ class Scope:
 
         return symbol
 
-    def get_all_symbols(self, name: GenericIdentifierAst) -> List[VariableSymbol]:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
-        assert isinstance(name, GenericIdentifierAst)
-        scope = self
-
-        syms = [scope._symbol_table.get(name)]
-        for sup_scope, _ in scope._sup_scopes:
-            syms.extend(sup_scope.get_all_symbols(name))
-
-        while None in syms:
-            syms.remove(None)
-
-        return syms
-
     def has_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> bool:
         return self.get_symbol(name, exclusive, ignore_alias) is not None
 
     def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])
 
-    def rem_symbol(self, symbol: TypeSymbol | VariableSymbol) -> None:
-        self._symbol_table.rem(symbol)
+    def rem_symbol(self, symbol: TypeSymbol | VariableSymbol, exclusive: bool = False) -> None:
+        scope = self
+        symbol_found = symbol in scope._symbol_table._internal_table.values()
+
+        if symbol_found:
+            return scope._symbol_table.rem(symbol)
+        if self._parent_scope and not exclusive:
+            self._parent_scope.rem_symbol(symbol, exclusive)
 
     def __json__(self) -> dict:
         return {

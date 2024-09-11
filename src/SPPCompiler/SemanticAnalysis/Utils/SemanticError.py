@@ -537,7 +537,7 @@ class SemanticErrors:
         exception.add_info(pos=superclass_type.pos, tag=f"Superclass declared as '{superclass_type}'.")
         exception.add_error(pos=ast.pos, tag=f"Invalid member found here.",
                             msg=f"Member does not exist on superclass '{superclass_type.without_generics()}'.",
-                            tip="Ensure the member is defined in the superclass.\n- Note that 'Self'-type parameters change type depending on their enclosing class.")
+                            tip="Ensure the member is defined in the superclass.")
         return exception
 
     @staticmethod

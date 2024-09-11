@@ -234,8 +234,6 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
     sup_scopes = []
     generics = []
 
-    # print(f"Getting function scopes for '{identifier}' in '{type_scope}'")
-
     match type_scope.name:
 
         # Functions in a namespace / global namespace; there will be no inheritable generics.

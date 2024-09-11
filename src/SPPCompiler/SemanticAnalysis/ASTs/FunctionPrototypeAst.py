@@ -154,11 +154,13 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Load generic-version of a type in for comparisons.
         self.return_type.do_semantic_analysis(scope_handler)
 
+        # Get the owner type or namespace scope, to check for conflicting function overloads.
         match self._ctx:
             case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
             case _: owner_type = self._ctx.identifier.without_generics()
         type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
 
+        # Check for conflicting function overloads in the type scope.
         if conflict := check_for_conflicting_methods(type_scope, scope_handler, self, FunctionConflictCheckType.InvalidOverload):
             raise SemanticErrors.CONFLICTING_FUNCTION_OVERLOADS(self._orig, conflict, self)
 
