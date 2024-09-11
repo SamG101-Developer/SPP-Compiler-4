@@ -106,7 +106,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.TYPE_MISMATCH_2(None, argument, attribute_type, argument_type, scope_handler)
 
         # Ensure all the "sup" arguments are present in the object initializer.
-        sup_types = type_symbol.associated_scope.sup_scopes
+        sup_types = type_symbol.associated_scope._sup_scopes
         sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
         expected_sup_types = Seq()
         for sup_scope, sup_block in sup_types:

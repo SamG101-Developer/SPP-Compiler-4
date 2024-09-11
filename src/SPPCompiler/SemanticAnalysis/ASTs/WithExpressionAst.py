@@ -39,6 +39,7 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        # TODO: This won't work (... in sup_scopes): sup_scopes needs transforming
         scope_handler.into_new_scope("<with-block>")
 
         # Analyse the expression.
