@@ -1,3 +1,4 @@
+import operator
 from dataclasses import dataclass
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
@@ -67,7 +68,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     lhs_symbol = scope_handler.current_scope.get_symbol(lhs_type)
                     lhs_type_scope = lhs_symbol.associated_scope
 
-                    # Check if the left side is a generic type; cannot access members off these. Todo: Constraints
+                    # Check if the left side is a generic type; cannot access members off these.
                     if not lhs_type_scope:
                         raise SemanticErrors.MEMBER_ACCESS_GENERIC_TYPE(lhs, self.identifier, lhs_type)
 
@@ -78,6 +79,15 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
                     # Check if the member being accessed exists on the left side type.
                     if not lhs_type_scope.has_symbol(self.identifier, exclusive=True):
                         raise SemanticErrors.MEMBER_ACCESS_NON_EXISTENT(lhs, self.identifier, lhs_type, "type", "attribute")
+
+                    # Check for ambiguous symbol access (unless it is a function being called).
+                    # Todo: this is a bit hacky to avoid function calls which are allows (overloads resolved).
+                    if not lhs_type_scope.get_symbol(self.identifier, exclusive=True).type.types[-1].value.startswith("MOCK"):
+                        all_symbols = lhs_type_scope.get_multiple_symbols(self.identifier)
+                        min_depth = all_symbols.map(operator.itemgetter(2)).min()
+                        syms_at_min_depth = all_symbols.filter(lambda s: s[2] == min_depth)
+                        if syms_at_min_depth.length > 1:
+                            raise SemanticErrors.AMBIGUOUS_ATTRIBUTE_ACCESS(lhs, self.identifier, syms_at_min_depth)
 
                 # Namespaced member access.
                 if isinstance(self.identifier, IdentifierAst) and self.dot_token.token.token_type == TokenType.TkDblColon:
