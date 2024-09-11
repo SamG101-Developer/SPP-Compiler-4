@@ -1,0 +1,17 @@
+mod testing::conflict_overloads
+
+
+fun overload_conflict_1() -> std::Void { }
+# fun overload_conflict_1(a: std::Str = "1") -> std::Void { }
+
+
+cls MyOverloadTestingClass {}
+
+
+sup MyOverloadTestingClass {
+    fun overload_conflict_2(&self) -> std::Void { }
+}
+
+sup MyOverloadTestingClass {
+    fun overload_conflict_2(&mut self, a: std::BigInt) -> std::Void { }
+}
