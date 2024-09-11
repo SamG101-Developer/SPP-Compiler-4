@@ -60,7 +60,6 @@ class UseStatementTypeAliasAst(Ast, SemanticAnalyser):
         # Apply a superimposition, to allow for the attribute & method access.
         ast_2 = SupPrototypeInheritanceAst(self.pos, TokenAst.dummy(TokenType.KwSup), generic_parameters_2, self.new_type, None, None, self.old_type, TokenAst.dummy(TokenType.KwOn))
         ast_2.generate(scope_handler)
-        old_type_sup_scopes = old_symbol.associated_scope.sup_scopes
         scope_handler.current_scope.children[-2]._sup_scopes.append((scope_handler.current_scope.children[-1], ast_2))
 
         # Get the symbol of the superclass, and the symbol of the new type.
