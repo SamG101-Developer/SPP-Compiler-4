@@ -3,6 +3,6 @@ mod std::ops::sub
 
 cls Sub[Rhs] {}
 
-sup Sub[Rhs=Phantom] {
-    fun sub(self, that: Sub[Rhs=Phantom]::Rhs) -> std::Void { }
+sup [Rhs] Sub[Rhs] {
+    fun sub(self, that: Rhs) -> Void { }
 }

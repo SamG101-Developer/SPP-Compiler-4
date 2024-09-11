@@ -3,7 +3,7 @@ NOW
 Functions:
 -- Conflicting overloads don't work for generic classes?
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
--- Overriding a function doesn't remove the base overload from consideration.
+** Overriding a function doesn't remove the base overload from consideration.
 
 Types:
 -- Add an array literal syntax, and consider empty arrays.

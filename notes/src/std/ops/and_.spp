@@ -3,6 +3,6 @@ mod std::ops::and_
 
 cls And[Rhs] {}
 
-sup And[Rhs=Phantom] {
-    fun and_(self, that: And[Rhs=Phantom]::Rhs) -> std::Void { }
+sup [Rhs] And[Rhs] {
+    fun and_(self, that: Rhs) -> Bool { }
 }

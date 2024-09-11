@@ -3,6 +3,6 @@ mod std::ops::mul
 
 cls Mul[Rhs] { }
 
-sup Mul[Rhs=Phantom] {
-    fun mul(self, that: Mul[Rhs=Phantom]::Rhs) -> std::Void { }
+sup [Rhs] Mul[Rhs] {
+    fun mul(self, that: Rhs) -> Void { }
 }

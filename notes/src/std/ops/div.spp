@@ -3,6 +3,6 @@ mod std::ops::div
 
 cls Div[Rhs] { }
 
-sup Div[Rhs=Phantom] {
-    fun div(self, that: Div[Rhs=Phantom]::Rhs) -> std::Void { }
+sup [Rhs] Div[Rhs] {
+    fun div(self, that: Rhs) -> Void { }
 }

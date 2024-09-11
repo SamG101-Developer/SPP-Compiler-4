@@ -3,6 +3,6 @@ mod std::ops::eq
 
 cls Eq[Rhs] { }
 
-sup Eq[Rhs=Phantom] {
-    fun eq(&self, that: Eq[Rhs=Phantom]::Rhs) -> std::Void { }
+sup [Rhs] Eq[Rhs] {
+    fun eq(&self, that: Rhs) -> Bool { }
 }
