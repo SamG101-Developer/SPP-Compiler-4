@@ -413,8 +413,9 @@ def check_for_conflicting_methods(
     """
 
     # Get all the existing functions with the same identifier belonging to the type scope.
-    existing_function_scopes = get_all_function_scopes(type_scope, new_function._orig, exclusive=True).map(operator.itemgetter(0))
-    existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive=True).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
+    exclusive = conflict_type == FunctionConflictCheckType.InvalidOverload
+    existing_function_scopes = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(0))
+    existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
 
     # For overloads, the required parameters must have different types or conventions.
     if conflict_type == FunctionConflictCheckType.InvalidOverload:
@@ -430,6 +431,7 @@ def check_for_conflicting_methods(
 
     # Check each parameter set for each overload. 1 match means there is a conflict.
     for existing_function, existing_function_scope in existing_functions.zip(existing_function_scopes):
+
         parameter_set_1 = parameter_filter(existing_function)
         parameter_set_2 = parameter_filter(new_function)
 
