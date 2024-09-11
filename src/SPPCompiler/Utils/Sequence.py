@@ -127,6 +127,13 @@ class Seq[T]:
     def any(self, func: Callable[[T], bool]) -> bool:
         return any(func(x) for x in self._value)
 
+    # Math operations
+    def min(self, key: Callable[[T], any] = None) -> T:
+        return min(self._value, key=key)
+
+    def max(self, key: Callable[[T], any] = None) -> T:
+        return max(self._value, key=key)
+
     # Indexing operations
 
     def enumerate(self) -> Seq[tuple[int, T]]:
