@@ -106,21 +106,20 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
             if all(c[2] == changes[0][2] for c in changes):
                 scope_handler.current_scope.get_symbol(symbol_name).memory_info.ast_consumed = changes[0][2]
 
-        if "assignment" in kwargs:
-            # If this if-expression is being used for assignment, then all the branches must return the same type.
-            branch_return_types = Seq(self.branches).map(lambda b: b.body.infer_type(scope_handler, **kwargs)).unique_items()
-            if branch_return_types.length > 1:
-                raise SemanticErrors.CONFLICTING_IF_BRANCH_TYPES(branch_return_types[0], branch_return_types[1])
-
-            # Ensure the final branch is an else branch. todo: exhaustive branches don't need this
-            if not isinstance(self.branches[-1].patterns[0], PatternVariantElseAst):
-                raise SemanticErrors.NO_ELSE_BRANCH(self.branches[-1])
-
         # Exit the if-scope.
         scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, PatternVariantElseAst
+
+        # All the branches must return the same type. Not in standard analysis because it is not always necessary.
+        branch_return_types = Seq(self.branches).map(lambda b: b.body.infer_type(scope_handler, **kwargs)).unique_items()
+        if branch_return_types.length > 1:
+            raise SemanticErrors.CONFLICTING_IF_BRANCH_TYPES(branch_return_types[0], branch_return_types[1])
+
+        # Ensure the final branch is an else branch, in case none of the other patterns match.
+        if not isinstance(self.branches[-1].patterns[0], PatternVariantElseAst):
+            raise SemanticErrors.NO_ELSE_BRANCH(self.branches[-1])
 
         # The IfExpressionAst's returning type is any PatternBlockAst's returning type (all blocks will have the same).
         kwargs |= {"condition": self.condition}

@@ -11,6 +11,11 @@ sup Str {
 }
 
 
+sup std::ops::Eq[Rhs=Str] on Str {
+    fun eq(&self, that: Str) -> Bool { }
+}
+
+
 fun test_other_mod_constant() -> std::Void {
     let x = testing::test_loop_analysis()
     let y = testing::constant_1.upper()

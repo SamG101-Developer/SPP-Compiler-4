@@ -20,4 +20,10 @@ fun test_case_else_case() -> std::Void {
     else {
         let d = 4
     }
+
+    let mut y = "1"
+    y = case y then
+        == "1" { "hello" }
+        == "2" { "false" }
+        else { "123" }
 }
