@@ -212,7 +212,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             except SemanticError as e:
                 # Save the error to the list of overload errors.
-                func_overload_errors.append((original_func_overload, e))
+                func_overload_errors.append((original_func_overload, e, func_scope))
 
                 # If a specialized scope was created for this overload, remove it.
                 if specialized_scope_info["created"]:
@@ -236,23 +236,23 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         if not valid_overloads:
             # Merge all the overload errors.
             signatures = f"{called_signature}\n\nAvailable signatures:\n"
-            for func_overload, func_overload_error in func_overload_errors:
+            for func_overload, func_overload_error, func_scope in func_overload_errors:
                 error_string = f"{display_name}{func_overload.print_signature(AstPrinter())}"
                 signatures += f"  - {error_string}\n"
 
-            for func_overload, func_overload_error in func_overload_errors:
+            for func_overload, func_overload_error, func_scope in func_overload_errors:
                 error_string = f"{display_name}{func_overload.print_signature(AstPrinter())}"
                 error_string += func_overload_error.additional_info[-1][1].replace("\n", "\n\t")
                 signatures += f"\n{error_string}\n"
             raise SemanticErrors.NO_VALID_OVERLOADS(display_ast, signatures)
 
         # Error if there are multiple valid overloads for this function call (after generic substitution).
-        if len(valid_overloads) > 1:
-            signatures = f"{called_signature}\n\nAvailable signatures:\n"
-            for func_overload, *_ in valid_overloads:
-                error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
-                signatures += f"  - {error_string}\n"
-            raise SemanticErrors.AMBIGUOUS_FUNCTION_CALL(self, signatures)
+        # if len(valid_overloads) > 1:
+        #     signatures = f"{called_signature}\n\nAvailable signatures:\n"
+        #     for func_overload, _, func_scope in valid_overloads:
+        #         error_string  = f"{display_name}{func_overload.print_signature(AstPrinter())}"
+        #         signatures += f"  - {error_string}\n"
+        #     raise SemanticErrors.AMBIGUOUS_FUNCTION_CALL(self, signatures)
 
         self._overload = valid_overloads[0]
         return self._overload
