@@ -92,6 +92,17 @@ class Scope:
                 if symbol:
                     return self.__confirm_symbol(symbol, ignore_alias)
 
+    def _get_multiple_symbols(self, name: IdentifierAst, original_scope: Scope) -> Seq[Tuple[VariableSymbol, Scope, int]]:
+        symbols = Seq([(self._symbol_table.get(name), self, original_scope.depth_to(self))])
+        for sup_scope, _ in self._sup_scopes:
+            symbols.extend(sup_scope._get_multiple_symbols(name, original_scope))
+        for s, c, d in symbols.copy():
+            if not s: symbols.remove((s, c, d))
+        return symbols
+
+    def get_multiple_symbols(self, name: IdentifierAst) -> Seq[Tuple[VariableSymbol, Scope, int]]:
+        return self._get_multiple_symbols(name, self)
+
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
 
@@ -169,13 +180,9 @@ class Scope:
     @property
     def sup_scopes(self) -> List[Tuple[Scope, SupPrototypeInheritanceAst]]:
         all_sup_scopes = []
-        scopes_read = []
         for sup_scope, ast in self._sup_scopes:
-            if sup_scope in scopes_read: continue
             all_sup_scopes.append((sup_scope, ast))
             all_sup_scopes.extend(sup_scope.sup_scopes)
-            scopes_read.append(sup_scope)
-
         return all_sup_scopes
 
     @property

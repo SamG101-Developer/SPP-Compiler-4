@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, TypeSymbol
+from SPPCompiler.Utils.Sequence import Seq
 
 
 class SemanticErrorStringFormatType(Enum):
@@ -291,6 +292,16 @@ class SemanticErrors:
         return exception
 
     @staticmethod
+    def AMBIGUOUS_ATTRIBUTE_ACCESS(lhs: Ast, rhs: Ast, candidates: Seq[Tuple[VariableSymbol, Scope, int]]) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=rhs.pos,
+            tag=f"Member '{rhs}' accessed here.",
+            msg="Ambiguous member access.",
+            tip=f"Use 'std::upcast[T]({lhs}).{rhs}':\n{candidates.map(lambda c: f"\t- {c[1].name}::{c[0].name}").join("\n")}")
+        return exception
+
+    @staticmethod
     def NUMERICAL_MEMBER_ACCESS_TYPE(lhs: Ast, rhs: Ast, lhs_ty: "TypeAst") -> SemanticError:
         exception = SemanticError()
         exception.add_info(pos=lhs.pos, tag=f"Type inferred as '{lhs_ty}'")
@@ -510,18 +521,6 @@ class SemanticErrors:
         exception.add_error(pos=ast1.pos, tag=f"Conflicting overload of function '{name}' found here.",
                             msg="Conflicting function overloads.",
                             tip="Ensure that the function overloads have different signatures.")
-        return exception
-
-    @staticmethod
-    def CONFLICTING_ATTRIBUTES(
-            old_symbol: VariableSymbol, new_symbol: VariableSymbol, old_type: TypeAst,
-            new_type: TypeAst) -> SemanticError:
-        exception = SemanticError()
-        exception.add_info(pos=old_symbol.name.pos,
-                           tag=f"1st attribute '{old_symbol.name}' found here for '{old_type}'.")
-        exception.add_error(pos=new_symbol.name.pos,
-                            tag=f"Conflicting attribute '{new_symbol.name}' found here for '{new_type}'.",
-                            msg="Conflicting attribute names.", tip="Ensure that all attributes have unique names.")
         return exception
 
     @staticmethod
