@@ -157,7 +157,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Get the owner type or namespace scope, to check for conflicting function overloads.
         match self._ctx:
             case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
-            case _: owner_type = self._ctx.identifier.without_generics()
+            case _: owner_type = self._ctx.identifier
         type_scope = scope_handler.current_scope.get_symbol(owner_type).associated_scope
 
         # Check for conflicting function overloads in the type scope.

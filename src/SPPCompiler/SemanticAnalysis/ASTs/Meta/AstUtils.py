@@ -377,21 +377,22 @@ def check_for_conflicting_methods(
     # Get all the existing functions with the same identifier belonging to the type scope.
     exclusive = conflict_type == FunctionConflictCheckType.InvalidOverload
     existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
+    existing_scopes    = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(0))
 
     # For overloads, the required parameters must have different types or conventions.
     if conflict_type == FunctionConflictCheckType.InvalidOverload:
         parameter_filter = lambda f: f.parameters.get_req()
-        parameter_comparison = lambda p1, p2: p1.type_declaration.symbolic_eq(p2.type_declaration, type_scope, scope_handler.current_scope) and p1.convention == p2.convention
+        parameter_comparison = lambda p1, p2, s1: p1.type_declaration.symbolic_eq(p2.type_declaration, s1, scope_handler.current_scope) and p1.convention == p2.convention
         extra_check = lambda f1, f2: True
 
     # For overrides, all parameters must be direct matches.
     else:
         parameter_filter = lambda f: Seq(f.parameters.parameters)
-        parameter_comparison = lambda p1, p2: p1.type_declaration.symbolic_eq(p2.type_declaration, type_scope, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier == p2.identifier and type(p1) is type(p2)
+        parameter_comparison = lambda p1, p2, s1: p1.type_declaration.symbolic_eq(p2.type_declaration, s1, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier == p2.identifier and type(p1) is type(p2)
         extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
 
     # Check each parameter set for each overload. 1 match means there is a conflict.
-    for existing_function in existing_functions:
+    for existing_scope, existing_function in existing_scopes.zip(existing_functions):
         parameter_set_1 = parameter_filter(existing_function)
         parameter_set_2 = parameter_filter(new_function)
 
@@ -403,7 +404,7 @@ def check_for_conflicting_methods(
         # Type-check the parameters (or already a match for 0-parameter functions).
         if parameter_set_1.length == 0 and parameter_set_2.length == 0:
             return existing_function
-        if parameter_set_1.zip(parameter_set_2).all(lambda params: parameter_comparison(*params)):
+        if parameter_set_1.zip(parameter_set_2).all(lambda params: parameter_comparison(*params, existing_scope)):
             return existing_function
 
     # No conflicts found.
