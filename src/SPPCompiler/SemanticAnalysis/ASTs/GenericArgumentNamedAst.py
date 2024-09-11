@@ -1,9 +1,12 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 
 
 @dataclass
@@ -41,6 +44,16 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Analyse the type of the argument.
         self.type.do_semantic_analysis(scope_handler, **kwargs)
+
+    @staticmethod
+    def from_symbol(symbol: TypeSymbol) -> GenericArgumentNamedAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+
+        return GenericArgumentNamedAst(
+            pos=-1,
+            raw_identifier=symbol.name.to_identifier(),
+            assignment_token=TokenAst.dummy(TokenType.TkAssign),
+            type=symbol.associated_scope.associated_type_symbol.fq_type)
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same identifier and type.

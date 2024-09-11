@@ -248,14 +248,12 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
             for sup_scope, _ in (type_scope.sup_scopes if not exclusive else type_scope._sup_scopes):
                 if Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).map(lambda s: s.name).contains(converted_identifier):
                     generics = Seq(sup_scope._symbol_table.all()).filter_to_type(TypeSymbol).filter(lambda t: t.is_generic and t.associated_scope)
-                    generics = generics.map(lambda sym: GenericArgumentNamedAst(
-                        pos=-1,
-                        raw_identifier=sym.name.to_identifier(),
-                        assignment_token=TokenAst.dummy(TokenType.TkAssign),
-                        type=sym.associated_scope.associated_type_symbol.fq_type))
+                    generics = generics.map(GenericArgumentNamedAst.from_symbol)
+                    fun_scope, ast = Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).filter(lambda s: s.name == converted_identifier).first().sup_scopes[0]
+                    sup_scopes.append((fun_scope, ast, generics))
 
-                    sup_scope, ast = Seq(sup_scope.children).filter(lambda s: isinstance(s.name, TypeAst)).filter(lambda s: s.name == converted_identifier).first().sup_scopes[0]
-                    sup_scopes.append((sup_scope, ast, generics))
+            # Methods that have been overridden must be removed (ie use most derived method).
+            ...
 
     return Seq(sup_scopes)
 
@@ -363,7 +361,7 @@ def check_for_conflicting_methods(
         conflict_type: FunctionConflictCheckType) -> Optional[FunctionPrototypeAst]:
 
     """
-    Check for conflicting methods in the current scope. This is used to detect a conflicting overload,or to ensure a
+    Check for conflicting methods in the current scope. This is used to detect a conflicting overload, or to ensure a
     valid override. The same logic is used, with minor tweaks.
 
     Args:
@@ -378,7 +376,6 @@ def check_for_conflicting_methods(
 
     # Get all the existing functions with the same identifier belonging to the type scope.
     exclusive = conflict_type == FunctionConflictCheckType.InvalidOverload
-    existing_function_scopes = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(0))
     existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
 
     # For overloads, the required parameters must have different types or conventions.
@@ -394,8 +391,7 @@ def check_for_conflicting_methods(
         extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
 
     # Check each parameter set for each overload. 1 match means there is a conflict.
-    for existing_function, existing_function_scope in existing_functions.zip(existing_function_scopes):
-
+    for existing_function in existing_functions:
         parameter_set_1 = parameter_filter(existing_function)
         parameter_set_2 = parameter_filter(new_function)
 
