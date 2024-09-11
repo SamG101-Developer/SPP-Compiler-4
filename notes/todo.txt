@@ -21,7 +21,6 @@ Case blocks:
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
--- Double analyse `loop` body, avoiding messing up `exit` loop counting.
 -- Expand `gen with` to `loop` and `gen`.
 -- Null coalescing operator `??` support.
 -- Generics that are inferred from variadic parameter become tuples, not the element.

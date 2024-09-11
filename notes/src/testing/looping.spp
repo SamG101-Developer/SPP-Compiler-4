@@ -9,5 +9,13 @@ fun test_loop_analysis() -> std::BigInt {
         i = 123
     }
 
+
+    let x = loop true {
+        exit 123
+        loop true {
+            exit exit 456
+        }
+    }
+
     ret 4
 }
