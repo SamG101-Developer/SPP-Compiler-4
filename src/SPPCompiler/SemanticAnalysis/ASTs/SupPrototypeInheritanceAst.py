@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block, check_for_conflicting_attributes
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -124,13 +124,20 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Check all members on this superimposition are present on the superclass.
         # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
         # super_class_scope = super_class_symbol.associated_scope
-        # super_class_implementations = Seq(super_class_scope._normal_sup_scopes)
+        # for member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
+        #     for m in member.body.members:
+        #         if not check_for_conflicting_methods(super_class_scope, scope_handler, m, FunctionConflictCheckType.InvalidOverride):
+        #             raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(m, self.super_class)
 
-        # Todo: as compiler develops, add the sup-typedefs here
+        # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        # super_class_scope = super_class_symbol.associated_scope
+        # super_class_implementations = Seq(super_class_scope._sup_scopes)
+        #
+        # # Todo: as compiler develops, add the sup-typedefs here
         # super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
         # this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
-
-        # Compare the members to ensure the superclass contains the members.
+        #
+        # # Compare the members to ensure the superclass contains the members.
         # for this_member in this_class_members:
         #     matched = False
         #
@@ -150,10 +157,10 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         #
         #     if not matched:
         #         raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
-
+        #
         scope_handler.exit_cur_scope()
-
-        # TODO : check there are no direct duplicate sup super-classes
+        #
+        # # TODO : check there are no direct duplicate sup super-classes
 
 
 __all__ = ["SupPrototypeInheritanceAst"]
