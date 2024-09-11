@@ -68,6 +68,19 @@ class Analyser:
 
         # Semantic analysis is done on the ast. If there is an error, then handle it.
         try:
+            self._ast.load_sup_scopes_gen(scope_handler)
+        except SemanticError as e:
+            handle_semantic_error(err_fmt, e)
+
+    def stage_4_analysis(self, scope_handler: ScopeHandler, shift_count: int) -> None:
+        # Create the error formatter to pickup any errors raised during analysis. These will need to be formatted
+        # specifically.
+        err_fmt = ErrorFormatter(self._tokens, self._file_name)
+        self.move_scope_handler_to_namespace(scope_handler)
+        self.move_scope_handler_to_end_of_scope(scope_handler, shift_count)
+
+        # Semantic analysis is done on the ast. If there is an error, then handle it.
+        try:
             kwargs = {"file-name": self._file_name, "err-fmt": err_fmt}
             self._ast.do_semantic_analysis(scope_handler, **kwargs)
         except SemanticError as e:

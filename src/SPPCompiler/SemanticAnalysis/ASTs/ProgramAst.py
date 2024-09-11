@@ -42,6 +42,10 @@ class ProgramAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeL
         # Load the module's members.
         Seq(self.module.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
 
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        # Comment.
+        Seq(self.module.body.members).for_each(lambda m: m.load_sup_scopes_gen(scope_handler))
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Semantically analyse the module.
         self.module.do_semantic_analysis(scope_handler, **kwargs)

@@ -56,10 +56,6 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader,  SemanticAnalyser, Sy
         variable_symbol.memory_info.ast_initialized = self
         scope_handler.current_scope.add_symbol(variable_symbol)
 
-    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
-        # Override default behaviour and do nothing.
-        ...
-
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Ensure the variable is immutable.
         if self.assign_to.is_mutable:

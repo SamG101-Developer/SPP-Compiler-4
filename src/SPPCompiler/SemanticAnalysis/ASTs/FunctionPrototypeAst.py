@@ -166,6 +166,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         scope_handler.exit_cur_scope()
 
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+        scope_handler.exit_cur_scope()
+
     def _deduce_function_class_type(self, context: "ModulePrototypeAst | SupPrototypeAst") -> "TypeAst":
         from SPPCompiler.SemanticAnalysis.ASTs import (
             FunctionParameterSelfAst, ConventionRefAst, ConventionMutAst, ConventionMovAst, ModulePrototypeAst)

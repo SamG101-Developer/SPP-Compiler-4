@@ -80,6 +80,14 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         # Move back into the parent scope.
         scope_handler.exit_cur_scope()
 
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+        scope_handler.exit_cur_scope()
+
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        scope_handler.move_to_next_scope()
+        scope_handler.exit_cur_scope()
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         scope_handler.move_to_next_scope()
 

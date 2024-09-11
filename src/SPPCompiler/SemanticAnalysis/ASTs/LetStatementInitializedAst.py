@@ -50,13 +50,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
         variable_symbol = VariableSymbol(name=self.assign_to.identifier, type=self._sup_let_type)
         scope_handler.current_scope.add_symbol(variable_symbol)
 
-    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
-        # Override default behaviour and do nothing.
-        ...
-
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import LocalVariableSingleIdentifierAst
-
         # If the symbol was already generated (in .generate(), then nothing needs to be done)
         if self._sup_let_type is not None: return
 

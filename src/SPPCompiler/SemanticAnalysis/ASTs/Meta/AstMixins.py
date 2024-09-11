@@ -27,8 +27,10 @@ class LLVMGeneration:
 
 class SupScopeLoader:
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
-        scope_handler.move_to_next_scope()
-        scope_handler.exit_cur_scope()
+        pass
+
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        pass
 
 
 __all__ = ["PreProcessor", "SymbolGenerator", "SemanticAnalyser", "LLVMGeneration", "SupScopeLoader"]

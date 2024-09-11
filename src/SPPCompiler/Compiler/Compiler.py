@@ -35,7 +35,7 @@ class Compiler:
 
         # Create a list of the lexed tokens.
         lexed = []
-        lexed_progress_bar = ProgressBar("Lexing..............", module_count)
+        lexed_progress_bar = ProgressBar("Lexing.................", module_count)
         for module in self._module_tree:
             lexed_progress_bar.next(module)
             code = open(module).read()
@@ -45,7 +45,7 @@ class Compiler:
 
         # Create a list of the parsed asts.
         parsed = []
-        parsed_progress_bar = ProgressBar("Parsing.............", module_count)
+        parsed_progress_bar = ProgressBar("Parsing................", module_count)
         for module, tokens in zip(modules, lexed):
             parsed_progress_bar.next(module)
             ast = Parser(tokens, module).parse()
@@ -61,14 +61,14 @@ class Compiler:
         # and symbol generation, creating the ScopeHandler. This is needed to inject the modules into, in their own
         # scoped namespaced. Reset scope to move out of namespace.
         scope_handler = ScopeHandler()
-        analyser_1_progress_bar = ProgressBar("Symbol generation...", module_count)
+        analyser_1_progress_bar = ProgressBar("Symbol generation......", module_count)
         for module, analyser in zip(modules, analysers):
             analyser_1_progress_bar.next(module)
             analyser.stage_1_analysis(scope_handler)
             scope_handler.reset()
         self._write_to_file(self._src_path + os.sep + "symbols1.json", "symbols", scope_handler.global_scope)
 
-        analyser_2_progress_bar = ProgressBar("Superimpositions....", module_count)
+        analyser_2_progress_bar = ProgressBar("Superimpositions [1]...", module_count)
         for module, analyser in zip(modules, analysers):
             analyser_2_progress_bar.next(module)
             # Count how many modules come before this module in the innermost namespace of the module. This is to ensure
@@ -86,8 +86,7 @@ class Compiler:
             scope_handler.reset()
         self._write_to_file(self._src_path + os.sep + "symbols2.json", "symbols", scope_handler.global_scope)
 
-        # Stage 2 analysis is the semantic analysis, which is done on all modules. Reset scope to move out of namespace.
-        analyser_3_progress_bar = ProgressBar("Semantic analysis...", module_count)
+        analyser_3_progress_bar = ProgressBar("Superimpositions [2]...", module_count)
         for module, analyser in zip(modules, analysers):
             analyser_3_progress_bar.next(module)
 
@@ -105,6 +104,26 @@ class Compiler:
             # Analyse the module.
             analyser.stage_3_analysis(scope_handler, counter)
             scope_handler.reset()
+
+        analyser_4_progress_bar = ProgressBar("Semantic Analysis......", module_count)
+        for module, analyser in zip(modules, analysers):
+            analyser_4_progress_bar.next(module)
+
+            # Count how many modules come before this module in the innermost namespace of the module. This is to ensure
+            # that the net scope inspected is the scope of this module, not the first class in the same namespace.
+            current_module = module
+            current_module_directory = os.sep.join(current_module.split(os.sep)[:-1])
+            counter = 0
+
+            for check_module, a in zip(modules, analysers):
+                check_module_directory = os.sep.join(check_module.split(os.sep)[:-1])
+                if check_module == current_module: break
+                if check_module_directory == current_module_directory: counter += a.num_children_introduced
+
+            # Analyse the module.
+            analyser.stage_4_analysis(scope_handler, counter)
+            scope_handler.reset()
+
         self._write_to_file(self._src_path + os.sep + "symbols3.json", "symbols", scope_handler.global_scope)
 
     def _write_to_file(self, file_path: str, section: str, what) -> None:
