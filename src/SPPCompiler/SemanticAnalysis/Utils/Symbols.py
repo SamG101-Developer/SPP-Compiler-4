@@ -95,6 +95,7 @@ class TypeSymbol(Symbol):
     type: Optional["ClassPrototypeAst"]
     associated_scope: Optional["Scope"] = field(default=None)
     is_generic: bool = field(default=False)
+    is_copyable: bool = field(default=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
@@ -109,7 +110,6 @@ class TypeSymbol(Symbol):
             "what": "type",
             "name": self.name,
             "type": self.type,
-            "is_generic": self.is_generic,
             "associated_scope": self.associated_scope.name if self.associated_scope else None,
         }
 
@@ -121,7 +121,8 @@ class TypeSymbol(Symbol):
             name=copy.deepcopy(self.name),
             type=copy.deepcopy(self.type),
             associated_scope=self.associated_scope,
-            is_generic=self.is_generic)
+            is_generic=self.is_generic,
+            is_copyable=self.is_copyable)
 
     @property
     def fq_type(self) -> "TypeAst":

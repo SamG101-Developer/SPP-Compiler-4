@@ -127,10 +127,10 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     new_cls_ast = copy.deepcopy(type_symbol.type)
 
                     # Add the new "Self" type, and add the new scope to the parent scope.
-                    new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_cls_ast, associated_scope=new_scope))
+                    new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
                     match type_symbol:
-                        case TypeAliasSymbol(): type_scope.parent.add_symbol(TypeAliasSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope, old_type=type_symbol.old_type, old_associated_scope=type_symbol.old_associated_scope))
-                        case TypeSymbol()     : type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope))
+                        case TypeAliasSymbol(): type_scope.parent.add_symbol(TypeAliasSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, old_type=type_symbol.old_type, old_associated_scope=type_symbol.old_associated_scope))
+                        case TypeSymbol()     : type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
                     type_scope.parent.children.append(new_scope)
                     type_scope = new_scope
 
