@@ -40,15 +40,17 @@ class InnerScopeAst[T](Ast, Default, SemanticAnalyser, TypeInfer):
 
     @staticmethod
     def default() -> Default:
+        # The default InnerScopeAst is a scope with no members.
         from SPPCompiler.SemanticAnalysis.ASTs.TokenAst import TokenAst
         return InnerScopeAst(-1, TokenAst.dummy(TokenType.TkBraceL), [], TokenAst.dummy(TokenType.TkBraceR))
 
     def do_semantic_analysis(self, scope_handler, inline: bool = False, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ReturnStatementAst
 
-        # Create a new scope and add the members to it.
+        # Create a new scope if this isn't an "inline" scope.
         if not inline: scope_handler.into_new_scope(f"<inner_scope: {id(self)}>")
 
+        # Analyse each member in the scope.
         for member in self.members:
             member.do_semantic_analysis(scope_handler, **kwargs)
 
@@ -57,7 +59,9 @@ class InnerScopeAst[T](Ast, Default, SemanticAnalyser, TypeInfer):
             if isinstance(member, ReturnStatementAst) and member is not self.members[-1]:
                 raise SemanticErrors.UNREACHABLE_CODE(member, self.members[i + 1])
 
-        if not inline: scope_handler.exit_cur_scope()
+        # Exit the scope if this isn't an "inline" scope.
+        if not inline:
+            scope_handler.exit_cur_scope()
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
