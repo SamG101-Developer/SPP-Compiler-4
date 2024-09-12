@@ -1,10 +1,7 @@
 mod std::number
 
 
-cls BigInt {
-    values: std::Vec[U32]
-}
-
+cls BigInt { }
 cls BigDec { }
 
 
@@ -27,6 +24,8 @@ sup std::ops::Div[Rhs=BigInt] on BigInt {
 sup std::ops::Eq[Rhs=BigInt] on BigInt {
     fun eq(&self, that: BigInt) -> Bool { }
 }
+
+sup std::Copy on BigInt { }
 
 
 cls U16 { }

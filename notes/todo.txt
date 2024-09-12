@@ -6,12 +6,12 @@ Functions:
 
 Types:
 -- Add an array literal syntax, and consider empty arrays.
--- Special `Copy` type that doesn't "move" the value.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?
 -- Numerical type indexing.
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 -- Too many generics or invalid name generics throw a Python error.
 -- Typedefs don't work as generic arguments (comparison-wise).
+-- Prevent types and namespaces from being valid expressions.
 
 Case blocks:
 -- Union type destructure shouldn't allow for multiple types to be destructured if an attribute is used.

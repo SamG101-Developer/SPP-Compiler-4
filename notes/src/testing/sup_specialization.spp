@@ -20,4 +20,7 @@ fun test_sup_specialization() -> std::Void {
     let a = TestSupSpecialization(a=false)
     a.test_a()
     a.test_b()
+
+    # let mut x = TestSupSpecialization[std::Str]
+    # x = 1
 }

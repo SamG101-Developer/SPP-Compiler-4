@@ -1,0 +1,18 @@
+mod testing::copying_class
+
+
+cls TestCopyingClass[T] {
+    a: T
+}
+
+sup [T] std::Copy on TestCopyingClass[T] { }
+
+
+fun test_copy() -> std::Void {
+    let mut a = TestCopyingClass(a=123)
+    a.a = 456
+
+    let b = a
+    let c = a
+}
+
