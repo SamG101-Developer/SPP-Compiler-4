@@ -131,6 +131,11 @@ class CommonTypes:
         return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "GenMov", GenericArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkBrackL), [gen_type, send_type], TokenAst.dummy(TokenType.TkBrackR)))])
 
     @staticmethod
+    def copy(pos: int = -1):
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, TypeAst, GenericIdentifierAst
+        return TypeAst(pos, [IdentifierAst(pos, "std")], [GenericIdentifierAst(pos, "Copy", None)])
+
+    @staticmethod
     def is_function_type(type: "TypeAst") -> bool:
         t1 = len(type.namespace) == 1 and type.namespace[0].value == "std"
         t2 = len(type.types) == 1 and type.types[0].value in ["FunRef", "FunMut", "FunMov"]
