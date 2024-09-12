@@ -87,15 +87,23 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
 
-        # Skip internal functions scopes.
-        cls_scope = scope_handler.current_scope.get_symbol(self.identifier.without_generics()).associated_scope
-        if self.super_class.types[-1].value not in ["FunRef", "FunMut", "FunMov"]:
-            if (super_class_symbol := scope_handler.current_scope.get_symbol(self.super_class)) and super_class_symbol.is_generic:
-                raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.super_class, super_class_symbol.name)
+        # Get the class symbol and associated scope.
+        cls_symbol = scope_handler.current_scope.get_symbol(self.identifier.without_generics())
+        cls_scope = cls_symbol.associated_scope
 
-            self.super_class.do_semantic_analysis(scope_handler)
-            cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+        # Can't superimpose over a generic type.
+        if (super_class_symbol := scope_handler.current_scope.get_symbol(self.super_class)) and super_class_symbol.is_generic:
+            raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.super_class, super_class_symbol.name)
 
+        # Register the superclass scope against the class scope.
+        self.super_class.do_semantic_analysis(scope_handler)
+        cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+
+        # Mark the class-type as "copyable" if the superclass std::Copy.
+        if self.super_class.symbolic_eq(CommonTypes.copy(), scope_handler.current_scope):
+            cls_symbol.is_copyable = True
+
+        # Load the superimposition scopes for the members.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes_gen(scope_handler))
         scope_handler.exit_cur_scope()
 
@@ -107,22 +115,20 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.where_block.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Make sure every generic parameter is present in the identifier or superclass; otherwise it has no way to be
-        # inferred.
+        # Make sure every generic parameter is present in the identifier, otherwise it has no way to be inferred.
         for generic_parameter in Seq(self.generic_parameters.parameters).map(lambda p: p.identifier):
             if not self.identifier.contains_generic(generic_parameter):
                 if CommonTypes.is_function_type(self.super_class) and self.super_class.contains_generic(generic_parameter):
                     continue
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
-        # Make sure the superclass, and the identifier (the type being superimposed over), exists. If it does, analyse
-        # each member of the body.
+        # Ensure the identifier and superclass exist, then analyse the body.
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         # Check all members on this superimposition are present on the superclass.
-        # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class.without_generics())
         # super_class_scope = super_class_symbol.associated_scope
         # for member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
         #     for m in member.body.members:
