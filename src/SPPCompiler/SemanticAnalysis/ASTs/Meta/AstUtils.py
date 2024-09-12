@@ -92,7 +92,7 @@ def ensure_memory_integrity(
         check_move: bool = True, check_partial_move: bool = True, check_move_from_borrowed_context: bool = True,
         check_pinned_move: bool = True, mark_symbols: bool = True) -> None:
 
-    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst
+    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, SupPrototypeInheritanceAst
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     # Get the symbol, for Identifiers and PostfixExpressions. If the value isn't either of these, then the memory rules
@@ -133,9 +133,8 @@ def ensure_memory_integrity(
             if str_value_ast.startswith(str(existing_pin)) or str(existing_pin).startswith(str_value_ast):
                 raise SemanticErrors.MOVING_PINNED_VALUE(value_ast, existing_pin)
 
-    # Todo: Don't do this if the `Copy` type is superimposed over the symbol's type as a stage 1 superclass.
-    # 6. Mark the symbol as consumed or partially moved.
-    if mark_symbols:
+    # 6. Mark the symbol as consumed or partially moved, allowing for copies.
+    if mark_symbols and not scope_handler.current_scope.get_symbol(symbol.type).is_copyable:
         match value_ast:
             case IdentifierAst():
                 symbol.memory_info.ast_consumed = move_ast
