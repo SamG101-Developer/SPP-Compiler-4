@@ -719,9 +719,11 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwLet).parse_once()
         p2 = self.parse_local_variable_single_identifier().parse_once()
-        p3 = self.parse_token(TokenType.TkAssign).parse_once()
-        p4 = self.parse_global_constant_value().parse_once()
-        return GlobalConstantAst(c1, p1, p2, p3, p4)
+        p3 = self.parse_token(TokenType.TkColon).parse_once()
+        p4 = self.parse_type().parse_once()
+        p5 = self.parse_token(TokenType.TkAssign).parse_once()
+        p6 = self.parse_global_constant_value().parse_once()
+        return GlobalConstantAst(c1, p1, p2, p3, p4, p5, p6)
 
     @parser_rule
     def parse_let_statement(self) -> LetStatementAst:
@@ -1345,10 +1347,11 @@ class Parser:
         p1 = self.parse_literal_number().for_alt()
         p2 = self.parse_literal_string().for_alt()
         p3 = self.parse_literal_tuple(self.parse_expression).for_alt()
-        p4 = self.parse_literal_regex().for_alt()
-        p5 = self.parse_literal_boolean().for_alt()
-        p6 = (p1 | p2 | p3 | p4 | p5).parse_once()
-        return p6
+        p4 = self.parse_literal_array(self.parse_expression).for_alt()
+        p5 = self.parse_literal_regex().for_alt()
+        p6 = self.parse_literal_boolean().for_alt()
+        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
+        return p7
 
     @parser_rule
     def parse_literal_number(self) -> NumberLiteralAst:
@@ -1371,6 +1374,13 @@ class Parser:
         p3 = self.parse_literal_tuple_n_items(item).for_alt()
         p4 = (p1 | p2 | p3).parse_once()
         return p4
+
+    @parser_rule
+    def parse_literal_array(self, item) -> ArrayLiteralAst:
+        p1 = self.parse_literal_array_0_items().for_alt()
+        p2 = self.parse_literal_array_n_items(item).for_alt()
+        p3 = (p1 | p2).parse_once()
+        return p3
 
     @parser_rule
     def parse_literal_regex(self) -> RegexLiteralAst:
@@ -1483,22 +1493,36 @@ class Parser:
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return TupleLiteralAst(c1, p1, p2, p3)
 
+    # ===== ARRAYS =====
+
+    @parser_rule
+    def parse_literal_array_0_items(self) -> ArrayLiteral0ElementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p2 = self.parse_type().parse_once()
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return ArrayLiteral0ElementAst(c1, p1, p2, p3)
+
+    @parser_rule
+    def parse_literal_array_n_items(self, item) -> ArrayLiteralNElementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_token(TokenType.TkBrackL).parse_once()
+        p2 = item().parse_one_or_more(TokenType.TkComma)
+        p3 = self.parse_token(TokenType.TkBrackR).parse_once()
+        return ArrayLiteralNElementAst(c1, p1, p2, p3)
+
     # ===== GLOBAL CONSTANTS =====
     @parser_rule
     def parse_global_constant_value(self) -> ExpressionAst:
         p1 = self.parse_literal_number().for_alt()
         p2 = self.parse_literal_string().for_alt()
-        p3 = self.parse_literal_global_tuple().for_alt()
-        p4 = self.parse_literal_regex().for_alt()
-        p5 = self.parse_literal_boolean().for_alt()
-        p6 = self.parse_global_object_initialization().for_alt()
-        p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
-        return p7
-
-    @parser_rule
-    def parse_literal_global_tuple(self) -> TupleLiteralAst:
-        p1 = self.parse_literal_tuple(self.parse_global_constant_value).parse_once()
-        return p1
+        p3 = self.parse_literal_tuple(self.parse_global_constant_value).for_alt()
+        p4 = self.parse_literal_array(self.parse_global_constant_value).for_alt()
+        p5 = self.parse_literal_regex().for_alt()
+        p6 = self.parse_literal_boolean().for_alt()
+        p7 = self.parse_global_object_initialization().for_alt()
+        p8 = (p1 | p2 | p3 | p4 | p5 | p6 | p7).parse_once()
+        return p8
 
     @parser_rule
     def parse_global_object_initialization(self) -> ObjectInitializerAst:
@@ -1511,7 +1535,7 @@ class Parser:
     def parse_global_object_initializer_arguments(self) -> ObjectInitializerArgumentGroupAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkParenL).parse_once()
-        p2 = self.parse_global_object_initializer_argument_named().parse_zero_or_more(TokenType.TkComma)
+        p2 = self.parse_global_object_initializer_argument_named().parse_zero_or_more(TokenType.TkComma)  # todo: normal too for copyables?
         p3 = self.parse_token(TokenType.TkParenR).parse_once()
         return ObjectInitializerArgumentGroupAst(c1, p1, p2, p3)
 
