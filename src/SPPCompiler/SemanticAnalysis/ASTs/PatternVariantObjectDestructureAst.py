@@ -90,12 +90,6 @@ class PatternVariantObjectDestructureAst(Ast, SemanticAnalyser, TypeInfer):
             value=kwargs["condition"])
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Put the condition variable back (re-initialise memory)
-        symbol = scope_handler.current_scope.get_symbol(kwargs["condition"])
-        if symbol is not None:
-            symbol.memory_info.ast_consumed = None
-            symbol.memory_info.ast_partial_moves = []
-
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The destructuring pattern's type is the class type being destructured into.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst

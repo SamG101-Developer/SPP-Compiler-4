@@ -62,12 +62,6 @@ class PatternVariantAttributeBindingAst(Ast, SemanticAnalyser, TypeInfer):
 
         declaration.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Put the condition variable back (re-initialise memory)
-        symbol = scope_handler.current_scope.get_symbol(kwargs["condition"])
-        if symbol is not None:
-            symbol.memory_info.ast_consumed = None
-            symbol.memory_info.ast_partial_moves = []
-
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         # The pattern's type is "Void", as all let statements return void.
         from SPPCompiler.SemanticAnalysis.ASTs.ConventionMovAst import ConventionMovAst
