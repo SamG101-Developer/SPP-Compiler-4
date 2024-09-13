@@ -8,6 +8,6 @@ sup MyType {
     }
 }
 
-let constant = 1
+let constant: std::BigInt = 1
 
 # fun function_test(a: MyType) -> MyType { }

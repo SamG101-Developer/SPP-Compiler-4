@@ -9,6 +9,7 @@ cls VariantB { b: std::Str }
 cls VariantC { c: std::Str }
 cls VariantD { d: std::Str }
 
+
 cls VariantE {
     x: std::Str
     y: std::Str
@@ -21,7 +22,7 @@ fun test_type_destructure_with_tuple(
 
     let z = VariantE(x="123", y="456")
     case z then
-        is VariantE(x="hello", ..), VariantE(.., y="world") { let a = y }
+        is VariantE(x="hello", ..) { let a = y }
 
     case x then
         is VariantA(mut a) { a = "123" }

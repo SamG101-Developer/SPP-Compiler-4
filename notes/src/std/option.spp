@@ -5,7 +5,7 @@ cls Opt[T] {
     value: Some[T] | None
 }
 
-cls Some[T] { }
+cls Some[T] { val: T }
 cls None { }
 
 

@@ -2,21 +2,19 @@ NOW
 
 Functions:
 -- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
-** Overriding a function doesn't remove the base overload from consideration.
+-- Overriding a function doesn't remove the base overload from consideration.
 
 Types:
--- Add an array literal syntax, and consider empty arrays.
 -- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?
 -- Numerical type indexing.
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 -- Too many generics or invalid name generics throw a Python error.
--- Typedefs don't work as generic arguments (comparison-wise).
--- Prevent types and namespaces from being valid expressions.
+-- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
 
 Case blocks:
--- Union type destructure shouldn't allow for multiple types to be destructured if an attribute is used.
 -- Look at anonymous branching? Allowing for a non-pattern pattern block.
--- Tuples as case conditions -> resetting symbols.
+-- Alias attributes: would need some sort of syntax like `is Some(val => alias)`?
+-- Flow typing: should be able to use the symbol if no destructuring took place.
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
@@ -25,7 +23,7 @@ Other:
 -- Generics that are inferred from variadic parameter become tuples, not the element.
 
 Superimposition:
--- Sup scopes for certain generics only (sup std::Vec[std::Bool] {} ).
+-- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
 
 Re-add:
 -- Check members exist on superclasses.

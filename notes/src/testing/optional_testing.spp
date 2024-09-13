@@ -1,0 +1,8 @@
+mod testing::optional_testing
+
+
+fun test_optional_type() -> std::Void {
+    let s = std::Some(val=123)
+    let o = std::Opt[std::BigInt](value=s)
+    let opt_2 = std::Opt[std::BigInt](value=std::Some(val=456))
+}

@@ -29,8 +29,8 @@ fun test_cases(y: std::U32 | std::Str) -> std::Void {
         is std::U32() { "num" }
         is std::Str() { "str" }
 
-    let a = ((1, 2), (3, "4"))
-    case a then
+    let apple = ((1, 2), (3, "4"))
+    case apple then
         is ((6, 7), (8, mut j)) { j = "1" }
         is ((5, l), mut t) { t = (4, "hello") }
         else { "false" }

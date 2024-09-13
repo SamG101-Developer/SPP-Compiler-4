@@ -1,0 +1,21 @@
+mod testing::tuple_memory_tests
+
+
+fun test_tuple_memory_stuff() -> std::Void {
+    let desk = "1"
+    let b = "2"
+    let c = "3"
+
+    case (desk, b) then
+        is ("100", other) { }
+        is (other, "100") { }
+
+    ##
+    case desk then
+        is std::Str() { }
+        is std::Str() { }
+    ##
+
+    # let x = desk
+    # let y = a
+}

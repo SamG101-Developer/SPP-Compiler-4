@@ -9,3 +9,6 @@ sup [T] Sortable[T] {
     fun sort(&mut self) -> Void { }
     fun sort_by(&mut self, compare: FunRef[Bool, (T, T)]) -> Void { }
 }
+
+
+fun test_std_1[T](a: T, b: T) -> std::Bool { }

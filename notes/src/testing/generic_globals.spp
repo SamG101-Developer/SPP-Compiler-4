@@ -1,0 +1,19 @@
+mod testing::generic_globals
+
+
+cls Wrapper[T] {
+    data: T
+}
+
+
+cls GenericGlobal[T] {
+    data: Wrapper[T]
+}
+
+
+let global_t: GenericGlobal[std::Str] = GenericGlobal[std::Str](data=Wrapper(data="1"))
+
+
+fun test_generic_globals() -> std::Void {
+    let t = GenericGlobal[std::BigInt](data=Wrapper(data=1))
+}

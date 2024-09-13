@@ -1,12 +1,8 @@
 mod std::array
 
-
-cls CArr[T] { }
-
 cls BoundsError { }
 
 cls Arr[T] {
-    data: CArr[T]
     length: U64
 }
 
@@ -15,4 +11,9 @@ sup [T] Arr[T] {
     fun set(&mut self, index: U64, value: T) -> Res[Void, BoundsError] { }
     fun del(&mut self, index: U64) -> Res[T, BoundsError] { }
     fun has(&self, index: U64) -> Bool { }
+}
+
+
+fun random_test_function() -> Void {
+    # let x = testing::GenericGlobal[std::BigInt](data=testing::Wrapper(data="hello world"))
 }
