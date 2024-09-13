@@ -60,7 +60,7 @@ class Scope:
     def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
-        assert isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)), type(name)
+        if not isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)): return None
         scope = self
 
         # For TypeAsts, shift the scope if a namespaced type is being accessed.
