@@ -744,3 +744,39 @@ class SemanticErrors:
             msg="Type redefinition.",
             tip="Ensure the type is only defined once.")
         return exception
+
+    @staticmethod
+    def ARRAY_ELEMENT_TYPE_MISMATCH(ty1: Ast, ty2: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=ty1.pos,
+            tag=f"1st type '{ty1}' inferred here.")
+        exception.add_error(
+            pos=ty2.pos,
+            tag=f"2nd type '{ty2}' inferred here.",
+            msg="Array elements must have the same type.",
+            tip="Ensure all array elements have the same type.")
+        return exception
+
+    @staticmethod
+    def INVALID_TYPE_EXPRESSION(ast: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=ast.pos,
+            tag=f"Invalid type expression found here.",
+            msg="Type expression cannot be used.",
+            tip="Ensure the type expression is valid.")
+        return exception
+
+    @staticmethod
+    def MULTIPLE_IS_PATTERN_DESTRUCTURE(pat1: Ast, pat2: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=pat1.pos,
+            tag=f"1st is-pattern found here.")
+        exception.add_error(
+            pos=pat2.pos,
+            tag=f"2nd is-pattern found here.",
+            msg="Multiple patterns found in a is-destructure.",
+            tip="Ensure only one pattern is used in an is-destructure.")
+        return exception
