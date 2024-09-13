@@ -102,7 +102,7 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
 
             # Compare the types of the argument and the attribute.
-            if not argument_type.symbolic_eq(attribute_type, scope_handler.current_scope, type_symbol.associated_scope):
+            if not attribute_type.symbolic_eq(argument_type, type_symbol.associated_scope, scope_handler.current_scope):
                 raise SemanticErrors.TYPE_MISMATCH_2(None, argument, attribute_type, argument_type, scope_handler)
 
         # Ensure all the "sup" arguments are present in the object initializer.
