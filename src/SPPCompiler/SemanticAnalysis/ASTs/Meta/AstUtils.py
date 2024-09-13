@@ -9,7 +9,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, NamespaceSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -92,12 +92,18 @@ def ensure_memory_integrity(
         check_move: bool = True, check_partial_move: bool = True, check_move_from_borrowed_context: bool = True,
         check_pinned_move: bool = True, mark_symbols: bool = True) -> None:
 
-    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, SupPrototypeInheritanceAst
+    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, TypeAst, TupleLiteralAst, ArrayLiteralNElementAst
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
     # Get the symbol, for Identifiers and PostfixExpressions. If the value isn't either of these, then the memory rules
     # don't apply, so all the checks are skipped.
     symbol = scope_handler.current_scope.get_outermost_variable_symbol(value_ast)
+    if isinstance(value_ast, TypeAst) or isinstance(symbol, NamespaceSymbol):
+        raise SemanticErrors.INVALID_TYPE_EXPRESSION(value_ast)
+    if isinstance(value_ast, (TupleLiteralAst, ArrayLiteralNElementAst)):
+        for item in value_ast.items:
+            ensure_memory_integrity(entire_ast, item, move_ast, scope_handler, check_move, check_partial_move, check_move_from_borrowed_context, check_pinned_move, mark_symbols)
+        return
     if not symbol:
         return
 
