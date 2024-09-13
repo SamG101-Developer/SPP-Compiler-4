@@ -53,7 +53,7 @@ class IdentifierAst(Ast, SemanticAnalyser, TypeInfer):
                 elif symbol.memory_info.is_borrow_ref: convention = ConventionRefAst
                 else: convention = ConventionMovAst
 
-                # Return the convention and the identifier's type.
+                # Return the convention, and the identifier's type.
                 return InferredType(convention=convention, type=symbol.type)
 
             case NamespaceSymbol():

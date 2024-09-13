@@ -1,4 +1,7 @@
 from SPPCompiler.SemanticAnalysis.ASTs.AnnotationAst import *
+from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteral0ElementAst import *
+from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteralAst import *
+from SPPCompiler.SemanticAnalysis.ASTs.ArrayLiteralNElementAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.AssignmentStatementAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.BinaryExpressionAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.BooleanLiteralAst import *
