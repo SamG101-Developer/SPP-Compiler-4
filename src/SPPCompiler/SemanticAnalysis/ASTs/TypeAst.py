@@ -43,6 +43,22 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         return s
 
     def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> TypeAst:
+        """
+        Note that typically a TypeAST is deep-copied before substitution, because the AST is also used (by reference) in
+        symbols in the symbol table. When substituted, the symbol type would also get substituted, meaning it wouldn't
+        be generated with he generic arguments filled in, because it is detected as "existing".
+
+        By copying, substituting, and re-assigning, the substituted type is generated, rather than replacing the type in
+        the original type symbol.
+
+        Args:
+            from_ty: The type to substitute.
+            to_ty: The type to substitute with.
+
+        Returns:
+            The modified type (self).
+        """
+
         from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
 
         # Substitute the generic type "from_ty" with "to_ty" in the type identifier (recursively).
@@ -148,11 +164,15 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                             # Substitute the attribute symbol's generic types.
                             for attribute_symbol in Seq(new_scope._symbol_table.all()).filter_to_type(VariableSymbol):
-                                attribute_symbol.type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                                old_type = copy.deepcopy(attribute_symbol.type)
+                                old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                                attribute_symbol.type = old_type
 
                             # Substitute the ast attribute's generic types.
                             for attribute_ast in new_cls_ast.body.members:
-                                attribute_ast.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
+                                old_type = copy.deepcopy(attribute_ast.type_declaration)
+                                old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                                attribute_ast.type_declaration = old_type
 
                             # Substitute the generic types in the aliased type.
                             if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
@@ -163,6 +183,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                         # Load the generic-filled types.
                         for item in new_cls_ast.body.members:
                             item.type_declaration.do_semantic_analysis(scope_handler)
+
                         if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
                             old_type = new_scope.associated_type_symbol.old_type
                             old_type.do_semantic_analysis(scope_handler)
@@ -189,7 +210,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             self.namespace = type_scope.scopes_as_namespace
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
-        # Todo: not sure if this is needed. Might be needed for the type() function in the future.
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
         return InferredType(convention=ConventionMovAst, type=self)
 
