@@ -80,6 +80,9 @@ class VariableSymbol(Symbol):
         # String representation of the symbol is the JSON representation.
         return json.dumps(self)
 
+    def __hash__(self) -> int:
+        return id(self)
+
     def __deepcopy__(self, memodict=None):
         # Deep copying a symbol copies everything except the associated scope, which is reference-linked.
         return VariableSymbol(
