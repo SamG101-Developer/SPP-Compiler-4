@@ -168,8 +168,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     # Substitute the generics types in the [parameter / return type] declarations.
                     for generic_argument in generic_arguments:
                         for parameter in specialized_func_overload.parameters.parameters:
-                            parameter.type_declaration.substitute_generics(generic_argument.identifier, generic_argument.type)
-                        specialized_func_overload.return_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                            old_type = copy.deepcopy(parameter.type_declaration)
+                            old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                            parameter.type_declaration = old_type
+
+                        old_type = copy.deepcopy(specialized_func_overload.return_type)
+                        old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
+                        specialized_func_overload.return_type = old_type
 
                     # Do semantic analysis on the new function overload signature.
                     for parameter in specialized_func_overload.parameters.parameters:

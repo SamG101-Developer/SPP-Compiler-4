@@ -86,7 +86,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
         # function parameters, and the return type.
         if not isinstance(context, ModulePrototypeAst) and self.parameters.get_self():
-            self.parameters.get_self().type_declaration.substitute_generics(CommonTypes.self(), context.identifier)
+            old_type = copy.deepcopy(self.parameters.get_self().type_declaration)
+            old_type.substitute_generics(CommonTypes.self(), context.identifier)
+            self.parameters.get_self().type_declaration = old_type
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
