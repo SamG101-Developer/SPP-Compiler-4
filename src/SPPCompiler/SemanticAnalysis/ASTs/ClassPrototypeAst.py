@@ -82,6 +82,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
+        Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
         scope_handler.exit_cur_scope()
 
     def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:

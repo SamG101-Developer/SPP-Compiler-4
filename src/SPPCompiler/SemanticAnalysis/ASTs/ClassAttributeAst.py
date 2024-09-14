@@ -2,15 +2,16 @@ from dataclasses import dataclass
 from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassAttributeAst(Ast, SemanticAnalyser):
+class ClassAttributeAst(Ast, SupScopeLoader, SemanticAnalyser):
     """
     The ClassAttributeAst node is used to represent an attribute in a ClassPrototypeAst node. The attribute contains the
     name and its type, and any annotations that are attached to the attribute.
@@ -37,8 +38,10 @@ class ClassAttributeAst(Ast, SemanticAnalyser):
         s += f"{self.type_declaration.print(printer)}"
         return s
 
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        self.type_declaration.do_semantic_analysis(scope_handler)
+
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
-        self.type_declaration.do_semantic_analysis(scope_handler, **kwargs)
         if self.type_declaration.symbolic_eq(CommonTypes.void(self.pos), scope_handler.current_scope):
             raise SemanticErrors.INVALID_CLASS_ATTRIBUTE_TYPE(self.type_declaration)
 
