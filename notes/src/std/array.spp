@@ -12,8 +12,3 @@ sup [T] Arr[T] {
     fun del(&mut self, index: U64) -> Res[T, BoundsError] { }
     fun has(&self, index: U64) -> Bool { }
 }
-
-
-fun random_test_function() -> Void {
-    # let x = testing::GenericGlobal[std::BigInt](data=testing::Wrapper(data="hello world"))
-}
