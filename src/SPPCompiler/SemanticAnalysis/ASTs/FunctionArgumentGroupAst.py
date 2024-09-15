@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from ordered_set import OrderedSet
 from typing import List
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast, Default
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -13,7 +14,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
+class FunctionArgumentGroupAst(Ast, Default, SemanticAnalyser):
     """
     The FunctionArgumentGroupAst node is used to group the arguments to a function call, NOT the parameters of a
     function prototype (see FunctionParameterGroupAst).
@@ -27,6 +28,11 @@ class FunctionArgumentGroupAst(Ast, SemanticAnalyser):
     paren_l_token: "TokenAst"
     arguments: List["FunctionArgumentAst"]
     paren_r_token: "TokenAst"
+
+    @staticmethod
+    def default() -> Default:
+        from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
+        return FunctionArgumentGroupAst(-1, TokenAst.dummy(TokenType.TkParenL), [], TokenAst.dummy(TokenType.TkParenR))
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:

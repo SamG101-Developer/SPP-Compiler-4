@@ -34,8 +34,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
     _is_async: Optional[Ast] = field(default=None, init=False)
 
     def __post_init__(self):
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentGroupAst, FunctionArgumentGroupAst
         self.generic_arguments = self.generic_arguments or GenericArgumentGroupAst.default()
+        self.arguments = self.arguments or FunctionArgumentGroupAst.default()
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
