@@ -1,0 +1,23 @@
+mod testing::with_block_testing
+
+
+cls MyContextualType { }
+
+
+sup std::CtxRef[std::BigInt] on MyContextualType {
+    fun enter(&self) -> std::BigInt {
+        ret 0
+    }
+
+    fun leave(&self) -> std::Void {
+        ret
+    }
+}
+
+
+fun test_with_block() -> std::Void {
+    let t = MyContextualType()
+    with mut x = t {
+        x = 123
+    }
+}

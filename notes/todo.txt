@@ -5,11 +5,11 @@ Functions:
 -- Overriding a function doesn't remove the base overload from consideration.
 
 Types:
--- Prevent type redeclaration in the same scope (except `Self`)` - check generics on this too (sup <-> cls)?
 -- Numerical type indexing.
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
 -- Too many generics or invalid name generics throw a Python error.
 -- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
+-- Typedef at the module level.
 
 Case blocks:
 -- Look at anonymous branching? Allowing for a non-pattern pattern block.
@@ -21,7 +21,12 @@ Other:
 -- Expand `gen with` to `loop` and `gen`.
 -- Null coalescing operator `??` support.
 -- Generics that are inferred from variadic parameter become tuples, not the element.
--- The `with` block (checking `CtxMut` or `CtxRef` is superimposed).
+-- Maybe re-write the symbol/scoping system: get_all => get_all_vars, get_all_types etc.
+
+Inheritance:
+-- Annotations for @abstractmethod, @virtualmethod
+-- Annotations for @public, @private, @protected, @friend
+-- Default visibility is private.
 
 Superimposition:
 -- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
@@ -43,3 +48,6 @@ Lambdas:
 -- Everything to do with lambdas
 -- Pinning captured values?
 -- Map partial functions into lambdas with fixed captures.
+
+Annotations:
+-- Compiler output (@deprecated etc) and llvm annotations (@inline, @cold, @hot etc).
