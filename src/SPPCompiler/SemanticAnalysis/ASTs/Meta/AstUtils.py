@@ -343,6 +343,8 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
         scope.parent.children.append(new_scope)
 
         for generic_argument in Seq(type_part_ast.types[-1].generic_arguments.arguments).filter_to_type(GenericArgumentNamedAst):
+            if (sym := new_scope.get_symbol(generic_argument.identifier.types[-1])) and sym.type: continue
+
             generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
             generic_parameter_type_symbol = TypeSymbol(
                 name=generic_argument.identifier.types[-1],

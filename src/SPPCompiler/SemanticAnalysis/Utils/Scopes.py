@@ -33,18 +33,18 @@ class Scope:
             case _: return symbol
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
-        # For TypeAst, shift the scope if a namespaced type is being added.
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
         from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 
         scope = self
 
-        # if isinstance(symbol, TypeSymbol) and self.has_symbol(symbol.name) and symbol.name.value != "Self":
-        #     if self.get_symbol(symbol.name).associated_scope != symbol.associated_scope:
-        #         old_symbol = self.get_symbol(symbol.name)
-        #         if not (old_symbol.is_generic and symbol.is_generic):
-        #             raise SemanticErrors.REDEFINED_TYPE(self.get_symbol(symbol.name).associated_scope.name, symbol.name)
+        # Ensure types don't get redefined (except for generics).
+        if isinstance(symbol, TypeSymbol) and self.has_symbol(symbol.name) and symbol.name.value != "Self":
+            old_symbol = self.get_symbol(symbol.name)
+            if not (old_symbol.is_generic and not old_symbol.associated_scope):
+                raise SemanticErrors.REDEFINED_TYPE(self.get_symbol(symbol.name, ignore_alias=True).name, symbol.name)
 
+        # For TypeAst, shift the scope if a namespaced type is being added.
         if isinstance(symbol.name, TypeAst):
             for part in symbol.name.namespace + symbol.name.types[:-1]:
                 inner_symbol = scope.get_symbol(part)
@@ -57,7 +57,7 @@ class Scope:
         scope._symbol_table.add(symbol)
         return symbol
 
-    def get_symbol(self, name: IdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
+    def get_symbol(self, name: IdentifierAst | GenericIdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
         # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
         if not isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)): return None
