@@ -8,6 +8,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredT
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -47,13 +48,11 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Get the expression's type and its type scope's superimposed scopes.
         expression_type = self.expression.infer_type(scope_handler, **kwargs).type
-        expression_type_sup_types = scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes
-
-        # Ensure the expression's type superimposes the "CtxRef" or "CtxMut" type.
-        if not CommonTypes.ctx_mut() not in expression_type_sup_types and CommonTypes.ctx_ref() not in expression_type_sup_types:
+        sup_scopes = Seq(scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes).map(lambda s: s[1].identifier.without_generics())
+        if not sup_scopes.any(lambda s: CommonTypes.ctx_ref().symbolic_eq(s, scope_handler.current_scope) or CommonTypes.ctx_mut().symbolic_eq(s, scope_handler.current_scope)):
             raise SemanticErrors.INVALID_WITH_EXPRESSION(self.expression, expression_type)
 
-        # Analyse the alias, if it exists.
+        # Analyse the alias if it exists, including symbol injection.
         if self.alias:
             self.alias.do_semantic_analysis(scope_handler, with_expression=self.expression, **kwargs)
 
