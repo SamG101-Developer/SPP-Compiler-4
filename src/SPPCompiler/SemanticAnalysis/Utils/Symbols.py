@@ -164,28 +164,28 @@ class TypeAliasSymbol(TypeSymbol):
         }
 
 
-class SymbolTable[SymbolType]:
-    _internal_table: dict[str, SymbolType]
+class SymbolTable:
+    _internal_table: dict[str, Symbol]
 
     def __init__(self):
         self._internal_table = {}
 
-    def add(self, symbol: SymbolType) -> None:
+    def add(self, symbol: Symbol) -> None:
         self._internal_table[symbol.name] = symbol
 
-    def rem(self, symbol: SymbolType) -> None:
+    def rem(self, symbol: Symbol) -> None:
         del self._internal_table[symbol.name]
 
-    def get(self, name: IdentifierAst | TypeAst, default=None) -> Optional[SymbolType]:
+    def get(self, name: IdentifierAst | TypeAst, default=None) -> Optional[Symbol]:
         return self._internal_table[name] if name in self._internal_table else default
 
-    def set(self, name: IdentifierAst | TypeAst, symbol: SymbolType) -> None:
+    def set(self, name: IdentifierAst | TypeAst, symbol: Symbol) -> None:
         self._internal_table[name] = symbol
 
     def has(self, name: IdentifierAst | TypeAst) -> bool:
         return self.get(name) is not None
 
-    def all(self) -> List[SymbolType]:
+    def all(self) -> List[Symbol]:
         return [x for x in self._internal_table.values()]
 
     def __json__(self) -> dict:

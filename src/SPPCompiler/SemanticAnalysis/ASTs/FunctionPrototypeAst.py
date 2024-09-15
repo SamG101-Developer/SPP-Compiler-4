@@ -93,7 +93,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
         mock_class_name = IdentifierAst(self.pos, f"MOCK_{self.identifier.value}")
-        mock_class_name = TypeAst(self.pos, [], [GenericIdentifierAst(self.pos, mock_class_name.value, None)])
+        mock_class_name = TypeAst(self.pos, [], [mock_class_name.to_generic_identifier()])
 
         # Determine the class type and call name. This will be "FunRef/call_ref", "FunMut/call_mut" or
         # "FunMov/call_mov".
@@ -218,7 +218,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         scope_handler.into_new_scope(f"<function:{self._orig}>")
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
 
-        # Convert non-single parameters into single parameters, and inject the destructure operation into the body.
+        # Convert non-single parameters into single parameters, and inject the destructure operation into the body. This
+        # doesn't affect the signature.
         for i, parameter in Seq(self.parameters.parameters).filter_not_type(FunctionParameterSelfAst).enumerate():
             if not isinstance(parameter.variable, LocalVariableSingleIdentifierAst):
                 destructure_to = parameter.variable
