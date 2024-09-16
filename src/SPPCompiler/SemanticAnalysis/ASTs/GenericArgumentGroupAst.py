@@ -83,6 +83,7 @@ class GenericArgumentGroupAst(Ast, Default, SemanticAnalyser):
     def from_list(generic_arguments: List["GenericArgumentAst"]) -> GenericArgumentGroupAst:
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
 
+        # Create a GenericArgumentGroupAst from a list of GenericArgumentAst.
         return GenericArgumentGroupAst(
             pos=-1,
             bracket_l_token=TokenAst.dummy(TokenType.TkBrackL),

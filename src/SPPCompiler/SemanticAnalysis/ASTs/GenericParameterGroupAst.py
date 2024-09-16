@@ -86,7 +86,7 @@ class GenericParameterGroupAst(Ast, Default, SemanticAnalyser):
         return Seq(self.parameters).filter_to_type(GenericParameterVariadicAst)
 
     @staticmethod
-    def from_list(generic_parameters: list["GenericParameterAst"]) -> "GenericParameterGroupAst":
+    def from_list(generic_parameters: List["GenericParameterAst"]) -> "GenericParameterGroupAst":
         from SPPCompiler.SemanticAnalysis.ASTs import TokenAst
 
         # Create a GenericParameterGroupAst from a list of GenericParameterAst.
