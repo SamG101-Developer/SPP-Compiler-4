@@ -1,0 +1,52 @@
+mod testing::nested_generic_attr
+
+
+cls GenericAttrClass[T] {
+    attr: T
+}
+
+
+cls GenericAttrClass2[T] {
+    attr: std::Arr[T]
+}
+
+
+sup [T] GenericAttrClass[T] {
+    fun method(&self) -> T { }
+}
+
+sup [T] GenericAttrClass2[T] {
+    fun method(&self) -> T { }
+}
+
+
+fun nested_generic_function[T](a: std::Arr[T]) -> T { }
+
+fun nested_generic_function_2[T](a: GenericAttrClass[GenericAttrClass[std::Arr[T]]]) -> T { }
+
+fun nested_generic_function_3[T](a: std::Opt[std::Arr[T]]) -> T { }
+
+
+fun test_generic_attr() -> std::Void {
+    let a = GenericAttrClass(attr=[1, 2, 3])
+    let mut b = a.method()
+    b = [1, 2]
+
+    let c = GenericAttrClass2(attr=[1, 2, 3])
+    let mut d = c.method()
+    d = 100
+
+    let mut e = nested_generic_function([1, 2, 3])
+    e = 100
+
+    let f = GenericAttrClass(attr=GenericAttrClass(attr=[1, 2, 3]))
+    let mut g = nested_generic_function_2(f)
+    g = 100
+
+    let h = std::Some(val=[1, 2, 3])
+    let i = std::Opt(value=h)
+    let mut j = nested_generic_function_3(i)
+    j = 100
+
+    let mut k = nested_generic_function_3(std::Opt(value=std::Some(val=[1, 2, 3])))
+}

@@ -2,13 +2,13 @@ mod std::array
 
 cls BoundsError { }
 
-cls Arr[T] {
+cls Arr[Element] {
     length: U64
 }
 
-sup [T] Arr[T] {
-    fun get(&self, index: U64) -> Res[T, BoundsError] { }
-    fun set(&mut self, index: U64, value: T) -> Res[Void, BoundsError] { }
-    fun del(&mut self, index: U64) -> Res[T, BoundsError] { }
+sup [Element] Arr[Element] {
+    fun get(&self, index: U64) -> Res[Element, BoundsError] { }
+    fun set(&mut self, index: U64, value: Element) -> Res[Void, BoundsError] { }
+    fun del(&mut self, index: U64) -> Res[Element, BoundsError] { }
     fun has(&self, index: U64) -> Bool { }
 }
