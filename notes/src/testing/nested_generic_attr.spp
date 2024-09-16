@@ -26,6 +26,8 @@ fun nested_generic_function_2[T](a: GenericAttrClass[GenericAttrClass[std::Arr[T
 
 fun nested_generic_function_3[T](a: std::Opt[std::Arr[T]]) -> T { }
 
+fun nested_generic_function_4[T](a: std::Opt[T], b: T) -> T { }
+
 
 fun test_generic_attr() -> std::Void {
     let a = GenericAttrClass(attr=[1, 2, 3])
@@ -49,4 +51,9 @@ fun test_generic_attr() -> std::Void {
     j = 100
 
     let mut k = nested_generic_function_3(std::Opt(value=std::Some(val=[1, 2, 3])))
+    k = 100
+
+    let l = std::Opt(value=std::Some(val=100))
+    let mut m = nested_generic_function_4(l, 100)
+    m = 100
 }
