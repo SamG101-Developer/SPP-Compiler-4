@@ -404,8 +404,8 @@ def check_for_conflicting_methods(
 
     # For overrides, all parameters must be direct matches.
     else:
-        parameter_filter = lambda f: Seq(f.parameters.parameters)
-        parameter_comparison = lambda p1, p2, s1: p1.type_declaration.symbolic_eq(p2.type_declaration, s1, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier == p2.identifier and type(p1) is type(p2)
+        parameter_filter = lambda f: f.parameters.get_non_self()
+        parameter_comparison = lambda p1, p2, s1: p1.type_declaration.symbolic_eq(p2.type_declaration, s1, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier_for_param() == p2.identifier_for_param() and type(p1) is type(p2)
         extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
 
     # Check each parameter set for each overload. 1 match means there is a conflict.

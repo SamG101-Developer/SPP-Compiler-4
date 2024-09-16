@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier, get_owner_type_of_sup_block, check_for_conflicting_methods, FunctionConflictCheckType
 from SPPCompiler.SemanticAnalysis.ASTs.SupPrototypeNormalAst import SupPrototypeNormalAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
@@ -108,6 +108,8 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+
         scope_handler.move_to_next_scope()
 
         # Analyse the generic type parameters and where block. This will load the generics into the current scope, and
@@ -126,6 +128,19 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
+
+        # Get superclass symbol/scope information.
+        super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        super_class_scope = super_class_symbol.associated_scope
+
+        # Ensure every member exists on the superclass.
+        for this_member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
+
+            new_function = this_member.body.members[-1]
+            overridden_function = check_for_conflicting_methods(super_class_scope, scope_handler, new_function, FunctionConflictCheckType.InvalidOverride)
+
+            # if not overridden_function:
+            #     raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(new_function, self.super_class)
 
         # Check all members on this superimposition are present on the superclass.
         # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class.without_generics())
