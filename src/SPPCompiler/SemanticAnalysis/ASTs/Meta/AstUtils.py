@@ -302,34 +302,34 @@ def substitute_generics_in_sup_scopes(sup_scopes: List[Tuple[Scope, "SupPrototyp
         if isinstance(scope.name, TypeAst):
 
             # Rename the scope with generic substitutions.
-            type_part_ast = copy.deepcopy(scope.name)
+            type_part_ast = scope.name
             for g in generic_arguments:
-                type_part_ast.substitute_generics(g.identifier, g.type)
+                type_part_ast = type_part_ast.substituted_generics(g.identifier, g.type)
 
             # The substituted superclass may not exist yet with these generics.
             type_to_analyse = copy.deepcopy(sup_ast.super_class)
             for g in generic_arguments:
-                type_to_analyse.substitute_generics(g.identifier, g.type)
+                type_to_analyse = type_to_analyse.substituted_generics(g.identifier, g.type)
 
             # type_part_ast != scope.name and type_part_ast.do_semantic_analysis(scope_handler)
             new_scope_name = type_part_ast
 
         elif isinstance(scope.name, SupNormalIdentifier):
             # Rename the scope with generic substitutions.
-            type_part_ast = copy.deepcopy(scope.name.this_class)
+            type_part_ast = scope.name.this_class
             for g in generic_arguments:
-                type_part_ast.substitute_generics(g.identifier, g.type)
+                type_part_ast = type_part_ast.substituted_generics(g.identifier, g.type)
 
             # type_part_ast != scope.name.this_class and type_part_ast.do_semantic_analysis(scope_handler)
             new_scope_name = SupNormalIdentifier(this_class=type_part_ast)
 
         elif isinstance(scope.name, SupInheritanceIdentifier):
             # Rename the scopes with generic substitutions.
-            type_part_ast = copy.deepcopy(scope.name.this_class)
-            super_class_part = copy.deepcopy(scope.name.super_class)
+            type_part_ast = scope.name.this_class
+            super_class_part = scope.name.super_class
             for g in generic_arguments:
-                type_part_ast.substitute_generics(g.identifier, g.type)
-                super_class_part.substitute_generics(g.identifier, g.type)
+                type_part_ast = type_part_ast.substituted_generics(g.identifier, g.type)
+                super_class_part = super_class_part.substituted_generics(g.identifier, g.type)
 
             # type_part_ast != scope.name.this_class and type_part_ast.do_semantic_analysis(scope_handler)
             # super_class_part != scope.name.super_class and super_class_part.do_semantic_analysis(scope_handler)

@@ -146,10 +146,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 # Infer generic arguments, and inherit from the lhs type.
                 generic_arguments = infer_generics_types(
                     ast=self,
-                    generic_parameters=Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
+                    generic_parameter_identifiers=Seq(func_overload.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
                     explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    infer_from=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
-                    map_to=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
+                    infer_source=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
+                    infer_target=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
                     scope_handler=scope_handler).list()
 
                 # New overload generation for generic functions or variadic functions.
@@ -169,13 +169,9 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     # Substitute the generics types in the [parameter / return type] declarations.
                     for generic_argument in generic_arguments:
                         for parameter in specialized_func_overload.parameters.parameters:
-                            old_type = copy.deepcopy(parameter.type_declaration)
-                            old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
-                            parameter.type_declaration = old_type
+                            parameter.type_declaration = parameter.type_declaration.substituted_generics(generic_argument.identifier, generic_argument.type)
 
-                        old_type = copy.deepcopy(specialized_func_overload.return_type)
-                        old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
-                        specialized_func_overload.return_type = old_type
+                        specialized_func_overload.return_type = specialized_func_overload.return_type.substituted_generics(generic_argument.identifier, generic_argument.type)
 
                     # Do semantic analysis on the new function overload signature.
                     for parameter in specialized_func_overload.parameters.parameters:

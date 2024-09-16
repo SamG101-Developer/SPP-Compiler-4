@@ -75,20 +75,45 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         return s
 
     def pre_process(self, context: "ModulePrototypeAst | SupPrototypeAst") -> None:
+        """
+        Preprocessing a function prototype is a complex multistep process that involves creating multiple new AST nodes.
+        The general idea, is to create a new type that represents functions of that identifier, and superimpose a
+        Fun[Ref|Mut|Mov] type over this mock class for each overload. Then, a "let" statement is used to create a
+        function-class object of that type. For example:
+
+        fun function(a: Str) -> Str { ## code 1 ## }
+        fun function(a: U64) -> U64 { ## code 2 ## }
+
+        becomes:
+
+        cls MOCK_function {}
+        sup FunRef[Str, (Str)] on MOCK_function {
+            fun call_ref(a: Str) -> Str { ## code 1 ## }
+        }
+        sup FunRef[U64, (U64)] on MOCK_function {
+            fun call_ref(a: U64) -> U64 { ## code 2 ## }
+        }
+        let function = MOCK_function()
+
+        Args:
+            context: The context of the function (module or sup prototype).
+
+        Returns:
+            None
+        """
+
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
         from SPPCompiler.SemanticAnalysis.ASTs import (
             ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
             IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst)
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
+        # Register the context, as it is necessary in the "load_sup_scopes" stage.
         self._ctx = context
 
-        # For functions that are methods (ie inside a "sup" block), substitute the "Self" type from generic parameters,
-        # function parameters, and the return type.
+        # For methods, substitute the "Self" type on the "self" parameter with the context's identifier.
         if not isinstance(context, ModulePrototypeAst) and self.parameters.get_self():
-            old_type = copy.deepcopy(self.parameters.get_self().type_declaration)
-            old_type.substitute_generics(CommonTypes.self(), context.identifier)
-            self.parameters.get_self().type_declaration = old_type
+            self.parameters.get_self().type_declaration = self.parameters.get_self().type_declaration.substituted_generics(CommonTypes.self(), context.identifier)
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".

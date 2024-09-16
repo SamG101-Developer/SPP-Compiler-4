@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
@@ -42,42 +42,57 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{Seq(self.types).print(printer, "::")}"
         return s
 
-    def substitute_generics(self, from_ty: TypeAst, to_ty: TypeAst) -> TypeAst:
-        """
-        Note that typically a TypeAST is deep-copied before substitution, because the AST is also used (by reference) in
-        symbols in the symbol table. When substituted, the symbol type would also get substituted, meaning it wouldn't
-        be generated with he generic arguments filled in, because it is detected as "existing".
-
-        By copying, substituting, and re-assigning, the substituted type is generated, rather than replacing the type in
-        the original type symbol.
-
-        Args:
-            from_ty: The type to substitute.
-            to_ty: The type to substitute with.
-
-        Returns:
-            The modified type (self).
-        """
-
+    def _substitute_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
 
-        # Substitute the generic type "from_ty" with "to_ty" in the type identifier (recursively).
+        # Get all the substitutable parts of this type (not namespace parts or numeric indexing).
         type_parts = Seq(self.types).filter_to_type(GenericIdentifierAst)
 
-        # Try to substitute the type, i.e. if "from_ty" has been reached. Cant have a generic type with generic
-        # arguments so return self.
-        if self.without_generics() == from_ty.without_generics():
-            self.namespace = to_ty.namespace
-            self.types = to_ty.types
+        # Check if this type directly matches the generic parameter identifier (by name not symbol).
+        if self.without_generics() == generic_parameter_identifier.without_generics():
+            self.namespace = generic_argument_type.namespace
+            self.types = generic_argument_type.types
             return self
 
-        # Otherwise, iterate the generic arguments and try to substitute the type in each one.
+        # Otherwise, iterate through the generic arguments and try to substitute each one.
         for part in type_parts:
             for g in part.generic_arguments.arguments if part.generic_arguments else []:
-                g.type.substitute_generics(from_ty, to_ty)
+                g.type._substitute_generics(generic_parameter_identifier, generic_argument_type)
 
-        # Return the modified type (self).
+        # Return this type, internally modified.
         return self
+
+    def get_generic_argument(self, generic_parameter_identifier: TypeAst) -> TypeAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentAst
+
+        def custom_iterate(type_single: TypeAst) -> Iterable[GenericArgumentAst]:
+            for part in type_single.types:
+                for generic_argument in part.generic_arguments.arguments:
+                    yield generic_argument
+                    yield from custom_iterate(generic_argument.type)
+
+        for generic in custom_iterate(self):
+            if generic.identifier == generic_parameter_identifier:
+                return generic.type
+
+    def get_generic_parameter_for_generic_argument(self, generic_argument_type: TypeAst) -> TypeAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentAst
+
+        def custom_iterate(type_single: TypeAst) -> Iterable[GenericArgumentAst]:
+            for part in type_single.types:
+                for generic_argument in part.generic_arguments.arguments:
+                    yield generic_argument
+                    yield from custom_iterate(generic_argument.type)
+
+        for generic in custom_iterate(self):
+            if generic.type == generic_argument_type:
+                return generic.identifier
+
+    def substituted_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
+        # Create a new TypeAst with the substituted generic.
+        new_type = copy.deepcopy(self)
+        new_type._substitute_generics(generic_parameter_identifier, generic_argument_type)
+        return new_type
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, generic_infer_from=None, generic_map_to=None, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
@@ -118,9 +133,9 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                 # Infer any generics from object initialisation, and load default generics into the type.
                 type_part.generic_arguments.arguments = infer_generics_types(
                     ast=type_part,
-                    generic_parameters=Seq(type_symbol.type.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
+                    generic_parameter_identifiers=Seq(type_symbol.type.generic_parameters.get_req()).map(lambda p: p.identifier).list(),
                     explicit_generic_arguments=Seq(type_part.generic_arguments.arguments).map(lambda a: (a.identifier, a.type)).dict(),
-                    infer_from=generic_infer_from or {}, map_to=generic_map_to or {}, scope_handler=scope_handler).list()
+                    infer_source=generic_infer_from or {}, infer_target=generic_map_to or {}, scope_handler=scope_handler).list()
 
                 # Analyse all the generic arguments.
                 if self.without_generics() != CommonTypes.tuple([]):
@@ -164,21 +179,15 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                             # Substitute the attribute symbol's generic types.
                             for attribute_symbol in Seq(new_scope._symbol_table.all()).filter_to_type(VariableSymbol):
-                                old_type = copy.deepcopy(attribute_symbol.type)
-                                old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
-                                attribute_symbol.type = old_type
+                                attribute_symbol.type = attribute_symbol.type.substituted_generics(generic_argument.identifier, generic_argument.type)
 
                             # Substitute the ast attribute's generic types.
                             for attribute_ast in new_cls_ast.body.members:
-                                old_type = copy.deepcopy(attribute_ast.type_declaration)
-                                old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
-                                attribute_ast.type_declaration = old_type
+                                attribute_ast.type_declaration = attribute_ast.type_declaration.substituted_generics(generic_argument.identifier, generic_argument.type)
 
                             # Substitute the generic types in the aliased type.
                             if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
-                                old_type = copy.deepcopy(new_scope.associated_type_symbol.old_type)
-                                old_type.substitute_generics(generic_argument.identifier, generic_argument.type)
-                                new_scope.associated_type_symbol.old_type = old_type
+                                new_scope.associated_type_symbol.old_type = new_scope.associated_type_symbol.old_type.substituted_generics(generic_argument.identifier, generic_argument.type)
 
                         # Load the generic-filled types.
                         for item in new_cls_ast.body.members:
