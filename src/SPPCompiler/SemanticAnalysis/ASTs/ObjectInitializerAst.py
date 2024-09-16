@@ -33,6 +33,9 @@ class ObjectInitializerAst(Ast, SemanticAnalyser, TypeInfer):
     def _genericize_type(self, scope_handler: ScopeHandler, **kwargs) -> "TypeSymbol":
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, ObjectInitializerArgumentGroupAst
 
+        # TODO: If this is called pre-analysis, invalid attributes will cause inference errors rather than attribute
+        #  errors.
+
         Seq(self.arguments.arguments).map(ObjectInitializerArgumentGroupAst.get_argument_value).filter_to_type(ObjectInitializerAst).for_each(lambda a: a._genericize_type(scope_handler, **kwargs))
 
         base_type_symbol = scope_handler.current_scope.get_symbol(self.class_type.without_generics())
