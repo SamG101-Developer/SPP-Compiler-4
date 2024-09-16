@@ -68,22 +68,27 @@ class FunctionParameterGroupAst(Ast, SemanticAnalyser):
     def get_self(self) -> Optional["FunctionParameterSelfAst"]:
         # Get the "self" function parameter (if it exists).
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterSelfAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterSelfAst)).first(None)
+        return Seq(self.parameters).filter_to_type(FunctionParameterSelfAst).first(None)
 
     def get_req(self) -> Seq["FunctionParameterRequiredAst"]:
         # Get all the required function parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterRequiredAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterRequiredAst))
+        return Seq(self.parameters).filter_to_type(FunctionParameterRequiredAst)
 
     def get_opt(self) -> Seq["FunctionParameterOptionalAst"]:
         # Get all the optional function parameters.
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterOptionalAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterOptionalAst))
+        return Seq(self.parameters).filter_to_type(FunctionParameterOptionalAst)
 
     def get_var(self) -> Optional["FunctionParameterVariadicAst"]:
         # Get the variadic function parameter (if it exists).
         from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterVariadicAst
-        return Seq(self.parameters).filter(lambda p: isinstance(p, FunctionParameterVariadicAst)).first(None)
+        return Seq(self.parameters).filter_to_type(FunctionParameterVariadicAst).first(None)
+
+    def get_non_self(self) -> Seq["FunctionParameterAst"]:
+        # Get all the function parameters that are not "self".
+        from SPPCompiler.SemanticAnalysis.ASTs import FunctionParameterSelfAst
+        return Seq(self.parameters).filter_not_type(FunctionParameterSelfAst)
 
     def __copy__(self):
         return FunctionParameterGroupAst(self.pos, self.paren_l_token, self.parameters.copy(), self.paren_r_token)
