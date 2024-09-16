@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy, operator
+from collections import defaultdict
 from dataclasses import dataclass
 from fastenum import Enum
 from typing import Dict, List, Optional, Tuple, Type
@@ -15,25 +16,19 @@ from SPPCompiler.Utils.Sequence import Seq
 
 def infer_generics_types(
         ast: "TypeAst",
-        generic_parameters: List["TypeAst"],
+        generic_parameter_identifiers: List["TypeAst"],
         explicit_generic_arguments: Dict["TypeAst", "TypeAst"],
-        infer_from: Dict["IdentifierAst", "TypeAst"],
-        map_to: Dict["IdentifierAst", "TypeAst"],
+        infer_source: Dict["IdentifierAst", "TypeAst"],
+        infer_target: Dict["IdentifierAst", "TypeAst"],
         scope_handler: ScopeHandler) -> Seq["GenericArgumentAst"]:
 
-    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-    from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNamedAst, TokenAst, TypeAst
-
-    if isinstance(ast, TypeAst) and ast.without_generics() == CommonTypes.tuple([]):
-        all_generic_arguments = [GenericArgumentNamedAst(
-            pos=-1,
-            raw_identifier=identifier.types[-1].to_identifier(),
-            assignment_token=TokenAst.dummy(TokenType.TkAssign),
-            type=type) for identifier, type in explicit_generic_arguments.items()]
-        return Seq(all_generic_arguments)
-
     """
-    For the class:
+    The infer_generic_types_2 is an upgraded generic inference method. It takes an "inference_from" dictionary, which
+    might be a list of attributes and their values, and an "inference_to" dictionary, which would then be a list of
+    attributes and their generic types.
+
+    Explicit generic arguments are also given, so they can be analysed with the inferred generics, especially regarding
+    conflict checking. For example:
 
     cls Point[T, U, V] {
         x: T
@@ -44,46 +39,69 @@ def infer_generics_types(
     let p = Point(x=1, y="hello", z=False)
 
     the arguments:
-        generic_parameters: [T, U, V]
+        generic_parameter_identifiers: [T, U, V]
         explicit_generic_arguments: {}
-        infer_from: {x: 1, y: "hello", z: False}
-        map_to: {x: T, y: U, z: V}
+        infer_source: {x: BigInt, y: Str, z: Bool}
+        infer_target: {x: T, y: U, z: V}
+
+    Args:
+        ast:
+        generic_parameter_identifiers: The list of generic parameters to infer types for.
+        explicit_generic_arguments: Already defined generic arguments.
+        infer_source: Source values to infer generic types from.
+        infer_target: Target generic types to infer to.
+        scope_handler: The scope handler.
+
+    Returns:
+        The complete, analysed list of generic arguments.
     """
 
-    # Infer all possible generic arguments.
-    inferred_generic_arguments = {}
-    for identifier, value in infer_from.items():
-        if identifier in map_to.keys() and map_to[identifier] in generic_parameters and map_to[identifier] not in inferred_generic_arguments:
-            inferred_generic_arguments[map_to[identifier]] = value
+    from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+    from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentNamedAst, TokenAst, TypeAst
 
-    # Check no inferred generic arguments have conflicting inferred types.
-    for inferred_generic_argument in inferred_generic_arguments.keys():
-        if list(map_to.values()).count(inferred_generic_argument) > 1:
-            inferred = [infer_from[identifier] for identifier, generic in map_to.items() if map_to[identifier] in generic_parameters and generic == inferred_generic_argument]
-            for i in inferred:
-                for j in inferred:
-                    if not i.symbolic_eq(j, scope_handler.current_scope):
-                        raise SemanticErrors.CONFLICTING_GENERIC_INFERENCE(inferred_generic_argument, inferred[0], inferred[1])
+    if isinstance(ast, TypeAst) and ast.without_generics() == CommonTypes.tuple([]):
+        all_generic_arguments = [GenericArgumentNamedAst(-1, identifier.types[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), type) for identifier, type in explicit_generic_arguments.items()]
+        return Seq(all_generic_arguments)
 
-    # Check no inferred generic arguments are already explicitly defined.
-    for inferred_generic_argument in inferred_generic_arguments.keys():
-        if inferred_generic_argument in explicit_generic_arguments:
-            raise SemanticErrors.GENERIC_INFERRABLE(inferred_generic_argument, explicit_generic_arguments[inferred_generic_argument], inferred_generic_arguments[inferred_generic_argument])
+    # Infer all the generics from the source to the target.
+    inferred_generics_arguments = defaultdict(Seq)
+    for generic_parameter_identifier in generic_parameter_identifiers:
+        for infer_target_identifier, infer_target_type in infer_target.items():
+            if infer_target_identifier in infer_source.keys() and infer_target_type == generic_parameter_identifier:
+                inferred_generics_arguments[generic_parameter_identifier].append(infer_source[infer_target_identifier])
+            elif infer_target_identifier in infer_source.keys() and infer_target_type.contains_generic(generic_parameter_identifier):
+                inferred_generics_arguments[generic_parameter_identifier].append(infer_source[infer_target_identifier].get_generic_argument(infer_target[infer_target_identifier].get_generic_parameter_for_generic_argument(generic_parameter_identifier)))
+
+    # Remove all "None" items from each list of inferred generics.
+    for _, inferred_generics_argument_types in inferred_generics_arguments.items():
+        inferred_generics_argument_types.remove_none()
+    for inferred_generics_argument_identifier, inferred_generics_argument_types in inferred_generics_arguments.copy().items():
+        if inferred_generics_argument_types.empty():
+            del inferred_generics_arguments[inferred_generics_argument_identifier]
+
+    # Check there are no conflicting inferred types on the same generic.
+    for inferred_generic_name, inferred_generic_types in inferred_generics_arguments.items():
+        for check_conflict_inferred_generic_type in inferred_generics_arguments[inferred_generic_name]:
+            if not inferred_generic_types[0].symbolic_eq(check_conflict_inferred_generic_type, scope_handler.current_scope):
+                raise SemanticErrors.CONFLICTING_GENERIC_INFERENCE(inferred_generic_name, inferred_generic_types[0], check_conflict_inferred_generic_type)
+
+    # Convert the inferred generic arguments from {T -> (...U)} to {T -> U}.
+    inferred_generics_arguments = {k: v[0] for k, v in inferred_generics_arguments.items()}
+
+    # Check there are no conflicting inferred types with explicit types.
+    for inferred_generic_name, inferred_generic_type in inferred_generics_arguments.items():
+        if inferred_generic_name in explicit_generic_arguments:
+            if not inferred_generic_type.symbolic_eq(explicit_generic_arguments[inferred_generic_name], scope_handler.current_scope):
+                raise SemanticErrors.CONFLICTING_GENERIC_INFERENCE(inferred_generic_name, inferred_generic_type, explicit_generic_arguments[inferred_generic_name])
 
     # Check all generic parameters have been inferred or explicitly defined.
-    for generic_parameter in generic_parameters:
-        if generic_parameter not in explicit_generic_arguments | inferred_generic_arguments:
-            raise SemanticErrors.MISSING_GENERIC_ARGUMENT(ast, generic_parameter)
+    for generic_parameter_identifier in generic_parameter_identifiers:
+        if generic_parameter_identifier not in inferred_generics_arguments | explicit_generic_arguments:
+            raise SemanticErrors.MISSING_GENERIC_ARGUMENT(ast, generic_parameter_identifier)
 
-    # Return a union of the inferred and explicit generic arguments.
-    all_generic_arguments = inferred_generic_arguments | explicit_generic_arguments
-
-    all_generic_arguments = [GenericArgumentNamedAst(
-        pos=-1,
-        raw_identifier=identifier.types[-1].to_identifier(),
-        assignment_token=TokenAst.dummy(TokenType.TkAssign),
-        type=type) for identifier, type in all_generic_arguments.items()]
-
+    # Merge and format the generic arguments.
+    all_generic_arguments = inferred_generics_arguments | explicit_generic_arguments
+    all_generic_arguments = [GenericArgumentNamedAst(-1, identifier.types[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), type) for identifier, type in all_generic_arguments.items()]
     return Seq(all_generic_arguments)
 
 
@@ -258,17 +276,10 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
                     sup_scopes.append((fun_scope, ast, generics))
 
             # Methods that have been overridden must be removed (ie use most derived method).
+            # Todo: maybe return a breadth-first search of the scopes to ensure the most derived method is used.
             ...
 
     return Seq(sup_scopes)
-
-
-# def matching_function_types(this_member, that_member, current_scope: Scope, super_class_scope: Scope) -> bool:
-#     this_member_has_self_parameter = this_member.body.members[0].parameters.get_self() is not None
-#     that_member_has_self_parameter = that_member.body.members[0].parameters.get_self() is not None
-#     t1 = this_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[this_member_has_self_parameter:]
-#     t2 = that_member.super_class.types[-1].generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments[that_member_has_self_parameter:]
-#     return all(tt1.type.symbolic_eq(tt2.type, current_scope, super_class_scope) for tt1, tt2 in zip(t1, t2))
 
 
 def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: ScopeHandler) -> Optional[TypeSymbol]:
@@ -382,9 +393,8 @@ def check_for_conflicting_methods(
     """
 
     # Get all the existing functions with the same identifier belonging to the type scope.
-    exclusive = conflict_type == FunctionConflictCheckType.InvalidOverload
-    existing_functions = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
-    existing_scopes    = get_all_function_scopes(type_scope, new_function._orig, exclusive).map(operator.itemgetter(0))
+    existing_functions = get_all_function_scopes(type_scope, new_function._orig, True).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
+    existing_scopes    = get_all_function_scopes(type_scope, new_function._orig, True).map(operator.itemgetter(0))
 
     # For overloads, the required parameters must have different types or conventions.
     if conflict_type == FunctionConflictCheckType.InvalidOverload:
@@ -476,8 +486,6 @@ __all__ = [
     "convert_generic_arguments_to_named",
     "convert_function_arguments_to_named",
     "get_all_function_scopes",
-    "check_for_conflicting_attributes",
-    "matching_function_types",
     "get_owner_type_of_sup_block",
     "substitute_generics_in_sup_scopes",
 ]
