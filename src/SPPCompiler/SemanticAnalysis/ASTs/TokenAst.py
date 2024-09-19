@@ -28,7 +28,7 @@ class TokenAst(Ast):
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the token metadata, and add a space after the token if it is a keyword.
-        return self.token.token_metadata + (" " if self.token.token_type.name.startswith("Kw") else "")
+        return self.token.token_metadata
 
     def __eq__(self, other):
         # Check both ASTs are the same type and have the same token types and metadata if they're lexemes.

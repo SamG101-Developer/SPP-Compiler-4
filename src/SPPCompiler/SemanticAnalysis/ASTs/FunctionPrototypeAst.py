@@ -58,7 +58,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionPrototypeAst.
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}{self.function_token.print(printer)}{self.identifier.print(printer)}"
+        s += f"{Seq(self.annotations).print(printer, "\n")}{self.function_token.print(printer)} {self.identifier.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
         s += f"{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
@@ -113,7 +113,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # For methods, substitute the "Self" type on the "self" parameter with the context's identifier.
         if not isinstance(context, ModulePrototypeAst) and self.parameters.get_self():
-            self.parameters.get_self().type_declaration = self.parameters.get_self().type_declaration.substituted_generics(CommonTypes.self(), context.identifier)
+            self.parameters.get_self().type_declaration = context.identifier
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".

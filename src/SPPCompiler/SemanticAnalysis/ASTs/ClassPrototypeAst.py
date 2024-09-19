@@ -51,7 +51,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
     def print(self, printer: AstPrinter) -> str:
         # Print the ClassPrototypeAst.
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}{self.cls_keyword.print(printer)}{self.identifier.print(printer)}"
+        s += f"{Seq(self.annotations).print(printer, "\n")}{self.cls_keyword.print(printer)} {self.identifier.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
         s += f"{self.body.print(printer)}"
@@ -78,7 +78,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         """
 
         # Move into a new scope for the class. This will be associated with the class's type symbol.
-        scope_handler.into_new_scope(self.identifier)
+        scope_handler.into_new_scope(self.identifier.without_generics())
 
         # Add a new type(-alias) symbol for the class being created.
         match type_alias:

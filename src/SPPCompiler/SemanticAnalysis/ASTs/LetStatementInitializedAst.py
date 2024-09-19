@@ -35,7 +35,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     def print(self, printer: AstPrinter) -> str:
         # Print the LetStatementInitializedAst.
         s = ""
-        s += f"{self.let_keyword.print(printer)}"
+        s += f"{self.let_keyword.print(printer)} "
         s += f"{self.assign_to.print(printer)} "
         s += f"{self.assign_token.print(printer)} "
         s += f"{self.value.print(printer)}"
