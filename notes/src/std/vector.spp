@@ -7,12 +7,6 @@ cls Vec[T] {
 }
 
 sup [T] Vec[T] {
-    # use ValueType as T
-    # use SizeType as U64
-    # use IndexType as U64
-}
-
-sup [T] Vec[T] {
     fun push_head(&mut self, ..items: T) -> Void { }
     fun push_tail(&mut self, ..items: T) -> Void { }
     fun push(&mut self, index: U64, ..items: T) -> Void { }
@@ -47,7 +41,7 @@ sup [T] Vec[T] {
     fun shrink_to_fit(&mut self) -> Void { }
 }
 
-sup [T: Sortable] Sortable[T] on Vec[T] {
+sup [T] Sortable[T] on Vec[T] {
     fun sort(&mut self) -> Void { }
     fun sort_by(&mut self, compare: FunRef[Bool, (T, T)]) -> Void { }
 }

@@ -18,10 +18,14 @@ sup [A, B] TesterBaseClass[std::Bool, A, B] on TesterDerivedClass[A, B] { }
 fun test_sup_generics_dif_names() -> std::Void {
     let x = TesterBaseClass[std::Bool, std::BigInt, std::Str]()
     let mut t = x.t()
+    let mut u = x.u()
+    let mut v = x.v()
     t = false
+    u = 123
+    v = "hello"
 
     let y = TesterDerivedClass[std::Str, std::BigInt]()
-    let mut u = y.u()
-    u = "0"
+    let mut q = y.u()
+    q = "0"
 }
 
