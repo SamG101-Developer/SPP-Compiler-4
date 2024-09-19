@@ -154,8 +154,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # New overload generation for generic functions or variadic functions.
                 if generic_arguments or is_function_variadic:
-                    print(f"SPAWNING NEW GENERIC FUNCTION [{func_scope}]")
-
                     new_scope = Scope(copy.deepcopy(func_scope.name), parent_scope=func_scope.parent, non_generic_scope=func_scope)
                     for generic_argument in generic_arguments:
                         new_scope._scope_name.this_class = new_scope.name.this_class.substituted_generics(generic_argument.identifier, generic_argument.type)
@@ -163,9 +161,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                         generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
                         new_scope.add_symbol(TypeSymbol(name=generic_argument.identifier.types[-1], type=generic_argument_type_symbol.type, associated_scope=generic_argument_type_symbol.associated_scope, is_generic=True))
-
-                    print(f"\tSPAWNED NEW GENERIC FUNCTION [{new_scope}]")
-                    print(f"\tNEW SYMBOLS", [f"{s.name} => {s.type}" for s in new_scope.all_symbols(True)])
 
                     # Temporarily remove the body of the overload before copying it (faster).
                     func_body = func_overload.body
@@ -276,10 +271,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         if isinstance(function_name, PostfixExpressionAst):
             owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
 
-            print("---")
-            print(function_scope)
-            print(owner_scope)
-            print(f"GETTING RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print("---")
+            # print(function_scope)
+            # print(owner_scope)
+            # print(f"GETTING RETURN TYPE OF {lhs}{self}: {function_return_type}")
 
             for generic in Seq(function_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda s: s.is_generic):
                 function_return_type = function_return_type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type)
@@ -287,26 +282,26 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=owner_scope)
             function_return_type.do_semantic_analysis(temp_handler)
 
-            print(f"NEW GS RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print(f"NEW GS RETURN TYPE OF {lhs}{self}: {function_return_type}")
             function_return_type = owner_scope.get_symbol(function_return_type).fq_type
-            print(f"NEW FQ RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print(f"NEW FQ RETURN TYPE OF {lhs}{self}: {function_return_type}")
 
         else:
             owner_scope = function_scope.parent
 
-            print("---")
-            print(function_scope)
-            print(owner_scope)
-            print(f"GETTING RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print("---")
+            # print(function_scope)
+            # print(owner_scope)
+            # print(f"GETTING RETURN TYPE OF {lhs}{self}: {function_return_type}")
 
             for generic in Seq(function_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda s: s.is_generic):
                 function_return_type = function_return_type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type)
 
             temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=owner_scope)
             function_return_type.do_semantic_analysis(temp_handler)
-            print(f"NEW GS RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print(f"NEW GS RETURN TYPE OF {lhs}{self}: {function_return_type}")
             function_return_type = owner_scope.get_symbol(function_return_type).fq_type
-            print(f"NEW FQ RETURN TYPE OF {lhs}{self}: {function_return_type}")
+            # print(f"NEW FQ RETURN TYPE OF {lhs}{self}: {function_return_type}")
 
         return InferredType(convention=ConventionMovAst, type=function_return_type)
 
