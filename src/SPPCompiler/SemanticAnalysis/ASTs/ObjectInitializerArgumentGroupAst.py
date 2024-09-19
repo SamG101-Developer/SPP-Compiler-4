@@ -107,12 +107,19 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
                 raise SemanticErrors.TYPE_MISMATCH_2(None, argument, attribute_type, argument_type, scope_handler)
 
         # Ensure all the "sup" arguments are present in the object initializer.
-        sup_types = type_symbol.associated_scope._non_generic_scope._sup_scopes
+        sup_types = type_symbol.associated_scope._sup_scopes
         sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
         expected_sup_types = Seq()
+
+        print(f"OBJECT INIT {class_type}{self}")
+        print(f"Sup types: {[str(s[0].name) for s in sup_types]}")
+
         for sup_scope, sup_block in sup_types:
             # Only stateful superclasses must be present, so check the number of attributes.
             super_class_symbol = sup_scope.associated_type_symbol
+
+            print(f"\tSuperclass: {sup_scope.name}: {super_class_symbol}")
+
             super_class_attribute_count = len(super_class_symbol.type.body.members)
 
             # If the class is stateful, append the superclass type.

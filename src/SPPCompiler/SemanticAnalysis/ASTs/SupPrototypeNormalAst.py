@@ -84,8 +84,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
             raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.identifier.without_generics(), cls_symbol.name)
 
         # Add the superimposition scope to the class scope.
-        cls_scope = cls_symbol.associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        cls_symbol.associated_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))

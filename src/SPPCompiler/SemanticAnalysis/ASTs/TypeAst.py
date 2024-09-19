@@ -8,7 +8,8 @@ from typing import Iterable, List, Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types, substitute_generics_in_sup_scopes
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, \
+    infer_generics_types, create_generic_scope
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -42,26 +43,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         s += f"{Seq(self.types).print(printer, "::")}"
         return s
 
-    def _substitute_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
-        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
-
-        # Get all the substitutable parts of this type (not namespace parts or numeric indexing).
-        type_parts = Seq(self.types).filter_to_type(GenericIdentifierAst)
-
-        # Check if this type directly matches the generic parameter identifier (by name not symbol).
-        if self.without_generics() == generic_parameter_identifier.without_generics():
-            self.namespace = generic_argument_type.namespace
-            self.types = generic_argument_type.types
-            return self
-
-        # Otherwise, iterate through the generic arguments and try to substitute each one.
-        for part in type_parts:
-            for g in part.generic_arguments.arguments if part.generic_arguments else []:
-                g.type._substitute_generics(generic_parameter_identifier, generic_argument_type)
-
-        # Return this type, internally modified.
-        return self
-
     def get_generic_argument(self, generic_parameter_identifier: TypeAst) -> TypeAst:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericArgumentAst
 
@@ -88,12 +69,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             if generic.type == generic_argument_type:
                 return generic.identifier
 
-    def substituted_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
-        # Create a new TypeAst with the substituted generic.
-        new_type = copy.deepcopy(self)
-        new_type._substitute_generics(generic_parameter_identifier, generic_argument_type)
-        return new_type
-
     def do_semantic_analysis(self, scope_handler: ScopeHandler, generic_infer_from=None, generic_map_to=None, **kwargs) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
 
@@ -116,7 +91,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
             if isinstance(type_part, GenericIdentifierAst):
                 # If the type doesn't exist, raise an error.
                 if not type_scope.has_symbol(type_part.without_generics()):
-                    raise SemanticErrors.UNKNOWN_IDENTIFIER(type_part, [], "type")
+                    raise SemanticErrors.UNKNOWN_IDENTIFIER(type_part.without_generics(), [], "type")
 
                 type_symbol = type_scope.get_symbol(type_part.without_generics(), ignore_alias=True)
                 type_scope = type_symbol.associated_scope
@@ -146,57 +121,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                 # If the generic type doesn't exist, create a symbol and scope for it.
                 if not type_scope.parent.has_symbol(type_part):
-
-                    # Create the new scope for this type and add it to the parent scope.
-                    new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent)
-                    new_scope._scope_name.types[-1].generic_arguments.arguments = type_part.generic_arguments.arguments
-                    new_scope._sup_scopes = substitute_generics_in_sup_scopes(type_scope._sup_scopes, type_part.generic_arguments.arguments, scope_handler, type_symbol.type)
-                    new_scope._children_scopes = type_scope._children_scopes
-                    new_scope._symbol_table = copy.deepcopy(type_scope._symbol_table)  # copy.copy?
-
-                    # Create the new symbol; deepcopy the class AST for attribute substitution.
-                    new_cls_ast = copy.deepcopy(type_symbol.type)
-
-                    # Add the new "Self" type, and add the new scope to the parent scope.
-                    new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
-                    match type_symbol:
-                        case TypeAliasSymbol(): type_scope.parent.add_symbol(TypeAliasSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, old_type=type_symbol.old_type, old_associated_scope=type_symbol.old_associated_scope))
-                        case TypeSymbol()     : type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_cls_ast, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
-                    type_scope.parent.children.append(new_scope)
-                    type_scope = new_scope
-
-                    # Register the new generic arguments against the generic parameters in the new scope.
-                    if self.without_generics() != CommonTypes.tuple([]):
-
-                        for generic_argument in type_part.generic_arguments.arguments:
-                            generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
-                            generic_parameter_type_symbol = TypeSymbol(
-                                name=generic_argument.identifier.types[-1],
-                                type=generic_argument_type_symbol.type,
-                                associated_scope=generic_argument_type_symbol.associated_scope,
-                                is_generic=True)
-                            new_scope.add_symbol(generic_parameter_type_symbol)
-
-                            # Substitute the attribute symbol's generic types.
-                            for attribute_symbol in Seq(new_scope._symbol_table.all()).filter_to_type(VariableSymbol):
-                                attribute_symbol.type = attribute_symbol.type.substituted_generics(generic_argument.identifier, generic_argument.type)
-
-                            # Substitute the ast attribute's generic types.
-                            for attribute_ast in new_cls_ast.body.members:
-                                attribute_ast.type_declaration = attribute_ast.type_declaration.substituted_generics(generic_argument.identifier, generic_argument.type)
-
-                            # Substitute the generic types in the aliased type.
-                            if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
-                                new_scope.associated_type_symbol.old_type = new_scope.associated_type_symbol.old_type.substituted_generics(generic_argument.identifier, generic_argument.type)
-
-                        # Load the generic-filled types.
-                        for item in new_cls_ast.body.members:
-                            item.type_declaration.do_semantic_analysis(scope_handler)
-
-                        if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
-                            old_type = new_scope.associated_type_symbol.old_type
-                            old_type.do_semantic_analysis(scope_handler)
-                            new_scope.associated_type_symbol.old_associated_scope = new_scope.get_symbol(old_type).associated_scope
+                    create_generic_scope(self, type_symbol, type_scope, type_part.generic_arguments.arguments, scope_handler)  # , t=type_scope.parent.has_symbol(type_part))
 
             else:
                 # Ensure that the type is a tuple for numerical-indexing.
@@ -213,10 +138,10 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                 type_scope = new_scope
 
         # Finally, add the namespace to this symbol (fully qualifying it).
-        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+        # from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
-        if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
-            self.namespace = type_scope.scopes_as_namespace
+        # if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
+        #     self.namespace = type_scope.scopes_as_namespace
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
@@ -236,6 +161,32 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         for part in self:
             if part == generic.types[-1]:
                 return True
+
+    def _substitute_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
+        from SPPCompiler.SemanticAnalysis.ASTs import GenericIdentifierAst
+
+        # Get all the substitutable parts of this type (not namespace parts or numeric indexing).
+        type_parts = Seq(self.types).filter_to_type(GenericIdentifierAst)
+
+        # Check if this type directly matches the generic parameter identifier (by name not symbol).
+        if self.without_generics() == generic_parameter_identifier.without_generics():
+            self.namespace = generic_argument_type.namespace
+            self.types = generic_argument_type.types
+            return self
+
+        # Otherwise, iterate through the generic arguments and try to substitute each one.
+        for part in type_parts:
+            for g in part.generic_arguments.arguments if part.generic_arguments else []:
+                g.type._substitute_generics(generic_parameter_identifier, generic_argument_type)
+
+        # Return this type, internally modified.
+        return self
+
+    def substituted_generics(self, generic_parameter_identifier: TypeAst, generic_argument_type: TypeAst) -> TypeAst:
+        # Create a new TypeAst with the substituted generic.
+        new_type = copy.deepcopy(self)
+        new_type._substitute_generics(generic_parameter_identifier, generic_argument_type)
+        return new_type
 
     def symbolic_eq(self, that: TypeAst, this_scope: Scope, that_scope: Optional[Scope] = None) -> bool:
         # Default the "that_scope" to the "this_scope" if not provided.

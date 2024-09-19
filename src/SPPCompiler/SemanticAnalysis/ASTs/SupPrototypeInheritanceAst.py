@@ -1,5 +1,6 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -26,6 +27,8 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
     super_class: "TypeAst"
     on_keyword: "TokenAst"
 
+    _scope: Optional["Scope"] = field(default=None, kw_only=True, repr=False)
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the SupPrototypeInheritanceAst.
@@ -33,7 +36,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         s += f"{self.sup_keyword.print(printer)}"
         s += f"{self.generic_parameters.print(printer)} " if self.generic_parameters else ""
         s += f"{self.super_class.print(printer)} "
-        s += f"{self.on_keyword.print(printer)}"
+        s += f"{self.on_keyword.print(printer)} "
         s += f"{self.identifier.print(printer)}"
         s += f" {self.where_block.print(printer)} " if self.where_block else ""
         s += f"{self.body.print(printer)}"
@@ -52,6 +55,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Create a new scope.
         scope_name = SupInheritanceIdentifier(this_class=self.identifier, super_class=self.super_class)
         scope_handler.into_new_scope(scope_name)
+        self._scope = scope_handler.current_scope
 
         # Generate the body members (prototype), and register the generic parameters types.
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
@@ -75,13 +79,11 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         if cls_symbol.is_generic:
             raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.identifier.without_generics(), cls_symbol.name)
 
-        # Add the superimposition scope to the class scope.
-        cls_scope = cls_symbol.associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        # Add the superimposition scope to the class scope (allows behaviour access to this type).
+        cls_symbol.associated_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
-
         scope_handler.exit_cur_scope()
 
     def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
@@ -89,15 +91,16 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
         # Get the class symbol and associated scope.
         cls_symbol = scope_handler.current_scope.get_symbol(self.identifier.without_generics())
-        cls_scope = cls_symbol.associated_scope
 
         # Can't superimpose over a generic type.
-        if (super_class_symbol := scope_handler.current_scope.get_symbol(self.super_class)) and super_class_symbol.is_generic:
+        super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        if super_class_symbol and super_class_symbol.is_generic:
             raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.super_class, super_class_symbol.name)
 
-        # Register the superclass scope against the class scope.
+        # Register the superclass scope against the class scope (allows state access to this type).
         self.super_class.do_semantic_analysis(scope_handler)
-        cls_scope._sup_scopes.append((scope_handler.current_scope.get_symbol(self.super_class).associated_scope, self))
+        super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
+        cls_symbol.associated_scope._sup_scopes.append((super_class_symbol.associated_scope, super_class_symbol.type))
 
         # Mark the class-type as "copyable" if the superclass std::Copy.
         if self.super_class.symbolic_eq(CommonTypes.copy(), scope_handler.current_scope):
@@ -105,6 +108,18 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
 
         # Load the superimposition scopes for the members.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes_gen(scope_handler))
+
+        # Load all the methods off of the superclass into this superimposition.
+        # for sup_scope, sup_ast in scope_handler.current_scope.get_symbol(self.super_class).associated_scope._non_generic_scope._sup_scopes:
+        #     if isinstance(sup_ast, SupPrototypeNormalAst):
+        #         for member in Seq(sup_ast.body.members).filter_to_type(SupPrototypeInheritanceAst):
+        #             member = copy.deepcopy(member)
+        #             for g in self.super_class.types[-1].generic_arguments.arguments:
+        #                 member.super_class = member.super_class.substituted_generics(g.identifier, g.type)
+        #             self.body.members.append(member)
+
+        # print(self.print(AstPrinter()))
+
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
@@ -125,8 +140,10 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
         # Ensure the identifier and superclass exist, then analyse the body.
-        self.super_class.do_semantic_analysis(scope_handler, **kwargs)
+        # print("SUPERCLASS", self.super_class, self.generic_parameters, scope_handler.current_scope.parent)
+
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
+        self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
 
         # Get superclass symbol/scope information.

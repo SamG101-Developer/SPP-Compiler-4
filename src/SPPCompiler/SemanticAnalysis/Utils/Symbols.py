@@ -131,6 +131,10 @@ class TypeSymbol(Symbol):
     def fq_type(self) -> "TypeAst":
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst
 
+        if self.name.value == "Self":
+            return TypeAst(self.name.pos, [], [self.name])
+        if self.is_generic:
+            return TypeAst(self.name.pos, [], [self.name])
         if not self.type:
             return TypeAst(self.name.pos, [], [self.name])
 
