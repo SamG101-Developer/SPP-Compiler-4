@@ -41,19 +41,19 @@ sup [T] Vec[T] {
     fun shrink_to_fit(&mut self) -> Void { }
 }
 
-sup [T] Sortable[T] on Vec[T] {
+sup [T] Vec[T] ext Sortable[T] {
     fun sort(&mut self) -> Void { }
     fun sort_by(&mut self, compare: FunRef[Bool, (T, T)]) -> Void { }
 }
 
-sup [T] IterMov[T] on Vec[T] {
+sup [T] Vec[T] ext IterMov[T] {
     # cor iter_mov(self) -> GenMov[T] { }
 }
 
-sup [T] IterRef[T] on Vec[T] {
+sup [T] Vec[T] ext IterRef[T] {
     # cor iter_ref(&self) -> GenRef[T] { }
 }
 
-sup [T] IterMut[T] on Vec[T] {
+sup [T] Vec[T] ext IterMut[T] {
     # cor iter_mut(&mut self) -> GenMut[T] { }
 }

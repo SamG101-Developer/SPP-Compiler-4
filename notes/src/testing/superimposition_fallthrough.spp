@@ -20,9 +20,9 @@ cls TestSubClass[T] {
 }
 
 
-sup [T] TestClass[T] on TestSubClass[T] { }
+sup [T] TestSubClass[T] ext TestClass[T] { }
 
-sup [T] OtherBase on TestSubClass[T] { }
+sup [T] TestSubClass[T] ext OtherBase { }
 
 
 fun test_sup() -> std::Void {

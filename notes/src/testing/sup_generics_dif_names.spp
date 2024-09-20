@@ -12,7 +12,7 @@ sup [T, U, V] TesterBaseClass[T, U, V] {
 
 cls TesterDerivedClass[A, B] { }
 
-sup [A, B] TesterBaseClass[std::Bool, A, B] on TesterDerivedClass[A, B] { }
+sup [A, B] TesterDerivedClass[A, B] ext TesterBaseClass[std::Bool, A, B] { }
 
 
 fun test_sup_generics_dif_names() -> std::Void {
@@ -28,4 +28,3 @@ fun test_sup_generics_dif_names() -> std::Void {
     let mut q = y.u()
     q = "0"
 }
-

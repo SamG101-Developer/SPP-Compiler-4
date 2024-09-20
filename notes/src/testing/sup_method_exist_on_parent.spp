@@ -16,7 +16,7 @@ sup SubClass {
     fun other(&self) -> std::Void { }
 }
 
-sup SuperClass on SubClass { }
+sup SubClass ext SuperClass { }
 
 
 fun test_subclass_superclass() -> std::Void {

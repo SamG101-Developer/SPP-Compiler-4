@@ -10,7 +10,7 @@ cls None { }
 
 
 ##
-sup [T] Opt[T] {
+sup Opt[T] {
     fun and_[U](self, that: Opt[U]) -> Opt[U] {
         ret case self then
             is None { None() }
@@ -37,7 +37,7 @@ sup [T] Opt[T] {
 }
 
 
-sup [T] Opt[T] {
+sup Opt[T] {
     fun take(&mut self) -> Opt[T] {
         ret case self then
             is None { None() }

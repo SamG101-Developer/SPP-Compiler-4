@@ -10,6 +10,7 @@ Types:
 -- Too many generics or invalid name generics throw a Python error.
 -- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
 -- Typedef at the module level.
+-- Using generics for an identifier (in sup) different to the cls-level generics doesn't work (could be a feature?).
 
 Case blocks:
 -- Look at anonymous branching? Allowing for a non-pattern pattern block.
@@ -31,7 +32,6 @@ Inheritance:
 -- Default visibility is private.
 -- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
 -- Check members exist on superclasses.
-
 
 FUTURE
 

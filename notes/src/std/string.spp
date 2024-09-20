@@ -11,7 +11,7 @@ sup Str {
 }
 
 
-sup std::ops::Eq[Rhs=Str] on Str {
+sup Str ext std::ops::Eq[Rhs=Str] {
     fun eq(&self, that: Str) -> Bool { }
 }
 

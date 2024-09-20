@@ -5,7 +5,7 @@ cls TestCopyingClass[T] {
     a: T
 }
 
-sup [T] std::Copy on TestCopyingClass[T] { }
+sup [T] TestCopyingClass[T] ext std::Copy { }
 
 
 fun test_copy() -> std::Void {

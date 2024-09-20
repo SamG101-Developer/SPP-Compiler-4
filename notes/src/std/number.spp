@@ -5,27 +5,27 @@ cls BigInt { }
 cls BigDec { }
 
 
-sup std::ops::Sub[Rhs=BigInt] on BigInt {
+sup BigInt ext std::ops::Sub[Rhs=BigInt] {
     fun sub(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Add[Rhs=BigInt] on BigInt {
+sup BigInt ext std::ops::Add[Rhs=BigInt] {
     fun add(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Mul[Rhs=BigInt] on BigInt {
+sup BigInt ext std::ops::Mul[Rhs=BigInt] {
     fun mul(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Div[Rhs=BigInt] on BigInt {
+sup BigInt ext std::ops::Div[Rhs=BigInt] {
     fun div(self, other: BigInt) -> BigInt { }
 }
 
-sup std::ops::Eq[Rhs=BigInt] on BigInt {
+sup BigInt ext std::ops::Eq[Rhs=BigInt] {
     fun eq(&self, that: BigInt) -> Bool { }
 }
 
-sup std::Copy on BigInt { }
+sup BigInt ext Copy { }
 
 
 cls U16 { }
