@@ -71,6 +71,7 @@ class TokenType(Enum):
     KwFun = "fun"
     KwCor = "cor"
     KwUse = "use"
+    KwExt = "ext"
 
     # Variable declarations
     KwLet = "let"
@@ -107,7 +108,6 @@ class TokenType(Enum):
     KwNot = "not"
 
     # Misc
-    KwOn = "on"
     KwIn = "in"
     KwAsync = "async"  # go? take from golang
     KwThen = "then"

@@ -145,11 +145,11 @@ class Parser:
         p1 = self.parse_token(TokenType.KwSup).parse_once()
         p2 = self.parse_generic_parameters().parse_optional()
         p3 = self.parse_type().parse_once()
-        p4 = self.parse_token(TokenType.KwOn).parse_once()
+        p4 = self.parse_token(TokenType.KwExt).parse_once()
         p5 = self.parse_type().parse_once()
         p6 = self.parse_where_block().parse_optional()
         p7 = self.parse_inner_scope(self.parse_sup_member).parse_once()
-        return SupPrototypeInheritanceAst(c1, p1, p2, p5, p6, p7, p3, p4)
+        return SupPrototypeInheritanceAst(c1, p1, p2, p3, p6, p7, p4, p5)
 
     @parser_rule
     def parse_sup_member(self) -> SupMemberAst:

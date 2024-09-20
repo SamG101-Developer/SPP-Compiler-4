@@ -34,7 +34,7 @@ class UseStatementTypeAliasAst(Ast, SemanticAnalyser):
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         """
         Take the example "use MyVector[T] = std::Vec[T]". This will create a "cls MyVector[T] { }" and
-        "sup [T] std::Vec[T] on MyVector[T]".
+        "sup std::Vec[T] on MyVector[T]".
         """
 
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, SupPrototypeInheritanceAst, TokenAst, GenericParameterGroupAst
@@ -58,7 +58,7 @@ class UseStatementTypeAliasAst(Ast, SemanticAnalyser):
         ast_1.generate(scope_handler, type_alias=True)
 
         # Apply a superimposition, to allow for the attribute & method access.
-        ast_2 = SupPrototypeInheritanceAst(self.pos, TokenAst.dummy(TokenType.KwSup), generic_parameters_2, self.new_type, None, None, self.old_type, TokenAst.dummy(TokenType.KwOn))
+        ast_2 = SupPrototypeInheritanceAst(self.pos, TokenAst.dummy(TokenType.KwSup), generic_parameters_2, self.old_type, None, None, TokenAst.dummy(TokenType.KwExt), self.new_type)
         ast_2.generate(scope_handler)
         scope_handler.current_scope.children[-2]._sup_scopes.append((scope_handler.current_scope.children[-1], ast_2))
 

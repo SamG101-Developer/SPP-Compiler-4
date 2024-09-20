@@ -155,10 +155,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         sup_block_ast = SupPrototypeInheritanceAst(
             pos=self.pos,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
-            generic_parameters=self.generic_parameters,
-            super_class=copy.deepcopy(function_class_type),
-            on_keyword=TokenAst.dummy(TokenType.KwOn),
             identifier=mock_class_name,
+            generic_parameters=self.generic_parameters,
+            ext_keyword=TokenAst.dummy(TokenType.KwExt),
+            super_class=copy.deepcopy(function_class_type),
             where_block=self.where_block,
             body=InnerScopeAst(
                 pos=self.pos,
