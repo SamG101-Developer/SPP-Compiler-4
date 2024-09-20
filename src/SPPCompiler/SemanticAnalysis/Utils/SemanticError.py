@@ -715,8 +715,8 @@ class SemanticErrors:
         exception.add_error(
             pos=ty2.pos,
             tag=f"2nd type '{ty2}' inferred here.",
-            msg="Variadic arguments must have the same type.",
-            tip="Ensure all variadic arguments have the same type.")
+            msg=f"Fixed-type variadic arguments must have the same type.",
+            tip=f"Ensure all variadic arguments have the type '{ty1}'.")
         return exception
 
     @staticmethod

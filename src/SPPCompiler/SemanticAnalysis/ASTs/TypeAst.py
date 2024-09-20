@@ -202,10 +202,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         this_symbol = this_scope.get_symbol(self)
         that_symbol = that_scope.get_symbol(that)
 
-        # print("-" * 100)
-        # print(self, that, this_scope, that_scope)
-        # print(this_symbol, that_symbol)
-
         # Special cases for union types.
         if this_symbol.fq_type.without_generics() == CommonTypes.var([]) and this_symbol.name.generic_arguments.arguments:
             for generic_argument in this_symbol.name.generic_arguments.arguments[-1].type.types[-1].generic_arguments.arguments:
