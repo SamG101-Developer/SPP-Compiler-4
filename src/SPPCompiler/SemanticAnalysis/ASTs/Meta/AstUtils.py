@@ -21,7 +21,8 @@ def infer_generics_types(
         explicit_generic_arguments: Dict["TypeAst", "TypeAst"],
         infer_source: Dict["IdentifierAst", "TypeAst"],
         infer_target: Dict["IdentifierAst", "TypeAst"],
-        scope_handler: ScopeHandler) -> Seq["GenericArgumentAst"]:
+        scope_handler: ScopeHandler,
+        variadics: Optional[List["TypeAst"]] = None) -> Seq["GenericArgumentAst"]:
 
     """
     The infer_generic_types_2 is an upgraded generic inference method. It takes an "inference_from" dictionary, which
@@ -52,6 +53,7 @@ def infer_generics_types(
         infer_source: Source values to infer generic types from.
         infer_target: Target generic types to infer to.
         scope_handler: The scope handler.
+        variadics: Any infer_source sources that are variadic (only use a single type-element).
 
     Returns:
         The complete, analysed list of generic arguments.
@@ -66,12 +68,18 @@ def infer_generics_types(
 
     # Infer all the generics from the source to the target.
     inferred_generics_arguments = defaultdict(Seq)
+    variadics = variadics or []
+
     for generic_parameter_identifier in generic_parameter_identifiers:
         for infer_target_identifier, infer_target_type in infer_target.items():
             if infer_target_identifier in infer_source.keys() and infer_target_type == generic_parameter_identifier:
                 inferred_generics_arguments[generic_parameter_identifier].append(infer_source[infer_target_identifier])
             elif infer_target_identifier in infer_source.keys() and infer_target_type.contains_generic(generic_parameter_identifier):
                 inferred_generics_arguments[generic_parameter_identifier].append(infer_source[infer_target_identifier].get_generic_argument(infer_target[infer_target_identifier].get_generic_parameter_for_generic_argument(generic_parameter_identifier)))
+
+            # Reduce the variadic to a single type-element. Todo: Variadic-type variadic values shouldn't be reduced?
+            if infer_target_identifier in variadics:
+                inferred_generics_arguments[generic_parameter_identifier][-1] = inferred_generics_arguments[generic_parameter_identifier][-1].types[-1].generic_arguments.arguments[0].type
 
     # Remove all "None" items from each list of inferred generics.
     for _, inferred_generics_argument_types in inferred_generics_arguments.items():

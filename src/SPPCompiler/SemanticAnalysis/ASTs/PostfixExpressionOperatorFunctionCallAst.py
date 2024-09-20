@@ -7,6 +7,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, infer_generics_types, convert_function_arguments_to_named, convert_generic_arguments_to_named, get_all_function_scopes
+from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeAliasSymbol, TypeSymbol
@@ -150,11 +151,13 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     infer_source=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     infer_target=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
-                    scope_handler=scope_handler).list()
+                    scope_handler=scope_handler,
+                    variadics=Seq(parameters).filter_to_type(FunctionParameterVariadicAst).map(lambda p: p.identifier_for_param()).list()).list()
 
                 # New overload generation for generic functions or variadic functions.
                 if generic_arguments or is_function_variadic:
                     new_scope = Scope(copy.deepcopy(func_scope.name), parent_scope=func_scope.parent, non_generic_scope=func_scope)
+
                     for generic_argument in generic_arguments:
                         new_scope._scope_name.this_class = new_scope.name.this_class.substituted_generics(generic_argument.identifier, generic_argument.type)
                         new_scope._scope_name.super_class = new_scope.name.super_class.substituted_generics(generic_argument.identifier, generic_argument.type)
@@ -173,6 +176,15 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     new_overload._orig = func_overload._orig
                     func_overload.body = func_body
 
+                    # Handle the variadic argument: change the final parameter to a tuple of the variadic type.
+                    if is_function_variadic:
+                        number_of_extra_arguments = len(arguments[-1].value.items)
+                        final_parameter_type = CommonTypes.tuple(types=[parameters[-1].type_declaration for i in range(number_of_extra_arguments)], pos=parameters[-1].pos)
+
+                        temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=new_scope)
+                        final_parameter_type.do_semantic_analysis(temp_handler)
+                        new_overload.parameters.parameters[-1].type_declaration = final_parameter_type
+
                     # Load the new parameters and function scope for type-checking post-generic substitution.
                     parameters = Seq(new_overload.parameters.parameters)
                     func_overload = new_overload
@@ -187,10 +199,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                     # Special case for the variadic parameter: check all the elements in the tuple match.
                     if isinstance(parameter, FunctionParameterVariadicAst):
-                        unique_generics = Seq(parameter.type_declaration.types[-1].generic_arguments.arguments).map(lambda a: a.type).unique_items()
-                        if unique_generics.length > 1:
+                        unique_generics = Seq(argument_type.type.types[-1].generic_arguments.arguments).map(lambda a: a.type).unique_items()
+                        if unique_generics.length > 1:  # Todo: check it's a non-variadic type
                             raise SemanticErrors.VARIADIC_ARGUMENT_MULTIPLE_TYPES(parameter, unique_generics[0], unique_generics[1])
 
+                    # Set the convention to match based on the self-parameter's convention.
                     if isinstance(parameter, FunctionParameterSelfAst):
                         argument_type.convention = parameter_type.convention
                         argument.convention = parameter.convention
