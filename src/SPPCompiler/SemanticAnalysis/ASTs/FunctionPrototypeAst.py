@@ -103,9 +103,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         """
 
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
-            IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst)
+        from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Register the context, as it is necessary in the "load_sup_scopes" stage.
@@ -127,10 +125,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # If the mock class name ("MOCK_function") doesn't exist as a class, then this if the first instance of a
         # function with this name seen. Therefore, the class needs to be added into the module prototype.
-        if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
+        if Seq(context.body.members).filter_to_type(ClassPrototypeAst).filter(lambda m: m.identifier == mock_class_name).empty():
 
-            # Create the mock class prototype and the let statement to instantiate the mock class. This creates the
-            # function symbol.
+            # Create the mock class prototype, and the let statement that instantiates the mock class.
             mock_cls = f"cls MOCK_{self.identifier.value} {{}}"
             mock_let = f"let {self.identifier.value} = MOCK_{self.identifier.value}()"
 

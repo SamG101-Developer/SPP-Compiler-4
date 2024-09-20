@@ -295,7 +295,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
     return Seq(sup_scopes)
 
 
-def get_owner_type_of_sup_block(identifier: "IdentifierAst", scope_handler: ScopeHandler) -> Optional[TypeSymbol]:
+def get_owner_type_of_sup_block(identifier: "TypeAst", scope_handler: ScopeHandler) -> Optional[TypeSymbol]:
     self_symbol = None
     if identifier.types[-1].value.startswith("MOCK_"):
         if isinstance(scope_handler.current_scope.parent.name, (SupNormalIdentifier, SupInheritanceIdentifier)):
