@@ -121,7 +121,15 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
 
                 # If the generic type doesn't exist, create a symbol and scope for it.
                 if not type_scope.parent.has_symbol(type_part):
-                    create_generic_scope(self, type_symbol, type_scope, type_part.generic_arguments.arguments, scope_handler)  # , t=type_scope.parent.has_symbol(type_part))
+                    new_scope = create_generic_scope(self, type_symbol, type_scope, type_part.generic_arguments.arguments, scope_handler)
+
+                    # Handle type-alias's old types (regarding generic substitution).
+                    if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
+                        for generic_argument in type_part.generic_arguments.arguments:
+                            new_scope.associated_type_symbol.old_type = new_scope.associated_type_symbol.old_type.substituted_generics(generic_argument.identifier, generic_argument.type)
+
+                    if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
+                        new_scope.associated_type_symbol.old_type.do_semantic_analysis(scope_handler, **kwargs)
 
             else:
                 # Ensure that the type is a tuple for numerical-indexing.
@@ -193,6 +201,10 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         that_scope = that_scope or this_scope
         this_symbol = this_scope.get_symbol(self)
         that_symbol = that_scope.get_symbol(that)
+
+        # print("-" * 100)
+        # print(self, that, this_scope, that_scope)
+        # print(this_symbol, that_symbol)
 
         # Special cases for union types.
         if this_symbol.fq_type.without_generics() == CommonTypes.var([]) and this_symbol.name.generic_arguments.arguments:
