@@ -99,8 +99,8 @@ class Analyser:
         # scope to that new scope.
         for part in module_namespace:
             part = IdentifierAst(-1, part)
-            if Seq(scope_handler.current_scope._children_scopes).map(lambda s: s._scope_name).contains(part):
-                scope = Seq(scope_handler.current_scope._children_scopes).filter(lambda s: s._scope_name == part).first()
+            if Seq(scope_handler.current_scope.children).map(lambda s: s.name).contains(part):
+                scope = Seq(scope_handler.current_scope.children).filter(lambda s: s.name == part).first()
                 scope_handler.reset(scope)
 
             else:
@@ -118,7 +118,7 @@ class Analyser:
 
             # Get the target child scope, and set up a duplicate iterator that acts as a +1 lookahead iterator to the
             # main ScopeAHandler's iterator.
-            target_child_scope = scope_handler.current_scope._children_scopes[shift_count]
+            target_child_scope = scope_handler.current_scope.children[shift_count]
             iter1 = iter(scope_handler)
 
             # Increment the lookahead iterator until it reaches the target child scope. The ScopeHandler's iterator is

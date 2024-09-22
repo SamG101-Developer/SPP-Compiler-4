@@ -34,13 +34,15 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the WithExpressionAst.
         s = ""
-        s += f"{self.with_keyword.print(printer)}"
+        s += f"{self.with_keyword.print(printer)} "
         s += f"{self.alias.print(printer)}" if self.alias else ""
         s += f"{self.expression.print(printer)} {self.body.print(printer)}"
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # TODO: This won't work (... in sup_scopes): sup_scopes needs transforming
+        from SPPCompiler.SemanticAnalysis.ASTs.TypeAst import TypeAst
+
         scope_handler.into_new_scope("<with-block>")
 
         # Analyse the expression.
@@ -48,8 +50,10 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
         # Get the expression's type and its type scope's superimposed scopes.
         expression_type = self.expression.infer_type(scope_handler, **kwargs).type
-        sup_scopes = Seq(scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes).map(lambda s: s[1].identifier.without_generics())
-        if not sup_scopes.any(lambda s: CommonTypes.ctx_ref().symbolic_eq(s, scope_handler.current_scope) or CommonTypes.ctx_mut().symbolic_eq(s, scope_handler.current_scope)):
+        sup_types = Seq(scope_handler.current_scope.get_symbol(expression_type).associated_scope.sup_scopes).filter(lambda s: isinstance(s[0].name, TypeAst)).map(lambda s: s[0].associated_type_symbol.fq_type.without_generics())
+        allowed_return_types = [CommonTypes.ctx_ref().without_generics(), CommonTypes.ctx_mut().without_generics()]
+
+        if not Seq(allowed_return_types).any(lambda t: sup_types.any(lambda s: s.symbolic_eq(t, scope_handler.current_scope))):
             raise SemanticErrors.INVALID_WITH_EXPRESSION(self.expression, expression_type)
 
         # Analyse the alias if it exists, including symbol injection.

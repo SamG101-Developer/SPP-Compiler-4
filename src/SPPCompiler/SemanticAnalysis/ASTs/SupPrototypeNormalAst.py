@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
@@ -61,7 +61,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
         scope_name = SupNormalIdentifier(this_class=self.identifier)
         scope_handler.into_new_scope(scope_name)
 
-        # Generate the body members (prototype), and register the generic parameters types.
+        # Generate the body members.
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
@@ -70,9 +70,9 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
-        self_symbol = get_owner_type_of_sup_block(self.identifier, scope_handler)
 
         # Register the "Self" type and analyse the identifier.
+        self_symbol = get_owner_type_of_sup_block(self.identifier, scope_handler)
         self_symbol and scope_handler.current_scope.add_symbol(TypeSymbol(
             name=CommonTypes.self().types[-1],
             type=self_symbol.type,
@@ -84,8 +84,7 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
             raise SemanticErrors.SUPERIMPOSITION_ONTO_GENERIC(self.identifier.without_generics(), cls_symbol.name)
 
         # Add the superimposition scope to the class scope.
-        cls_scope = cls_symbol.associated_scope
-        cls_scope._sup_scopes.append((scope_handler.current_scope, self))
+        cls_symbol.associated_scope._sup_scopes.append((scope_handler.current_scope, self))
 
         # Load the sup-scopes for methods defined over the "sup" block.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))

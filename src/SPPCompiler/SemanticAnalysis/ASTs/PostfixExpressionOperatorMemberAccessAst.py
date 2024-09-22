@@ -111,8 +111,7 @@ class PostfixExpressionOperatorMemberAccessAst(Ast, SemanticAnalyser, TypeInfer)
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, IdentifierAst, TokenAst
 
-        # The identifier access needs to get the type of the left side, then inspect the correct attribute for the
-        # correct type
+        # The identifier access has to get the left-side's type, then inspect the correct attribute.
         if isinstance(self.identifier, IdentifierAst):
             lhs_type_scope = scope_handler.current_scope.get_symbol(lhs.infer_type(scope_handler, **kwargs).type).associated_scope
             return InferredType(convention=ConventionMovAst, type=lhs_type_scope.get_symbol(self.identifier).type)

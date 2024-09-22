@@ -35,7 +35,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
     def print(self, printer: AstPrinter) -> str:
         # Print the LetStatementInitializedAst.
         s = ""
-        s += f"{self.let_keyword.print(printer)}"
+        s += f"{self.let_keyword.print(printer)} "
         s += f"{self.assign_to.print(printer)} "
         s += f"{self.assign_token.print(printer)} "
         s += f"{self.value.print(printer)}"
@@ -69,7 +69,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
             if not given_type.symbolic_eq(value_type, scope_handler.current_scope):
                 raise SemanticErrors.TYPE_MISMATCH_2(None, self.assign_to, value_type, given_type, scope_handler)
 
-        # Check the type being assigned is not std::Void.
+        # Check the type being assigned is not "std::Void".
         value_type = self.value.infer_type(scope_handler)
         if value_type.type.symbolic_eq(CommonTypes.void(), scope_handler.current_scope):
             raise SemanticErrors.VOID_USAGE(self.value)

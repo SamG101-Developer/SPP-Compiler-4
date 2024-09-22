@@ -10,6 +10,7 @@ Types:
 -- Too many generics or invalid name generics throw a Python error.
 -- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
 -- Typedef at the module level.
+-- Using generics for an identifier (in sup) different to the cls-level generics doesn't work (could be a feature?).
 
 Case blocks:
 -- Look at anonymous branching? Allowing for a non-pattern pattern block.
@@ -20,7 +21,7 @@ Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Expand `gen with` to `loop` and `gen`.
 -- Null coalescing operator `??` support.
--- Generics that are inferred from variadic parameter become tuples, not the element.
+-- Look at variadic-type variadic parameters (probably won't work).
 -- Maybe re-write the symbol/scoping system: get_all => get_all_vars, get_all_types etc.
 -- Errors are the wrong way around for generic inference and attributes during object initialization. An incorrectly
 named attribute will cause the generic inference to fail, rather than report the attribute error.
@@ -29,13 +30,7 @@ Inheritance:
 -- Annotations for @abstractmethod, @virtualmethod
 -- Annotations for @public, @private, @protected, @friend
 -- Default visibility is private.
-
-Superimposition:
 -- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
-
-Re-add:
--- Check members exist on superclasses.
-
 
 FUTURE
 

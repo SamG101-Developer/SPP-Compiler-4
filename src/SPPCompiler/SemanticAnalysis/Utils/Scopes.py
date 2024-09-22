@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import copy
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol, \
-    TypeAliasSymbol, Symbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol, TypeAliasSymbol, Symbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -15,8 +15,9 @@ class Scope:
     _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
     _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
     _associated_type_symbol: Optional[TypeSymbol]
+    _non_generic_scope: Scope
 
-    def __init__(self, name: Any, parent_scope: Optional[Scope] = None):
+    def __init__(self, name: Any, parent_scope: Optional[Scope] = None, non_generic_scope: Optional[Scope] = None):
 
         # Set the attributes to the parameters or default values.
         self._scope_name = name
@@ -25,12 +26,37 @@ class Scope:
         self._symbol_table = SymbolTable()
         self._sup_scopes = []
         self._associated_type_symbol = None
+        self._non_generic_scope = non_generic_scope or self
 
     def __confirm_symbol(self, symbol: Symbol, ignore_alias: bool) -> Symbol:
         # return symbol
         match symbol:
             case TypeAliasSymbol() if symbol.old_type and not ignore_alias: return self.get_symbol(symbol.old_type)
             case _: return symbol
+
+    def translate(self, symbol: Symbol) -> Symbol:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
+        if isinstance(symbol, VariableSymbol):
+            symbol = copy.deepcopy(symbol)
+            for generic in self.all_symbols(exclusive=True):
+                symbol.type = symbol.type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type if generic.associated_scope else TypeAst(-1, [], [generic.name]))
+
+        elif isinstance(symbol, TypeSymbol):
+            symbol = copy.deepcopy(symbol)
+
+            fq_type = symbol.fq_type
+            for generic in self.all_symbols(exclusive=True):
+                generic_identifier = TypeAst(-1, [], [generic.name])
+                generic_type = generic.associated_scope.associated_type_symbol.fq_type if generic.associated_scope else generic_identifier
+                fq_type = fq_type.substituted_generics(generic_identifier, generic_type)
+
+            symbol.name = fq_type.types[-1]
+            new_sym = self._non_generic_scope.get_symbol(fq_type)
+            symbol.type = new_sym.type
+            symbol.associated_scope = new_sym.associated_scope
+
+        return symbol
 
     def add_symbol(self, symbol: TypeSymbol | VariableSymbol | NamespaceSymbol) -> TypeSymbol | VariableSymbol:
         from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
@@ -58,8 +84,16 @@ class Scope:
         return symbol
 
     def get_symbol(self, name: IdentifierAst | GenericIdentifierAst | TypeAst, exclusive: bool = False, ignore_alias: bool = False) -> Optional[TypeSymbol | VariableSymbol]:
-        # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericIdentifierAst, TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import SupInheritanceIdentifier
+
+        if isinstance(self.name, TypeAst) and self.name != self.name.without_generics():
+            non_generic_scope = self.parent.get_symbol(self.name.without_generics()).associated_scope
+            return self.translate(non_generic_scope.get_symbol(name))
+        elif isinstance(self.name, SupInheritanceIdentifier) and self is not self._non_generic_scope:
+            return self.translate(self._non_generic_scope.get_symbol(name))
+
+        # Ensure that the name is an IdentifierAst or TypeAst, to get a VariableSymbol or a TypeSymbol respectively.
         if not isinstance(name, (IdentifierAst, GenericIdentifierAst, TypeAst)): return None
         scope = self
 
@@ -87,21 +121,27 @@ class Scope:
         # TypeSymbols, as they contain the scopes of other types that are superimposed over this type, and therefore
         # contain inherited symbols.
         if isinstance(name, IdentifierAst) or isinstance(name, GenericIdentifierAst) and name.value.startswith("MOCK_"):
-            for sup_scope, _ in self._sup_scopes:
+            for sup_scope, sup_ast in self._sup_scopes:
                 symbol = sup_scope.get_symbol(name, exclusive, ignore_alias)
                 if symbol:
                     return self.__confirm_symbol(symbol, ignore_alias)
 
     def _get_multiple_symbols(self, name: IdentifierAst, original_scope: Scope) -> Seq[Tuple[VariableSymbol, Scope, int]]:
-        symbols = Seq([(self._symbol_table.get(name), self, original_scope.depth_to(self))])
-        for sup_scope, _ in self._sup_scopes:
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+
+        if not isinstance(self.name, TypeAst): return Seq()
+        scope = self.parent.get_symbol(self.name.without_generics()).associated_scope
+
+        symbols = Seq([(scope._symbol_table.get(name), scope, original_scope.depth_to(self))])
+        for sup_scope, _ in scope._sup_scopes:
             symbols.extend(sup_scope._get_multiple_symbols(name, original_scope))
         for s, c, d in symbols.copy():
             if not s: symbols.remove((s, c, d))
         return symbols
 
     def get_multiple_symbols(self, name: IdentifierAst) -> Seq[Tuple[VariableSymbol, Scope, int]]:
-        return self._get_multiple_symbols(name, self)
+        syms = self._get_multiple_symbols(name, self)
+        return syms
 
     def get_outermost_variable_symbol(self, name: IdentifierAst | PostfixExpressionAst) -> Optional[VariableSymbol]:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, PostfixExpressionOperatorMemberAccessAst
@@ -203,7 +243,10 @@ class Scope:
 
     @property
     def children(self) -> List[Scope]:
-        return self._children_scopes
+        # print("*" * 100)
+        # print(f"Getting children for {self}")
+        # print(f"Routing through {self._non_generic_scope}")
+        return self._non_generic_scope._children_scopes
 
     @property
     def scopes_as_namespace(self) -> List["IdentifierAst"]:

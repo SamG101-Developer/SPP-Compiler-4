@@ -4,7 +4,7 @@ mod testing::with_block_testing
 cls MyContextualType { }
 
 
-sup std::CtxRef[std::BigInt] on MyContextualType {
+sup MyContextualType ext std::CtxRef[std::BigInt] {
     fun enter(&self) -> std::BigInt {
         ret 0
     }

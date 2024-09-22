@@ -33,8 +33,8 @@ class LetStatementUninitializedAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the LetStatementUninitializedAst.
         s = ""
-        s += f"{self.let_keyword.print(printer)}"
-        s += f"{self.assign_to.print(printer)}"
+        s += f"{self.let_keyword.print(printer)} "
+        s += f"{self.assign_to.print(printer)} "
         s += f"{self.colon_token.print(printer)} "
         s += f"{self.type_declaration.print(printer)}"
         return s

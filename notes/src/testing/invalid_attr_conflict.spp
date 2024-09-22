@@ -18,8 +18,8 @@ cls DerivedInvalidAttrConflict {
 }
 
 
-sup InvalidAttrConflict[std::U32] on DerivedInvalidAttrConflict { }
-sup InvalidAttrConflict[std::U64] on DerivedInvalidAttrConflict { }
+sup DerivedInvalidAttrConflict ext InvalidAttrConflict[std::U32] { }
+sup DerivedInvalidAttrConflict ext InvalidAttrConflict[std::U64] { }
 
 
 fun test_sup_obj_init() -> std::Void {

@@ -4,14 +4,10 @@ mod testing::type_aliases
 fun test_type_aliases(other: std::Vec[std::BigInt]) -> std::Void {
     use std::Bool as B
     use std::{BigInt, Str}
-    use std::Vec
 
     let x: Str
     let y: B
 
     x = "hello world"
     y = true
-
-    # let mut x = Vec[BigInt]()
-    # x = other
 }

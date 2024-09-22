@@ -31,7 +31,7 @@ class ReturnStatementAst(Ast, SemanticAnalyser):
         # Print the ReturnStatementAst.
         s = ""
         s += f"{self.return_keyword.print(printer)}"
-        s += f"{self.expression.print(printer)}" if self.expression else ""
+        s += f" {self.expression.print(printer)}" if self.expression else ""
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:

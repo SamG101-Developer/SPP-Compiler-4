@@ -1,8 +1,8 @@
 mod std::ops::div
 
 
-cls Div[Rhs] { }
+cls Div[Rhs, Ret] { }
 
-sup [Rhs] Div[Rhs] {
-    fun div(self, that: Rhs) -> Void { }
+sup [Rhs, Ret] Div[Rhs, Ret] {
+    fun div(self, that: Rhs) -> Ret { }
 }

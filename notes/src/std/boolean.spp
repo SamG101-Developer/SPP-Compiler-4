@@ -4,10 +4,10 @@ mod std::boolean
 cls Bool { }
 
 
-sup std::ops::And[Rhs=Bool] on Bool {
+sup Bool ext std::ops::And[Rhs=Bool] {
     fun and_(self, that: Bool) -> Bool { }
 }
 
-sup std::ops::Eq[Rhs=Bool] on Bool {
+sup Bool ext std::ops::Eq[Rhs=Bool] {
     fun eq(&self, that: Bool) -> Bool { }
 }

@@ -10,6 +10,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredT
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticError, SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeAliasSymbol, TypeSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -120,7 +121,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             is_function_variadic = func_overload.parameters.parameters and isinstance(func_overload.parameters.parameters[-1], FunctionParameterVariadicAst)
             specialized_scope_info = {"created": False, "remove_function": None}
 
-            # A try-except block is needed, to catch overload errors and allow the movement into the next overload.
+            # A try-except block is necessary, to catch overload errors and allow the movement into the next overload.
             try:
                 # Check too many arguments haven't been passed to the function.
                 if arguments.length > parameters.length and not is_function_variadic:
@@ -150,42 +151,44 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                     explicit_generic_arguments=(generic_arguments + owner_scope_generic_arguments).map(lambda a: (a.identifier, a.type)).dict(),
                     infer_source=arguments.map(lambda a: (a.identifier, a.infer_type(scope_handler, **kwargs).type)).dict(),
                     infer_target=parameters.map(lambda p: (p.identifier_for_param(), p.type_declaration)).dict(),
-                    scope_handler=scope_handler).list()
+                    scope_handler=scope_handler,
+                    variadics=Seq(parameters).filter_to_type(FunctionParameterVariadicAst).map(lambda p: p.identifier_for_param()).list()).list()
 
                 # New overload generation for generic functions or variadic functions.
                 if generic_arguments or is_function_variadic:
+                    new_scope = Scope(copy.deepcopy(func_scope.name), parent_scope=func_scope.parent, non_generic_scope=func_scope)
+
+                    for generic_argument in generic_arguments:
+                        new_scope._scope_name.this_class = new_scope.name.this_class.substituted_generics(generic_argument.identifier, generic_argument.type)
+                        new_scope._scope_name.super_class = new_scope.name.super_class.substituted_generics(generic_argument.identifier, generic_argument.type)
+
+                        generic_argument_type_symbol = scope_handler.current_scope.get_symbol(generic_argument.type)
+                        new_scope.add_symbol(TypeSymbol(name=generic_argument.identifier.types[-1], type=generic_argument_type_symbol.type, associated_scope=generic_argument_type_symbol.associated_scope, is_generic=True))
 
                     # Temporarily remove the body of the overload before copying it (faster).
                     func_body = func_overload.body
                     func_overload.body = None
 
                     # Remove the generic arguments from the specialisation, and re-link the body.
-                    specialized_func_overload = copy.deepcopy(func_overload)
-                    specialized_func_overload.generic_parameters.parameters = []
-                    specialized_func_overload.body = func_body
-                    specialized_func_overload._orig = func_overload._orig
+                    new_overload = copy.deepcopy(func_overload)
+                    new_overload.generic_parameters.parameters = []
+                    new_overload.body = func_body
+                    new_overload._orig = func_overload._orig
                     func_overload.body = func_body
 
-                    # Substitute the generics types in the [parameter / return type] declarations.
-                    for generic_argument in generic_arguments:
-                        for parameter in specialized_func_overload.parameters.parameters:
-                            parameter.type_declaration = parameter.type_declaration.substituted_generics(generic_argument.identifier, generic_argument.type)
+                    # Handle the variadic argument: change the final parameter to a tuple of the variadic type.
+                    if is_function_variadic:
+                        number_of_extra_arguments = len(arguments[-1].value.items)
+                        final_parameter_type = CommonTypes.tuple(types=[parameters[-1].type_declaration for i in range(number_of_extra_arguments)], pos=parameters[-1].pos)
 
-                        specialized_func_overload.return_type = specialized_func_overload.return_type.substituted_generics(generic_argument.identifier, generic_argument.type)
-
-                    # Do semantic analysis on the new function overload signature.
-                    for parameter in specialized_func_overload.parameters.parameters:
-                        parameter.do_semantic_analysis(scope_handler, **kwargs)
-                    specialized_func_overload.return_type.do_semantic_analysis(scope_handler, **kwargs)
-
-                    # If the variadic parameter is non-generic, substitute it with the correct tuple.
-                    if is_function_variadic and not func_scope.get_symbol(parameters[-1].type_declaration).is_generic:
-                        variadic_argument_tuple_type = CommonTypes.tuple([parameters[-1].type_declaration for _ in range(len(arguments[-1].value.items))])
-                        specialized_func_overload.parameters.parameters[-1].type_declaration = variadic_argument_tuple_type
+                        temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=new_scope)
+                        final_parameter_type.do_semantic_analysis(temp_handler)
+                        new_overload.parameters.parameters[-1].type_declaration = final_parameter_type
 
                     # Load the new parameters and function scope for type-checking post-generic substitution.
-                    parameters = Seq(specialized_func_overload.parameters.parameters)
-                    func_overload = specialized_func_overload
+                    parameters = Seq(new_overload.parameters.parameters)
+                    func_overload = new_overload
+                    func_scope = new_scope
 
                 # Type checking arguments against the parameters. This has to come after generic substitution.
                 sorted_arguments = arguments.sort(key=lambda a: parameter_identifiers.index(a.identifier))
@@ -196,10 +199,11 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                     # Special case for the variadic parameter: check all the elements in the tuple match.
                     if isinstance(parameter, FunctionParameterVariadicAst):
-                        unique_generics = Seq(parameter.type_declaration.types[-1].generic_arguments.arguments).map(lambda a: a.type).unique_items()
-                        if unique_generics.length > 1:
+                        unique_generics = Seq(argument_type.type.types[-1].generic_arguments.arguments).map(lambda a: a.type).unique_items()
+                        if unique_generics.length > 1:  # Todo: check it's a non-variadic type
                             raise SemanticErrors.VARIADIC_ARGUMENT_MULTIPLE_TYPES(parameter, unique_generics[0], unique_generics[1])
 
+                    # Set the convention to match based on the self-parameter's convention.
                     if isinstance(parameter, FunctionParameterSelfAst):
                         argument_type.convention = parameter_type.convention
                         argument.convention = parameter.convention
@@ -269,7 +273,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
             self.arguments.do_semantic_analysis(scope_handler, function_prototype_ast=self._overload[0], is_async=self._is_async, **kwargs)
 
     def infer_type(self, scope_handler: ScopeHandler, lhs: "ExpressionAst" = None, **kwargs) -> InferredType:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, PostfixExpressionAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, PostfixExpressionAst, TypeAst
         function_name = lhs
 
         # Get the matching overload and return its return-type. 2nd class borrows mean the object returned is always
@@ -279,6 +283,20 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
         if isinstance(function_name, PostfixExpressionAst):
             owner_scope = scope_handler.current_scope.get_symbol(function_name.lhs.infer_type(scope_handler, **kwargs).type).associated_scope
+            for generic in Seq(function_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda s: s.is_generic):
+                function_return_type = function_return_type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type)
+
+            temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=owner_scope)
+            function_return_type.do_semantic_analysis(temp_handler)
+            function_return_type = owner_scope.get_symbol(function_return_type).fq_type
+
+        else:
+            owner_scope = function_scope.parent
+            for generic in Seq(function_scope.all_symbols(exclusive=True)).filter_to_type(TypeSymbol).filter(lambda s: s.is_generic):
+                function_return_type = function_return_type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type)
+
+            temp_handler = ScopeHandler(global_scope=scope_handler.global_scope, current_scope=owner_scope)
+            function_return_type.do_semantic_analysis(temp_handler)
             function_return_type = owner_scope.get_symbol(function_return_type).fq_type
 
         return InferredType(convention=ConventionMovAst, type=function_return_type)

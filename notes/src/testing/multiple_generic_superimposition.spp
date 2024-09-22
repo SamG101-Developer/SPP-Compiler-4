@@ -17,9 +17,9 @@ sup [U] MyGenericBaseType[U] {
 cls MyDerivedType { }
 
 
-sup MyGenericBaseType[std::Str] on MyDerivedType { }
+sup MyDerivedType ext MyGenericBaseType[std::Str] { }
 
-sup MyGenericBaseType[std::Bool] on MyDerivedType { }
+sup MyDerivedType ext MyGenericBaseType[std::Bool] { }
 
 
 cls RandomClassGenerics[T] { }

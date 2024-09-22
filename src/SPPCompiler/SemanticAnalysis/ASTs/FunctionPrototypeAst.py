@@ -58,7 +58,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionPrototypeAst.
         s = ""
-        s += f"{Seq(self.annotations).print(printer, "\n")}{self.function_token.print(printer)}{self.identifier.print(printer)}"
+        s += f"{Seq(self.annotations).print(printer, "\n")}{self.function_token.print(printer)} {self.identifier.print(printer)}"
         s += f"{self.generic_parameters.print(printer)}" if self.generic_parameters else ""
         s += f"{self.parameters.print(printer)} {self.arrow_token.print(printer)} {self.return_type.print(printer)}"
         s += f" {self.where_block.print(printer)}" if self.where_block else ""
@@ -103,9 +103,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         """
 
         from SPPCompiler.LexicalAnalysis.Lexer import Lexer
-        from SPPCompiler.SemanticAnalysis.ASTs import (
-            ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, GenericIdentifierAst,
-            IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst)
+        from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, SupPrototypeInheritanceAst, TypeAst, IdentifierAst, InnerScopeAst, TokenAst, ModulePrototypeAst
         from SPPCompiler.SyntacticAnalysis.Parser import Parser
 
         # Register the context, as it is necessary in the "load_sup_scopes" stage.
@@ -113,7 +111,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # For methods, substitute the "Self" type on the "self" parameter with the context's identifier.
         if not isinstance(context, ModulePrototypeAst) and self.parameters.get_self():
-            self.parameters.get_self().type_declaration = self.parameters.get_self().type_declaration.substituted_generics(CommonTypes.self(), context.identifier)
+            self.parameters.get_self().type_declaration = context.identifier
 
         # Convert the "fun ..." to a "Fun___" superimposition over a type representing the function class. This allows
         # for the first-class nature of functions. The mock object for "fun function" will be "MOCK_function".
@@ -127,10 +125,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # If the mock class name ("MOCK_function") doesn't exist as a class, then this if the first instance of a
         # function with this name seen. Therefore, the class needs to be added into the module prototype.
-        if Seq(context.body.members).filter(lambda m: isinstance(m, ClassPrototypeAst) and m.identifier == mock_class_name).empty():
+        if Seq(context.body.members).filter_to_type(ClassPrototypeAst).filter(lambda m: m.identifier == mock_class_name).empty():
 
-            # Create the mock class prototype and the let statement to instantiate the mock class. This creates the
-            # function symbol.
+            # Create the mock class prototype, and the let statement that instantiates the mock class.
             mock_cls = f"cls MOCK_{self.identifier.value} {{}}"
             mock_let = f"let {self.identifier.value} = MOCK_{self.identifier.value}()"
 
@@ -158,10 +155,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
         sup_block_ast = SupPrototypeInheritanceAst(
             pos=self.pos,
             sup_keyword=TokenAst.dummy(TokenType.KwSup),
-            generic_parameters=self.generic_parameters,
-            super_class=copy.deepcopy(function_class_type),
-            on_keyword=TokenAst.dummy(TokenType.KwOn),
             identifier=mock_class_name,
+            generic_parameters=self.generic_parameters,
+            ext_keyword=TokenAst.dummy(TokenType.KwExt),
+            super_class=copy.deepcopy(function_class_type),
             where_block=self.where_block,
             body=InnerScopeAst(
                 pos=self.pos,

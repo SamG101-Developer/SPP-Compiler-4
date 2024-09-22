@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from SPPCompiler.SemanticAnalysis.ASTs import FunctionPrototypeAst
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
@@ -13,12 +14,9 @@ class CoroutinePrototypeAst(FunctionPrototypeAst):
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         super().do_semantic_analysis(scope_handler, **kwargs)
 
-        # Ensure the return type is one of the 3 generator return types.
-        # Todo: switch to symbolic equality?
-        if self.return_type.without_generics() not in [
-                CommonTypes.gen_mov().without_generics(),
-                CommonTypes.gen_mut().without_generics(),
-                CommonTypes.gen_ref().without_generics()]:
+        # Ensure the return type is one of the 3 generator return types, using symbolic equality.
+        allowed_return_types = [CommonTypes.gen_mov().without_generics(), CommonTypes.gen_mut().without_generics(), CommonTypes.gen_ref().without_generics()]
+        if not Seq(allowed_return_types).any(lambda t: self.return_type.without_generics().symbolic_eq(t, scope_handler.current_scope)):
             raise SemanticErrors.INVALID_COROUTINE_RETURN_TYPE(self, self.return_type)
 
         # Get the coroutine return type (it is the generic argument in the "Return" type).

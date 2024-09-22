@@ -1,8 +1,8 @@
 mod std::ops::add
 
 
-cls Add[Rhs] {}
+cls Add[Rhs, Ret] {}
 
-sup [Rhs] Add[Rhs] {
-    fun add(self, that: Rhs) -> Void { }
+sup [Rhs, Ret] Add[Rhs, Ret] {
+    fun add(self, that: Rhs) -> Ret { }
 }

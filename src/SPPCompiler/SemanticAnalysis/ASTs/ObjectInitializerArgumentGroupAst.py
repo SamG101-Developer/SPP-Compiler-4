@@ -8,6 +8,7 @@ from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -82,24 +83,24 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
             raise SemanticErrors.MISSING_ARGUMENT(self, missing_arguments[0], "object initializer", "attribute")
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
-        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst, SupPrototypeInheritanceAst
+        from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst, TypeAst, ClassPrototypeAst
 
         class_type = kwargs["class-type"]
         type_symbol = scope_handler.current_scope.get_symbol(class_type)
-        attributes = type_symbol.type.body.members
+        attributes = Seq(type_symbol.associated_scope.all_symbols(exclusive=True)).filter_to_type(VariableSymbol)
 
         # Check each argument is the correct type for the attribute.
         for attribute in attributes:
             # Get the argument with the same identifier as the attribute. No argument means the default argument will be
             # used. This will definitely exist, as pre-analysis checks for this.
-            argument = Seq(self.arguments).find(lambda a: a.identifier == attribute.identifier)
+            argument = Seq(self.arguments).find(lambda a: a.identifier == attribute.name)
             if not argument: continue
 
             # Extract the argument being passed into the attribute. For named args, ie Point(x=1, y=1), the arguments
             # are the values, and for shorthand: "Point(x, y)", the arguments are the identifiers.
             argument = self.get_argument_value(argument)
             argument_type = argument.infer_type(scope_handler)
-            attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type_declaration)
+            attribute_type = InferredType(convention=ConventionMovAst, type=attribute.type)
 
             # Compare the types of the argument and the attribute.
             if not attribute_type.symbolic_eq(argument_type, type_symbol.associated_scope, scope_handler.current_scope):
@@ -109,11 +110,10 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
         sup_types = type_symbol.associated_scope._sup_scopes
         sup_types = Seq(sup_types).filter(lambda s: isinstance(s[0].name, TypeAst))
         expected_sup_types = Seq()
-        for sup_scope, sup_block in sup_types:
-            if not isinstance(sup_block, SupPrototypeInheritanceAst): continue
 
+        for sup_scope, sup_block in sup_types:
             # Only stateful superclasses must be present, so check the number of attributes.
-            super_class_symbol = scope_handler.current_scope.get_symbol(sup_block.super_class)
+            super_class_symbol = sup_scope.associated_type_symbol
             super_class_attribute_count = len(super_class_symbol.type.body.members)
 
             # If the class is stateful, append the superclass type.
@@ -136,22 +136,17 @@ class ObjectInitializerArgumentGroupAst(Ast, SemanticAnalyser):
 
             # Get the individual types of the superclass argument.
             given_sup_argument_individual_types = Seq(given_sup_argument_type.type.types[-1].generic_arguments.arguments).map(lambda g: g.type)
-            given_sup_argument_individual_types_no_generics = Seq(given_sup_argument_individual_types).map(lambda t: t.without_generics())
 
             # Check all the expected superclasses are present in the superclass argument.
             for expected_sup_type in expected_sup_types:
-                expected_sup_type_no_generics = expected_sup_type.without_generics()
-
-                # Handle error is a superclass is not provided.
-                if not any(expected_sup_type_no_generics.symbolic_eq(g, scope_handler.current_scope) for g in given_sup_argument_individual_types_no_generics):
-                    raise SemanticErrors.MISSING_OBJ_INIT_SUPER_CLASS(given_sup_argument, expected_sup_type.without_generics())
-
-                # Remove the superclass from the list to check from, as it has been found in the "sup=" argument.
-                given_sup_argument_individual_types_no_generics.remove(expected_sup_type_no_generics)
+                if not Seq(given_sup_argument_individual_types).any(lambda t: expected_sup_type.symbolic_eq(t, scope_handler.current_scope)):
+                    raise SemanticErrors.MISSING_OBJ_INIT_SUPER_CLASS(given_sup_argument, expected_sup_type)
+                matching_type = Seq(given_sup_argument_individual_types).find(lambda t: expected_sup_type.symbolic_eq(t, scope_handler.current_scope))
+                given_sup_argument_individual_types.remove(matching_type)
 
             # Raise an error for any leftover superclasses that haven't been provided.
-            if given_sup_argument_individual_types_no_generics:
-                raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types_no_generics[0])
+            if given_sup_argument_individual_types:
+                raise SemanticErrors.UNEXPECTED_OBJ_INIT_SUPER_CLASS(self, given_sup_argument_individual_types[0])
 
     def get_def_args(self) -> List["ObjectInitializerArgumentNamedAst"]:
         from SPPCompiler.LexicalAnalysis.Tokens import TokenType
