@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 import copy, operator
 from collections import defaultdict
 from dataclasses import dataclass
@@ -9,6 +8,7 @@ from typing import Dict, List, Optional, Tuple, Type
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, NamespaceSymbol, TypeAliasSymbol
@@ -261,10 +261,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
     from SPPCompiler.SyntacticAnalysis.Parser import Parser
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst, GenericArgumentNamedAst, ClassPrototypeAst, SupPrototypeInheritanceAst
 
-    # print("GETTING ALL FUNCTION SCOPES FOR", identifier, "IN", type_scope)
-
     converted_identifier = Parser(Lexer(f"MOCK_{identifier}").lex(), "").parse_type_single().parse_once()
-
     sup_scopes = []
     generics = []
 
@@ -279,7 +276,8 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
         # Functions that belong to a class (methods). Generics must come from the specific superimposition that these
         # methods belong to.
         case _:
-            for sup_scope, sup_ast in (type_scope.sup_scopes if not exclusive else type_scope._sup_scopes):
+            all_sup_scopes = type_scope.sup_scopes if not exclusive else type_scope._sup_scopes
+            for sup_scope, sup_ast in all_sup_scopes:
                 if isinstance(sup_ast, ClassPrototypeAst): continue
 
                 if valid := Seq(sup_ast.body.members).filter_to_type(SupPrototypeInheritanceAst).filter(lambda m: m.identifier == converted_identifier):
@@ -332,8 +330,10 @@ def check_for_conflicting_methods(
     """
 
     # Get all the existing functions with the same identifier belonging to the type scope.
-    existing_functions = get_all_function_scopes(type_scope, new_function._orig, True).map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
-    existing_scopes    = get_all_function_scopes(type_scope, new_function._orig, True).map(operator.itemgetter(0))
+    existing = get_all_function_scopes(type_scope, new_function._orig, conflict_type == FunctionConflictCheckType.InvalidOverload)
+    existing_scopes    = existing.map(operator.itemgetter(0))
+    existing_functions = existing.map(operator.itemgetter(1)).map(lambda sup: sup.body.members[0])
+    existing_generics  = existing.map(operator.itemgetter(2))
 
     # For overloads, the required parameters must have different types or conventions.
     if conflict_type == FunctionConflictCheckType.InvalidOverload:
@@ -348,9 +348,16 @@ def check_for_conflicting_methods(
         extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
 
     # Check each parameter set for each overload. 1 match means there is a conflict.
-    for existing_scope, existing_function in existing_scopes.zip(existing_functions):
+    for (existing_scope, existing_function), existing_generic in existing_scopes.zip(existing_functions).zip(existing_generics):
         parameter_set_1 = parameter_filter(existing_function)
         parameter_set_2 = parameter_filter(new_function)
+
+        parameter_set_1 = copy.deepcopy(parameter_set_1)
+        for p in parameter_set_1:
+            for g in existing_generic:
+                p.type_declaration = p.type_declaration.substituted_generics(g.identifier, g.type)
+
+        # Todo: Sub in the generics and then try the symbolic equality (kind of nasty but should work).
 
         # Pre-checks that bypass type checking (parameter length, extra checks, same ast).
         if parameter_set_1.length != parameter_set_2.length: continue
@@ -368,18 +375,6 @@ def check_for_conflicting_methods(
 
 
 @dataclass(kw_only=True)
-class SupInheritanceIdentifier:
-    super_class: "TypeAst"
-    this_class: "TypeAst"
-
-    def __str__(self):
-        return f"sup {self.super_class} on {self.this_class}"
-
-    def __json__(self) -> str:
-        return f"sup {self.super_class} on {self.this_class}"
-
-
-@dataclass(kw_only=True)
 class SupNormalIdentifier:
     this_class: "TypeAst"
 
@@ -388,6 +383,18 @@ class SupNormalIdentifier:
 
     def __json__(self) -> str:
         return f"sup {self.this_class}"
+
+
+@dataclass(kw_only=True)
+class SupInheritanceIdentifier(SupNormalIdentifier):
+    super_class: "TypeAst"
+    this_class: "TypeAst"
+
+    def __str__(self):
+        return f"sup {self.super_class} on {self.this_class}"
+
+    def __json__(self) -> str:
+        return f"sup {self.super_class} on {self.this_class}"
 
 
 class TypeInfer:
@@ -424,6 +431,15 @@ def substitute_sup_scopes(sup_scopes: List[Tuple[Scope, SupPrototypeAst]], gener
     return new_sup_scopes
 
 
+def substitute_child_scopes(child_scopes: List[Scope], generics: List[GenericArgumentAst], scope_handler: ScopeHandler) -> List[Scope]:
+    new_child_scopes = []
+    for child_scope in child_scopes:
+        type_symbol = child_scope.associated_type_symbol
+        new_scope = create_generic_scope(None, type_symbol, child_scope, generics, scope_handler)
+        new_child_scopes.append(new_scope)
+    return new_child_scopes
+
+
 def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Scope, generics: List[GenericArgumentAst], scope_handler: ScopeHandler) -> Scope:
     # Todo: Simplify in adding vs replacing generics in TypeAst-identifier scopes.
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericArgumentNamedAst
@@ -450,7 +466,7 @@ def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Sco
                     new_scope._scope_name = new_scope.name.substituted_generics(generic.identifier, generic.type)
 
     # For superimposition scopes, substitute the generics in the superimposition identifier and potential superclass.
-    else:
+    elif isinstance(new_scope.name, SupNormalIdentifier):
         for generic in generics:
             new_scope._scope_name.this_class = new_scope.name.this_class.substituted_generics(generic.identifier, generic.type)
             if isinstance(new_scope.name, SupInheritanceIdentifier):

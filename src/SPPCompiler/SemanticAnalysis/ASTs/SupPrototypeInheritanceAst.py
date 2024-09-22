@@ -87,17 +87,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Load the superimposition scopes for the members.
         Seq(self.body.members).for_each(lambda m: m.load_sup_scopes_gen(scope_handler))
 
-        # Load all the methods off of the superclass into this superimposition.
-        # for sup_scope, sup_ast in scope_handler.current_scope.get_symbol(self.super_class).associated_scope._non_generic_scope._sup_scopes:
-        #     if isinstance(sup_ast, SupPrototypeNormalAst):
-        #         for member in Seq(sup_ast.body.members).filter_to_type(SupPrototypeInheritanceAst):
-        #             member = copy.deepcopy(member)
-        #             for g in self.super_class.types[-1].generic_arguments.arguments:
-        #                 member.super_class = member.super_class.substituted_generics(g.identifier, g.type)
-        #             self.body.members.append(member)
-
-        # print(self.print(AstPrinter()))
-
         scope_handler.exit_cur_scope()
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
@@ -132,49 +121,14 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
             new_function = this_member.body.members[-1]
             overridden_function = check_for_conflicting_methods(super_class_scope, scope_handler, new_function, FunctionConflictCheckType.InvalidOverride)
 
-            # if not overridden_function:
-            #     raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(new_function, self.super_class)
+            if not overridden_function:
+                raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(new_function, self.super_class)
 
-        # Check all members on this superimposition are present on the superclass.
-        # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class.without_generics())
-        # super_class_scope = super_class_symbol.associated_scope
-        # for member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
-        #     for m in member.body.members:
-        #         if not check_for_conflicting_methods(super_class_scope, scope_handler, m, FunctionConflictCheckType.InvalidOverride):
-        #             raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(m, self.super_class)
-
-        # super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
-        # super_class_scope = super_class_symbol.associated_scope
-        # super_class_implementations = Seq(super_class_scope._sup_scopes)
-        #
-        # # Todo: as compiler develops, add the sup-typedefs here
-        # super_class_members = super_class_implementations.map(lambda x: x[1].body.members).flat().filter_to_type(SupPrototypeInheritanceAst)
-        # this_class_members  = Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst)
-        #
-        # # Compare the members to ensure the superclass contains the members.
-        # for this_member in this_class_members:
-        #     matched = False
-        #
-        #     for that_member in super_class_members:
-        #
-        #         if any([
-        #                 this_member.generic_parameters != that_member.generic_parameters,
-        #                 this_member.where_block != that_member.where_block,
-        #                 this_member.identifier != that_member.identifier,
-        #                 this_member.super_class.types[-1].value != that_member.super_class.types[-1].value]):
-        #             continue
-        #
-        #         # The superclass is more complex, as the "Self" argument and return type can be different.
-        #         matched = matching_function_types(this_member, that_member, scope_handler.current_scope, super_class_scope)
-        #         if matched:
-        #             break
-        #
-        #     if not matched:
-        #         raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(this_member, self.super_class)
-        #
         scope_handler.exit_cur_scope()
-        #
-        # # TODO : check there are no direct duplicate sup super-classes
+
+        # Todo: Check Tree:
+        #  - Check there are no direct duplicate sup super-classes
+        #  - Check there are no loops in the inheritance tree
 
 
 __all__ = ["SupPrototypeInheritanceAst"]
