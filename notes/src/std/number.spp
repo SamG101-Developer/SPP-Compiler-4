@@ -5,20 +5,20 @@ cls BigInt { }
 cls BigDec { }
 
 
-sup BigInt ext std::ops::Sub[Rhs=BigInt] {
-    fun sub(self, other: BigInt) -> BigInt { }
+sup BigInt ext std::ops::Sub[Rhs=BigInt, Ret=BigInt] {
+    fun sub(self, that: BigInt) -> BigInt { }
 }
 
-sup BigInt ext std::ops::Add[Rhs=BigInt] {
-    fun add(self, other: BigInt) -> BigInt { }
+sup BigInt ext std::ops::Add[Rhs=BigInt, Ret=BigInt] {
+    fun add(self, that: BigInt) -> BigInt { }
 }
 
-sup BigInt ext std::ops::Mul[Rhs=BigInt] {
-    fun mul(self, other: BigInt) -> BigInt { }
+sup BigInt ext std::ops::Mul[Rhs=BigInt, Ret=BigInt] {
+    fun mul(self, that: BigInt) -> BigInt { }
 }
 
-sup BigInt ext std::ops::Div[Rhs=BigInt] {
-    fun div(self, other: BigInt) -> BigInt { }
+sup BigInt ext std::ops::Div[Rhs=BigInt, Ret=BigInt] {
+    fun div(self, that: BigInt) -> BigInt { }
 }
 
 sup BigInt ext std::ops::Eq[Rhs=BigInt] {

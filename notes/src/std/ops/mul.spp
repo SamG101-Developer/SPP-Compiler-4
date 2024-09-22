@@ -1,8 +1,8 @@
 mod std::ops::mul
 
 
-cls Mul[Rhs] { }
+cls Mul[Rhs, Ret] { }
 
-sup [Rhs] Mul[Rhs] {
-    fun mul(self, that: Rhs) -> Void { }
+sup [Rhs, Ret] Mul[Rhs, Ret] {
+    fun mul(self, that: Rhs) -> Ret { }
 }

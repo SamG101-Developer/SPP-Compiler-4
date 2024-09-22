@@ -31,7 +31,6 @@ Inheritance:
 -- Annotations for @public, @private, @protected, @friend
 -- Default visibility is private.
 -- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
--- Check members exist on superclasses.
 
 FUTURE
 
