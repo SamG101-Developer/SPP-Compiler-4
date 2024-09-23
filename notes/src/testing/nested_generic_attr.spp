@@ -46,14 +46,13 @@ fun test_generic_attr() -> std::Void {
     g = 100
 
     let h = std::Some(val=[1, 2, 3])
-    let i = std::Opt(value=h)
-    let mut j = nested_generic_function_3(i)
+    let mut j = nested_generic_function_3(h)
     j = 100
 
-    let mut k = nested_generic_function_3(std::Opt(value=std::Some(val=[1, 2, 3])))
+    let mut k = nested_generic_function_3(std::Some(val=[1, 2, 3]))
     k = 100
 
-    let l = std::Opt(value=std::Some(val=100))
+    let l = std::Some(val=100)
     let mut m = nested_generic_function_4(l, 100)
     m = 100
 }

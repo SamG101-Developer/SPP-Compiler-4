@@ -1,0 +1,13 @@
+mod testing::aliases_in_module_scope
+
+use MyNewType = std::Str
+use MyNewerType = MyNewType
+
+
+fun test_aliases_in_module_scope() -> std::Void {
+    let a: MyNewType
+    a = "Hello, world!"
+
+    let b: MyNewerType
+    b = "hello world"
+}

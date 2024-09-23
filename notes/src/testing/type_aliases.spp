@@ -1,9 +1,11 @@
 mod testing::type_aliases
 
 
+use std::{BigInt, Str}
+
+
 fun test_type_aliases(other: std::Vec[std::BigInt]) -> std::Void {
     use std::Bool as B
-    use std::{BigInt, Str}
 
     let x: Str
     let y: B

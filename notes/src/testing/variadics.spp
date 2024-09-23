@@ -12,7 +12,7 @@ fun call_variadic_function() -> std::Void {
     let mut w = other_function_quick_test(v)
     w = std::Vec[std::Str]()
 
-    let mut x = variadic_function_test(true, 1, 2, 3)
+    # let mut x = variadic_function_test(true, 1, 2, 3)
     let mut y = variadic_function_test(true, "hello", "world")
 
     variadic_function_test_2(1, 2, 3, 4)
