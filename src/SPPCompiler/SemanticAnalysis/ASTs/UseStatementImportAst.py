@@ -1,17 +1,20 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, SymbolGenerator, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class UseStatementImportAst(Ast, SemanticAnalyser):
+class UseStatementImportAst(Ast, SymbolGenerator, SupScopeLoader, SemanticAnalyser):
     body: "UseStatementImportBodyAst"
+
+    _generated: bool = field(default=False, init=False, repr=False)
+    _new_asts: List[Ast] = field(default_factory=list, init=False, repr=False)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
@@ -19,7 +22,7 @@ class UseStatementImportAst(Ast, SemanticAnalyser):
         s += f"{self.body.print(printer)}"
         return s
 
-    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+    def convert(self, scope_handler: ScopeHandler) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import (
             UseStatementImportBodyAst, IdentifierAst, TypeAst, UseStatementImportSingleTypeAst,
             UseStatementImportMultipleTypesAst, UseStatementTypeAliasAst, TokenAst, GenericArgumentNamedAst,
@@ -65,7 +68,25 @@ class UseStatementImportAst(Ast, SemanticAnalyser):
             generic_arguments = Seq(generic_parameters.parameters).map(lambda p: GenericArgumentNamedAst(p.pos, p.identifier.types[-1].to_identifier(), TokenAst.dummy(TokenType.TkAssign), p.identifier)).list()
             type.types[-1].generic_arguments = GenericArgumentGroupAst.from_list(generic_arguments)
             new_ast = UseStatementTypeAliasAst(type.pos, (alias or type).types[-1].to_identifier(), generic_parameters, TokenAst.dummy(TokenType.TkAssign), type)
-            new_ast.do_semantic_analysis(scope_handler, **kwargs)
+            self._new_asts.append(new_ast)
+
+        self._generated = True
+
+    def generate(self, scope_handler: ScopeHandler) -> None:
+        self.convert(scope_handler)
+        for new_ast in self._new_asts:
+            new_ast.generate(scope_handler)
+
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        Seq(self._new_asts).for_each(lambda ast: ast.load_sup_scopes(scope_handler))
+
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        Seq(self._new_asts).for_each(lambda ast: ast.load_sup_scopes_gen(scope_handler))
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        if not self._generated:
+            self.convert(scope_handler)
+        Seq(self._new_asts).for_each(lambda ast: ast.do_semantic_analysis(scope_handler, **kwargs))
 
 
 __all__ = ["UseStatementImportAst"]

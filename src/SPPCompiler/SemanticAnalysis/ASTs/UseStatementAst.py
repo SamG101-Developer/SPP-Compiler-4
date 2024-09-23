@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import NoReturn
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, PreProcessor
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, PreProcessor, SymbolGenerator, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
@@ -10,7 +10,7 @@ from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
-class UseStatementAst(Ast, PreProcessor, SemanticAnalyser, TypeInfer):
+class UseStatementAst(Ast, PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser, TypeInfer):
     use_keyword: "TokenAst"
     body: "UseStatementImportAst | UseStatementTypeAliasAst"
 
@@ -21,9 +21,14 @@ class UseStatementAst(Ast, PreProcessor, SemanticAnalyser, TypeInfer):
         s += f"{self.body.print(printer)}"
         return s
 
-    def pre_process(self, context) -> None:
-        # Dummy implementation required as all module members must implement this method.
-        ...
+    def generate(self, scope_handler: ScopeHandler) -> None:
+        self.body.generate(scope_handler)
+
+    def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
+        self.body.load_sup_scopes(scope_handler)
+
+    def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
+        self.body.load_sup_scopes_gen(scope_handler)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
         # Pass the analysis onto the body (can be either a type or import)

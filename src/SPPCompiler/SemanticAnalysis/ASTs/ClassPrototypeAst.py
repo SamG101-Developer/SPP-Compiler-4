@@ -38,6 +38,8 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
     where_block: Optional["WhereBlockAst"]
     body: "InnerScopeAst[ClassAttributeAst]"
 
+    _is_alias: bool = field(default=False, init=False, repr=False)
+
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, TypeAst, WhereBlockAst, InnerScopeAst
 
@@ -85,6 +87,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
             case False: symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
             case _    : symbol = TypeAliasSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
         scope_handler.current_scope.parent.add_symbol(symbol)
+        self._is_alias = type_alias
 
         # Generate type symbols for the generic parameters, and variable symbols for the attributes.
         scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=self, associated_scope=scope_handler.current_scope))
@@ -96,7 +99,6 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
-        Seq(self.body.members).for_each(lambda m: m.load_sup_scopes(scope_handler))
         scope_handler.exit_cur_scope()
 
     def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
