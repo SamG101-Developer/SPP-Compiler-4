@@ -127,8 +127,6 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
                         for generic_argument in type_part.generic_arguments.arguments:
                             new_scope.associated_type_symbol.old_type = new_scope.associated_type_symbol.old_type.substituted_generics(generic_argument.identifier, generic_argument.type)
-
-                    if isinstance(new_scope.associated_type_symbol, TypeAliasSymbol):
                         new_scope.associated_type_symbol.old_type.do_semantic_analysis(scope_handler, **kwargs)
 
             else:
@@ -146,10 +144,12 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                 type_scope = new_scope
 
         # Finally, add the namespace to this symbol (fully qualifying it).
-        # from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
+        from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
-        # if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
-        #     self.namespace = type_scope.scopes_as_namespace
+        if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
+            if not type_symbol.is_generic:
+                if not self.types[-1].value == "Self":
+                    self.namespace = type_scope.scopes_as_namespace
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
