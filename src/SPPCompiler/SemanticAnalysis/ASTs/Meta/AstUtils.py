@@ -270,7 +270,7 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
         # Functions in a namespace / global namespace; there will be no inheritable generics.
         case IdentifierAst():
             if Seq(type_scope.children).map(lambda s: s.name).contains(converted_identifier):
-                sup_scope, ast = Seq(type_scope.children).filter(lambda s: s.name == converted_identifier).first().sup_scopes[0]
+                sup_scope, ast = Seq(type_scope.children).filter(lambda s: s.name == converted_identifier).first()._sup_scopes[0]
                 sup_scopes.append((sup_scope, ast, []))
 
         # Functions that belong to a class (methods). Generics must come from the specific superimposition that these
@@ -391,10 +391,10 @@ class SupInheritanceIdentifier(SupNormalIdentifier):
     this_class: "TypeAst"
 
     def __str__(self):
-        return f"sup {self.super_class} on {self.this_class}"
+        return f"sup {self.this_class} ext {self.super_class}"
 
     def __json__(self) -> str:
-        return f"sup {self.super_class} on {self.this_class}"
+        return f"sup {self.this_class} ext {self.super_class}"
 
 
 class TypeInfer:
@@ -445,7 +445,7 @@ def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Sco
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericArgumentNamedAst
 
     # Duplicate the scope, using a copy of the existing name, the same parent, and link the non-generic scope.
-    new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent, non_generic_scope=type_scope)
+    new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent, non_generic_scope=type_scope, handler=scope_handler)
 
     # Handling type-scope substitutions (class prototypes).
     old_generics = Seq(generics)
