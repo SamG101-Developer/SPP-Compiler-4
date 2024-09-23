@@ -156,7 +156,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
                 # New overload generation for generic functions or variadic functions.
                 if generic_arguments or is_function_variadic:
-                    new_scope = Scope(copy.deepcopy(func_scope.name), parent_scope=func_scope.parent, non_generic_scope=func_scope)
+                    new_scope = Scope(copy.deepcopy(func_scope.name), parent_scope=func_scope.parent, non_generic_scope=func_scope, handler=scope_handler)
 
                     for generic_argument in generic_arguments:
                         new_scope._scope_name.this_class = new_scope.name.this_class.substituted_generics(generic_argument.identifier, generic_argument.type)
@@ -209,7 +209,7 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                         argument.convention = parameter.convention
 
                     # Otherwise, check the argument type directly matches the parameter type.
-                    elif not argument_type.symbolic_eq(parameter_type, scope_handler.current_scope, func_scope):
+                    elif not parameter_type.symbolic_eq(argument_type, func_scope, scope_handler.current_scope):
                         extra = f" for parameter '{parameter.identifier_for_param().value}'"
                         raise SemanticErrors.TYPE_MISMATCH_2(None, argument, parameter_type, argument_type, scope_handler, extra=extra)
 

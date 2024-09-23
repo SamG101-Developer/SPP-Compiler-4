@@ -16,8 +16,9 @@ class Scope:
     _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
     _associated_type_symbol: Optional[TypeSymbol]
     _non_generic_scope: Scope
+    _handler: ScopeHandler
 
-    def __init__(self, name: Any, parent_scope: Optional[Scope] = None, non_generic_scope: Optional[Scope] = None):
+    def __init__(self, name: Any, parent_scope: Optional[Scope] = None, non_generic_scope: Optional[Scope] = None, handler: Optional[ScopeHandler] = None):
 
         # Set the attributes to the parameters or default values.
         self._scope_name = name
@@ -27,6 +28,7 @@ class Scope:
         self._sup_scopes = []
         self._associated_type_symbol = None
         self._non_generic_scope = non_generic_scope or self
+        self._handler = handler
 
     def __confirm_symbol(self, symbol: Symbol, ignore_alias: bool) -> Symbol:
         # return symbol
@@ -42,7 +44,7 @@ class Scope:
             for generic in self.all_symbols(exclusive=True):
                 symbol.type = symbol.type.substituted_generics(TypeAst(-1, [], [generic.name]), generic.associated_scope.associated_type_symbol.fq_type if generic.associated_scope else TypeAst(-1, [], [generic.name]))
 
-        elif isinstance(symbol, TypeSymbol):
+        elif isinstance(symbol, TypeSymbol) and symbol.name.value != "Self":
             symbol = copy.deepcopy(symbol)
 
             fq_type = symbol.fq_type
@@ -50,6 +52,10 @@ class Scope:
                 generic_identifier = TypeAst(-1, [], [generic.name])
                 generic_type = generic.associated_scope.associated_type_symbol.fq_type if generic.associated_scope else generic_identifier
                 fq_type = fq_type.substituted_generics(generic_identifier, generic_type)
+
+            if fq_type != symbol.fq_type:
+                temp_handler = ScopeHandler(global_scope=self._handler.global_scope, current_scope=self)
+                fq_type.do_semantic_analysis(temp_handler)
 
             symbol.name = fq_type.types[-1]
             new_sym = self._non_generic_scope.get_symbol(fq_type)
@@ -300,7 +306,7 @@ class ScopeHandler:
         from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst
 
         # Create the global scope, set the current scope to the global scope, and initialize the scope iterator.
-        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "_global"))
+        self._global_scope = global_scope or Scope(name=IdentifierAst(-1, "_global"), handler=self)
         self._current_scope = current_scope or self._global_scope
         self._iterator = iter(self)
 
@@ -310,7 +316,7 @@ class ScopeHandler:
         self._global_scope.add_symbol(global_namespace_symbol)
 
     def into_new_scope(self, name: Any) -> Scope:
-        new_scope = Scope(name, self._current_scope)
+        new_scope = Scope(name, self._current_scope, handler=self)
         self._current_scope._children_scopes.append(new_scope)
         self._current_scope = new_scope
         next(self._iterator)
