@@ -74,9 +74,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
                 type_scope = scope_handler.current_scope.get_symbol(lhs_type).associated_scope
 
             case IdentifierAst():
-                lhs_type = scope_handler.current_scope.parent_module.name
+                lhs_type = None
                 lhs_identifier = lhs
-                re_analyse = True
+                re_analyse = False
+                type_scope = scope_handler.current_scope.parent_module
 
             case _:
                 raise SemanticErrors.UNCALLABLE_TYPE(lhs)
