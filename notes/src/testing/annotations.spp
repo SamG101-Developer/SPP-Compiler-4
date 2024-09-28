@@ -8,9 +8,9 @@ cls MyAnnotatedObject {
 
 
 sup MyAnnotatedObject {
-    @abstract_method() fun method_a(&self) -> std::Str { }
-    @abstract_method() fun method_b(&self) -> std::Str { }
-    @abstract_method() fun method_c(&self) -> std::Str { }
+    @virtual_method() fun method_a(&self) -> std::Str { }
+    @virtual_method() fun method_b(&self) -> std::Str { }
+    @virtual_method() fun method_c(&self) -> std::Str { }
 }
 
 
@@ -21,4 +21,7 @@ sup MyAnnotatedDerivedObject ext MyAnnotatedObject {
 }
 
 
-fun test_all_annotations() -> std::Void { }
+fun test_all_annotations() -> std::Void {
+    let m = MyAnnotatedObject(a=1, b=2)
+    m.method_a()
+}
