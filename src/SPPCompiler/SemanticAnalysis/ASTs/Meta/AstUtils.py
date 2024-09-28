@@ -269,9 +269,10 @@ def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", excl
 
         # Functions in a namespace / global namespace; there will be no inheritable generics.
         case IdentifierAst():
-            if Seq(type_scope.children).map(lambda s: s.name).contains(converted_identifier):
-                sup_scope, ast = Seq(type_scope.children).filter(lambda s: s.name == converted_identifier).first()._sup_scopes[0]
-                sup_scopes.append((sup_scope, ast, []))
+            for scope in type_scope.ancestors:
+                if Seq(scope.children).map(lambda s: s.name).contains(converted_identifier):
+                    sup_scope, ast = Seq(scope.children).filter(lambda s: s.name == converted_identifier).first()._sup_scopes[0]
+                    sup_scopes.append((sup_scope, ast, []))
 
         # Functions that belong to a class (methods). Generics must come from the specific superimposition that these
         # methods belong to.
@@ -345,7 +346,7 @@ def check_for_conflicting_methods(
     else:
         parameter_filter = lambda f: f.parameters.get_non_self()
         parameter_comparison = lambda p1, p2, s1: p1.type_declaration.symbolic_eq(p2.type_declaration, s1, scope_handler.current_scope) and p1.convention == p2.convention and p1.identifier_for_param() == p2.identifier_for_param() and type(p1) is type(p2)
-        extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)
+        extra_check = lambda f1, f2: f1.return_type.symbolic_eq(f2.return_type, type_scope, scope_handler.current_scope)  # Todo: Check self conventions match here too if they both have one.
 
     # Check each parameter set for each overload. 1 match means there is a conflict.
     for (existing_scope, existing_function), existing_generic in existing_scopes.zip(existing_functions).zip(existing_generics):
@@ -357,7 +358,7 @@ def check_for_conflicting_methods(
             for g in existing_generic:
                 p.type_declaration = p.type_declaration.substituted_generics(g.identifier, g.type)
 
-        # Todo: Sub in the generics and then try the symbolic equality (kind of nasty but should work).
+        # Todo: Check both are "fun" or "cor".
 
         # Pre-checks that bypass type checking (parameter length, extra checks, same ast).
         if parameter_set_1.length != parameter_set_2.length: continue
@@ -371,7 +372,7 @@ def check_for_conflicting_methods(
             return existing_function
 
     # No conflicts found.
-    return False
+    return None
 
 
 @dataclass(kw_only=True)
