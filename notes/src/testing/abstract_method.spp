@@ -1,0 +1,21 @@
+mod testing::abstract_method
+
+use std::Void
+
+
+cls AbstractMethodClassContainer { }
+sup AbstractMethodClassContainer {
+    @abstract_method()
+    fun abstract_method(&self) -> Void { }
+}
+
+cls AbstractMethodClassContainerDerived { }
+sup AbstractMethodClassContainerDerived ext AbstractMethodClassContainer {
+    fun abstract_method(&self) -> Void { }
+}
+
+
+fun test_abstract_method() -> Void {
+    let obj = AbstractMethodClassContainerDerived()
+    obj.abstract_method()
+}

@@ -27,7 +27,6 @@ named attribute will cause the generic inference to fail, rather than report the
 
 Inheritance:
 -- Annotations for @public, @private, @protected, @friend
--- Abstract methods must be implemented on subclasses.
 -- Default visibility is private.
 -- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
 
