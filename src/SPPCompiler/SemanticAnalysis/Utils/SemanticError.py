@@ -793,3 +793,16 @@ class SemanticErrors:
             msg="Cannot override a non-virtual function.",
             tip="Ensure the function is marked as virtual.")
         return exception
+
+    @staticmethod
+    def ABSTRACT_METHOD_CALL(function_definition: Ast, function_call: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=function_definition.pos,
+            tag=f"Abstract method '{function_definition}' defined here.")
+        exception.add_error(
+            pos=function_call.pos,
+            tag=f"Abstract method '{function_call}' called here.",
+            msg="Cannot call an abstract method.",
+            tip="Ensure the abstract method is implemented.")
+        return exception

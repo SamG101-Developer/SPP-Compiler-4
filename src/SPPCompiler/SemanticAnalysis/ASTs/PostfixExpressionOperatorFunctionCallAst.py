@@ -108,7 +108,6 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
         func_overload_errors = []
 
         for func_scope, func_overload, owner_scope_generic_arguments in func_scopes:
-
             # Get the parameter (+ identifiers) the arguments (+ named identifiers) and the generic arguments.
             original_func_overload = func_overload = func_overload.body.members[-1]
             parameters = Seq(func_overload.parameters.parameters.copy())
@@ -124,6 +123,10 @@ class PostfixExpressionOperatorFunctionCallAst(Ast, SemanticAnalyser, TypeInfer)
 
             # A try-except block is necessary, to catch overload errors and allow the movement into the next overload.
             try:
+                # Can't call abstract methods.
+                if func_overload._abstract:
+                    raise SemanticErrors.ABSTRACT_METHOD_CALL(self, func_overload)
+
                 # Check too many arguments haven't been passed to the function.
                 if arguments.length > parameters.length and not is_function_variadic:
                     raise SemanticErrors.TOO_MANY_ARGUMENTS(arguments[parameter_identifiers.length])
