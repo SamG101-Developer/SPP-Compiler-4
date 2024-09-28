@@ -780,3 +780,16 @@ class SemanticErrors:
             msg="Multiple patterns found in a is-destructure.",
             tip="Ensure only one pattern is used in an is-destructure.")
         return exception
+
+    @staticmethod
+    def OVERRIDING_NON_VIRTUAL_FUNCTION(new_function: Ast, old_function: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=old_function.pos,
+            tag=f"Non-virtual function '{old_function}' defined here.")
+        exception.add_error(
+            pos=new_function.pos,
+            tag=f"Function '{new_function}' overridden here.",
+            msg="Cannot override a non-virtual function.",
+            tip="Ensure the function is marked as virtual.")
+        return exception

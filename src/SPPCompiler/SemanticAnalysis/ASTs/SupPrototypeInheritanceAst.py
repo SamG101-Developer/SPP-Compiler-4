@@ -97,7 +97,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.where_block.do_semantic_analysis(scope_handler, **kwargs)
 
-        # Make sure every generic parameter is present in the identifier, otherwise it has no way to be inferred.
+        # Make sure every generic parameter is present in the identifier; otherwise it has no way to be inferred.
         for generic_parameter in Seq(self.generic_parameters.parameters).map(lambda p: p.identifier):
             if not self.identifier.contains_generic(generic_parameter):
                 if CommonTypes.is_function_type(self.super_class) and self.super_class.contains_generic(generic_parameter):
@@ -115,20 +115,20 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
         super_class_scope = super_class_symbol.associated_scope
 
-        # Ensure every member exists on the superclass.
+        # Ensure every member exists on the superclass, and is overridable.
         for this_member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
-
             new_function = this_member.body.members[-1]
             overridden_function = check_for_conflicting_methods(super_class_scope, scope_handler, new_function, FunctionConflictCheckType.InvalidOverride)
-
             if not overridden_function:
                 raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(new_function, self.super_class)
+            if not overridden_function._virtual:
+                raise SemanticErrors.OVERRIDING_NON_VIRTUAL_FUNCTION(new_function._orig, overridden_function._orig)
 
         scope_handler.exit_cur_scope()
 
         # Todo: Check Tree:
         #  - Check there are no direct duplicate sup super-classes
-        #  - Check there are no loops in the inheritance tree
+        #  - Check there are no loops/cycles in the inheritance tree
 
 
 __all__ = ["SupPrototypeInheritanceAst"]
