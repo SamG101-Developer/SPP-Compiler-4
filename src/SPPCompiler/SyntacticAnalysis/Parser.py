@@ -402,8 +402,9 @@ class Parser:
     def parse_annotation(self) -> AnnotationAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkAt).parse_once()
-        return None
-        # raise NotImplementedError("Annotations won't be supported until compiler is self-hosting.")
+        p2 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
+        p3 = self.parse_postfix_op_function_call().parse_once()
+        return AnnotationAst(c1, p1, p2, p3)
 
     # ===== EXPRESSIONS =====
 
