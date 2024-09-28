@@ -12,7 +12,7 @@ class Scope:
     _scope_name: Any
     _parent_scope: Optional[Scope]
     _children_scopes: List[Scope]
-    _symbol_table: SymbolTable[TypeSymbol | VariableSymbol]
+    _symbol_table: SymbolTable
     _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
     _associated_type_symbol: Optional[TypeSymbol]
     _non_generic_scope: Scope
@@ -249,9 +249,6 @@ class Scope:
 
     @property
     def children(self) -> List[Scope]:
-        # print("*" * 100)
-        # print(f"Getting children for {self}")
-        # print(f"Routing through {self._non_generic_scope}")
         return self._non_generic_scope._children_scopes
 
     @property
@@ -269,6 +266,15 @@ class Scope:
     @property
     def associated_type_symbol(self) -> Optional[TypeSymbol]:
         return self._associated_type_symbol
+
+    @property
+    def ancestors(self) -> List[Scope]:
+        scope = self
+        ancestors = []
+        while scope.parent:
+            ancestors.append(scope)
+            scope = scope.parent
+        return ancestors
 
     def __str__(self):
         return str(self._scope_name)
