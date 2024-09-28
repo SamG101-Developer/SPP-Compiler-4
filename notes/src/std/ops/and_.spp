@@ -4,5 +4,6 @@ mod std::ops::and_
 cls And[Rhs] {}
 
 sup [Rhs] And[Rhs] {
+    @virtual_method()
     fun and_(self, that: Rhs) -> Bool { }
 }

@@ -4,5 +4,6 @@ mod std::ops::eq
 cls Eq[Rhs] { }
 
 sup [Rhs] Eq[Rhs] {
+    @virtual_method()
     fun eq(&self, that: Rhs) -> Bool { }
 }

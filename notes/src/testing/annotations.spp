@@ -1,0 +1,24 @@
+mod testing::annotations
+
+
+cls MyAnnotatedObject {
+    a: std::BigInt
+    b: std::BigInt
+}
+
+
+sup MyAnnotatedObject {
+    @abstract_method() fun method_a(&self) -> std::Str { }
+    @abstract_method() fun method_b(&self) -> std::Str { }
+    @abstract_method() fun method_c(&self) -> std::Str { }
+}
+
+
+cls MyAnnotatedDerivedObject { }
+sup MyAnnotatedDerivedObject ext MyAnnotatedObject {
+    fun method_a(&self) -> std::Str { }
+    fun method_b(&self) -> std::Str { }
+}
+
+
+fun test_all_annotations() -> std::Void { }

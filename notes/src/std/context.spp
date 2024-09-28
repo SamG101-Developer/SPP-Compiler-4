@@ -4,14 +4,14 @@ mod std::context
 cls CtxRef[Out] { }
 
 sup [Out] CtxRef[Out] {
-    fun enter(&self) -> Out { }
-    fun leave(&self) -> Void { }
+    @virtual_method() fun enter(&self) -> Out { }
+    @virtual_method() fun leave(&self) -> Void { }
 }
 
 
 cls CtxMut[Out] { }
 
 sup [Out] CtxMut[Out] {
-    fun enter(&mut self) -> Out { }
-    fun leave(&mut self) -> Void { }
+    @virtual_method() fun enter(&mut self) -> Out { }
+    @virtual_method() fun leave(&mut self) -> Void { }
 }

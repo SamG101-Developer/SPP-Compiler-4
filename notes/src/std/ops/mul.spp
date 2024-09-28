@@ -4,5 +4,6 @@ mod std::ops::mul
 cls Mul[Rhs, Ret] { }
 
 sup [Rhs, Ret] Mul[Rhs, Ret] {
+    @virtual_method()
     fun mul(self, that: Rhs) -> Ret { }
 }
