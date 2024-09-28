@@ -47,6 +47,8 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
     _orig: "IdentifierAst" = field(default=None, kw_only=True, repr=False)
     _ctx: "ModulePrototypeAst | SupPrototypeAst" = field(default=None, kw_only=True, repr=False)
+    _abstract: bool = field(default=False, kw_only=True, repr=False)
+    _virtual: bool = field(default=False, kw_only=True, repr=False)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import GenericParameterGroupAst, WhereBlockAst, InnerScopeAst
@@ -166,6 +168,9 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
                 members=[fun_ast],
                 brace_r_token=TokenAst.dummy(TokenType.TkBraceR)))
 
+        # Mark the function as abstract or virtual if the decorators are present.
+        Seq(self.annotations).for_each(lambda a: a.pre_process(fun_ast))
+
         # Append the "sup" block to the module or sup prototype ("context" will be either one).
         context.body.members.append(sup_block_ast)
 
@@ -271,6 +276,7 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         # Analyse the generic type parameters, the function parameters and the return type, in this order. This allows
         # the function parameter types and return type to use the generic type parameters.
+        Seq(self.annotations).for_each(lambda a: a.do_semantic_analysis(scope_handler))
         self.generic_parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.parameters.do_semantic_analysis(scope_handler, **kwargs)
         self.return_type.do_semantic_analysis(scope_handler, **kwargs)
