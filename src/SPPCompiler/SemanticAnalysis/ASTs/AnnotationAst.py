@@ -1,37 +1,53 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class AnnotationAst(Ast):
+class AnnotationAst(Ast, PreProcessor, SemanticAnalyser):
     """
-    The AnnotationAst node is used to represent an annotation of a class, function, typedef etc. This allows for the
-    manipulation of the token stream to alter the code before semantic analysis takes place. This won't be implemented
-    until the compiler is self-hosting, because the code needs to be parsed and replaced in the token stream.
+    The AnnotationAst node represents an annotation to a module or sup level definition (over a function, class, etc).
+    Custom annotations can only be applied to functions.
 
     Attributes:
-        - at_token: The @ token.
-        - identifier: The identifier of the annotation.
-        - generic_arguments: The generic arguments of the annotation.
-        - arguments: The arguments of the annotation.
+        at_token: The @ token.
+        identifier: The identifier(s) of the annotation, "::" separated.
+        function_call: The function call of the annotation.
     """
 
     at_token: "TokenAst"
-    identifier: "ModuleIdentifierAst"
-    generic_arguments: "GenericArgumentGroupAst"
-    arguments: "FunctionArgumentGroupAst"
+    identifier: "IdentifierAst | PostfixExpressionAst"
+    function_call: "PostfixExpressionOperatorFunctionCallAst"
+
+    _builtin: bool = field(default=True, init=False, repr=False)
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the AnnotationAst.
         s = ""
         s += f"{self.at_token.print(printer)}"
-        s += f"{self.identifier.print(printer)}"
-        s += f"{self.generic_arguments.print(printer)}"
-        s += f"{self.arguments.print(printer)}"
+        s += f"{Seq(self.identifier).join("::")}"
+        s += f"{self.function_call.print(printer)}"
         return s
+
+    def pre_process(self, context) -> None:
+        match Seq(self.identifier).map(lambda x: x.value).list():
+            case ["virtual_method"]: context._virtual = True
+            case ["abstract_method"]: context._virtual = context._abstract = True
+            case _: self._builtin = False
+
+    def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:
+        from SPPCompiler.SemanticAnalysis.ASTs import PostfixExpressionAst
+
+        # Merge the identifier and function call into a PostfixExpressionAst and analyse it.
+        if not self._builtin:
+            postfix_expression = PostfixExpressionAst(self.pos, self.identifier, self.function_call)
+            postfix_expression.do_semantic_analysis(scope_handler, **kwargs)
 
 
 __all__ = ["AnnotationAst"]
