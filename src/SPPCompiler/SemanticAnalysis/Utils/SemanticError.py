@@ -806,3 +806,16 @@ class SemanticErrors:
             msg="Cannot call an abstract method.",
             tip="Ensure the abstract method is implemented.")
         return exception
+
+    @staticmethod
+    def MISSING_ABSTRACT_METHOD_IMPLEMENTATION(abstract_method_definition: Ast, inheritance_class: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=abstract_method_definition.pos,
+            tag=f"Abstract method '{abstract_method_definition}' defined here on '{inheritance_class}'.")
+        exception.add_error(
+            pos=inheritance_class.pos,
+            tag=f"Superclass '{inheritance_class}' inherited here.",
+            msg="Missing implementation of abstract method.",
+            tip="Ensure the abstract method is implemented.")
+        return exception

@@ -105,8 +105,6 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
         # Ensure the identifier and superclass exist, then analyse the body.
-        # print("SUPERCLASS", self.super_class, self.generic_parameters, scope_handler.current_scope.parent)
-
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, inline=True, **kwargs)
@@ -114,6 +112,7 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         # Get superclass symbol/scope information.
         super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
         super_class_scope = super_class_symbol.associated_scope
+        self_type_scope = scope_handler.current_scope.get_symbol(self.identifier).associated_scope
 
         # Ensure every member exists on the superclass, and is overridable.
         for this_member in Seq(self.body.members).filter_to_type(SupPrototypeInheritanceAst):
@@ -123,6 +122,17 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
                 raise SemanticErrors.INVALID_SUPERIMPOSITION_MEMBER(new_function, self.super_class)
             if not overridden_function._virtual:
                 raise SemanticErrors.OVERRIDING_NON_VIRTUAL_FUNCTION(new_function._orig, overridden_function._orig)
+
+        # Ensure every abstract method from the superclass is implemented.
+        for _, that_member in super_class_scope._sup_scopes:
+            if isinstance(that_member, SupPrototypeNormalAst):
+                for that_member_member in Seq(that_member.body.members).filter_to_type(SupPrototypeInheritanceAst):
+                    that_method = that_member_member.body.members[-1]
+
+                    if that_method._abstract:
+                        override_function = check_for_conflicting_methods(self_type_scope, scope_handler, that_method, FunctionConflictCheckType.InvalidOverride)
+                        if not override_function:
+                            raise SemanticErrors.MISSING_ABSTRACT_METHOD_IMPLEMENTATION(that_method._orig, self.super_class)
 
         scope_handler.exit_cur_scope()
 
