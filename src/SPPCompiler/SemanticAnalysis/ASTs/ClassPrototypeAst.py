@@ -60,6 +60,9 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         s += f"{self.body.print(printer)}"
         return s
 
+    def pre_process(self, context) -> None:
+        Seq(self.body.members).for_each(lambda m: m.pre_process(self))
+
     def generate(self, scope_handler: ScopeHandler, *, type_alias: bool = False) -> None:
         """
         The generation stage of a ClassPrototypeAst handles symbol and scope creation. A new scope is created
@@ -85,15 +88,15 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
 
         # Add a new type(-alias) symbol for the class being created.
         match type_alias:
-            case False: symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
-            case _    : symbol = TypeAliasSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope)
+            case False: symbol = TypeSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope, visibility=self._visibility)
+            case _    : symbol = TypeAliasSymbol(name=self.identifier.types[-1], type=self, associated_scope=scope_handler.current_scope, visibility=self._visibility)
         scope_handler.current_scope.parent.add_symbol(symbol)
         self._is_alias = type_alias
 
         # Generate type symbols for the generic parameters, and variable symbols for the attributes.
         scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=self, associated_scope=scope_handler.current_scope))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
-        Seq(self.body.members).for_each(lambda m: scope_handler.current_scope.add_symbol(VariableSymbol(name=m.identifier, type=m.type_declaration)))
+        Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
         # Move back into the parent scope.
         scope_handler.exit_cur_scope()

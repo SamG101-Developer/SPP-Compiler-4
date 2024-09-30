@@ -1,16 +1,18 @@
 from dataclasses import dataclass
+from typing import List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, SymbolGenerator, PreProcessor, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import InferredType, VisibilityEnabled
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol
+from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, SymbolGenerator):
+class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, SymbolGenerator, VisibilityEnabled):
     """
     The GlobalConstantAst node is used to represent a global constant (initialized with a value). The constant is a
     single variable, with a literal assigned to it.
@@ -22,12 +24,16 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, Sym
         In the future, more advanced expressions will be supported (via constant functions etc).
 
     Attributes:
+        annotations: The annotations attached to the constant.
         let_keyword: The `let` keyword token.
         assign_to: The variable being assigned to.
+        colon_token: The colon token.
+        type_declaration: The variable's type.
         assign_token: The assignment token.
         value: The value being assigned to the variable.
     """
 
+    annotations: List["AnnotationAst"]
     let_keyword: "TokenAst"
     assign_to: "LocalVariableSingleIdentifierAst"
     colon_token: "Token"
@@ -37,6 +43,7 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, Sym
 
     def print(self, printer: AstPrinter) -> str:
         s = ""
+        s += f"{Seq(self.annotations).print(printer, '\n')}"
         s += f"{self.let_keyword.print(printer)}"
         s += f"{self.assign_to.print(printer)} "
         s += f"{self.colon_token.print(printer)} "
@@ -51,7 +58,7 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, Sym
             raise SemanticErrors.REDEFINED_GLOBAL_CONSTANT(self.assign_to.identifier, self.let_keyword, existing_symbol.memory_info.ast_initialized)
 
         # Generate the symbol in the global (or namespaced) scope, and mark it as pinned.
-        symbol = VariableSymbol(name=self.assign_to.identifier, type=self.type_declaration)
+        symbol = VariableSymbol(name=self.assign_to.identifier, type=self.type_declaration, visibility=self._visibility)
         symbol.memory_info.ast_pins.append(symbol.name)
         symbol.memory_info.ast_initialized = self
         scope_handler.current_scope.parent_module.add_symbol(symbol)

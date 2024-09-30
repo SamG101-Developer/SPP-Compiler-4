@@ -5,6 +5,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, SymbolGenerator, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import Visibility
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -72,10 +73,10 @@ class UseStatementImportAst(Ast, SymbolGenerator, SupScopeLoader, SemanticAnalys
 
         self._generated = True
 
-    def generate(self, scope_handler: ScopeHandler) -> None:
+    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Packaged) -> None:
         self.convert(scope_handler)
         for new_ast in self._new_asts:
-            new_ast.generate(scope_handler)
+            new_ast.generate(scope_handler, visibility)
 
     def load_sup_scopes(self, scope_handler: ScopeHandler) -> None:
         Seq(self._new_asts).for_each(lambda ast: ast.load_sup_scopes(scope_handler))

@@ -92,7 +92,7 @@ class Parser:
         p2 = self.parse_class_prototype().for_alt()
         p3 = self.parse_sup_prototype_inheritance().for_alt()
         p4 = self.parse_sup_prototype_normal().for_alt()
-        p5 = self.parse_use_statement().for_alt()
+        p5 = self.parse_global_use_statement().for_alt()
         p6 = self.parse_global_constant().for_alt()
         p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
         return p7
@@ -638,13 +638,23 @@ class Parser:
     # ===== TYPEDEFS =====
 
     @parser_rule
+    def parse_global_use_statement(self) -> UseStatementAst:
+        c1 = self.current_pos()
+        p1 = self.parse_annotation().parse_zero_or_more()
+        p2 = self.parse_token(TokenType.KwUse).parse_once()
+        p3 = self.parse_use_statement_type_alias().for_alt()
+        p4 = self.parse_use_statement_import().for_alt()
+        p5 = (p3 | p4).parse_once()
+        return UseStatementAst(c1, p1, p2, p5)
+
+    @parser_rule
     def parse_use_statement(self) -> UseStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwUse).parse_once()
         p2 = self.parse_use_statement_type_alias().for_alt()
         p3 = self.parse_use_statement_import().for_alt()
         p4 = (p2 | p3).parse_once()
-        return UseStatementAst(c1, p1, p4)
+        return UseStatementAst(c1, [], p1, p4)
 
     @parser_rule
     def parse_use_statement_import(self) -> UseStatementImportAst:
@@ -698,13 +708,14 @@ class Parser:
     @parser_rule
     def parse_global_constant(self) -> GlobalConstantAst:
         c1 = self.current_pos()
-        p1 = self.parse_token(TokenType.KwLet).parse_once()
-        p2 = self.parse_local_variable_single_identifier().parse_once()
-        p3 = self.parse_token(TokenType.TkColon).parse_once()
-        p4 = self.parse_type().parse_once()
-        p5 = self.parse_token(TokenType.TkAssign).parse_once()
-        p6 = self.parse_global_constant_value().parse_once()
-        return GlobalConstantAst(c1, p1, p2, p3, p4, p5, p6)
+        p1 = self.parse_annotation().parse_zero_or_more()
+        p2 = self.parse_token(TokenType.KwLet).parse_once()
+        p3 = self.parse_local_variable_single_identifier().parse_once()
+        p4 = self.parse_token(TokenType.TkColon).parse_once()
+        p5 = self.parse_type().parse_once()
+        p6 = self.parse_token(TokenType.TkAssign).parse_once()
+        p7 = self.parse_global_constant_value().parse_once()
+        return GlobalConstantAst(c1, p1, p2, p3, p4, p5, p6, p7)
 
     @parser_rule
     def parse_let_statement(self) -> LetStatementAst:

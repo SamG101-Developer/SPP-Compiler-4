@@ -6,6 +6,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SymbolGenerator, SemanticAnalyser, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import Visibility
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 
@@ -33,11 +34,12 @@ class UseStatementTypeAliasAst(Ast, SymbolGenerator, SemanticAnalyser, SupScopeL
         s += f"{self.old_type.print(printer)}"
         return s
 
-    def generate(self, scope_handler: ScopeHandler, scope_override: bool = False) -> None:
+    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Packaged, scope_override: bool = False) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TokenAst, GenericParameterGroupAst
 
         generic_parameters = GenericParameterGroupAst.from_list(copy.deepcopy(self.generic_parameters.parameters))
         ast = ClassPrototypeAst(self.pos, [], TokenAst.dummy(TokenType.KwCls), self.new_type.types[-1].to_identifier(), generic_parameters, None, None)
+        ast._visibility = visibility
         ast.generate(scope_handler, type_alias=True)
 
         scope_handler.into_new_scope(f"<type-alias:{self.new_type}>")
