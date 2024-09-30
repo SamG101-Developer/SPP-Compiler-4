@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import Visibility
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 
 
@@ -61,6 +62,7 @@ class VariableSymbol(Symbol):
     type: "TypeAst"
     is_mutable: bool = field(default=False)
     memory_info: MemoryStatus = field(default_factory=MemoryStatus)
+    visibility: Visibility = field(default=Visibility.Private)
 
     def __post_init__(self):
         # Ensure that a variable symbol is created with the correct types.
@@ -99,6 +101,7 @@ class TypeSymbol(Symbol):
     associated_scope: Optional["Scope"] = field(default=None)
     is_generic: bool = field(default=False)
     is_copyable: bool = field(default=False)
+    visibility: Visibility = field(default=Visibility.Packaged)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
