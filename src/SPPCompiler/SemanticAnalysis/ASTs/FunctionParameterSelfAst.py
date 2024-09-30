@@ -35,7 +35,7 @@ class FunctionParameterSelfAst(Ast, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionParameterSelfAst.
         s = ""
-        s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
+        s += f"{self.is_mutable.print(printer)} " if self.is_mutable else ""
         s += f"{self.convention.print(printer)}{self.identifier.print(printer)}"
         return s
 
