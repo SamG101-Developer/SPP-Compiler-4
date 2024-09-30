@@ -224,7 +224,7 @@ def convert_function_arguments_to_named(
         parameters: Seq["FunctionParameterAst"]) -> Seq["FunctionArgumentAst"]:
 
     from SPPCompiler.SemanticAnalysis.ASTs import (
-        FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst, FunctionParameterVariadicAst)
+        FunctionArgumentNamedAst, FunctionArgumentNormalAst, TokenAst, TupleLiteralAst, FunctionParameterVariadicAst, FunctionParameterOptionalAst)
 
     is_variadic = parameters and isinstance(Seq(parameters)[-1], FunctionParameterVariadicAst)
 
@@ -252,6 +252,18 @@ def convert_function_arguments_to_named(
             parameter_identifier = parameter_identifiers.pop(0)
             new_argument = FunctionArgumentNamedAst(argument.pos, parameter_identifier, TokenAst.dummy(TokenType.TkAssign), argument.convention, argument.value)
             arguments.replace(argument, new_argument, 1)
+
+    # Add default parameters, and an empty tuple for the variadic parameter.
+    for parameter in Seq(parameters).filter_to_type(FunctionParameterOptionalAst):
+        if parameter.identifier_for_param() not in arguments.map(lambda a: a.identifier):
+            default_name = parameter.identifier_for_param()
+            default_value = parameter.default_value
+            new_argument = FunctionArgumentNamedAst(parameter.pos, default_name, TokenAst.dummy(TokenType.TkAssign), parameter.convention, default_value)
+            arguments.append(new_argument)
+    if parameters and isinstance(parameters[-1], FunctionParameterVariadicAst) and not arguments.map(lambda a: a.identifier).contains(parameters[-1].identifier_for_param()):
+        final_arguments = TupleLiteralAst(parameters[-1].pos, TokenAst.dummy(TokenType.TkParenL), [], TokenAst.dummy(TokenType.TkParenR))
+        new_argument = FunctionArgumentNamedAst(parameters[-1].pos, parameters[-1].identifier_for_param(), TokenAst.dummy(TokenType.TkAssign), parameters[-1].convention, final_arguments)
+        arguments.append(new_argument)
 
     return arguments
 
