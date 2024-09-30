@@ -444,15 +444,6 @@ def substitute_sup_scopes(sup_scopes: List[Tuple[Scope, SupPrototypeAst]], gener
     return new_sup_scopes
 
 
-def substitute_child_scopes(child_scopes: List[Scope], generics: List[GenericArgumentAst], scope_handler: ScopeHandler) -> List[Scope]:
-    new_child_scopes = []
-    for child_scope in child_scopes:
-        type_symbol = child_scope.associated_type_symbol
-        new_scope = create_generic_scope(None, type_symbol, child_scope, generics, scope_handler)
-        new_child_scopes.append(new_scope)
-    return new_child_scopes
-
-
 def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Scope, generics: List[GenericArgumentAst], scope_handler: ScopeHandler) -> Scope:
     # Todo: Simplify in adding vs replacing generics in TypeAst-identifier scopes.
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericArgumentNamedAst
