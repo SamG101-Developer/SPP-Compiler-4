@@ -193,15 +193,6 @@ class Scope:
     def all_symbols(self, exclusive: bool = False) -> List[TypeSymbol | VariableSymbol]:
         return self._symbol_table.all() + (self._parent_scope.all_symbols() if self._parent_scope and not exclusive else [])
 
-    def rem_symbol(self, symbol: TypeSymbol | VariableSymbol, exclusive: bool = False) -> None:
-        scope = self
-        symbol_found = symbol in scope._symbol_table._internal_table.values()
-
-        if symbol_found:
-            return scope._symbol_table.rem(symbol)
-        if self._parent_scope and not exclusive:
-            self._parent_scope.rem_symbol(symbol, exclusive)
-
     def __json__(self) -> dict:
         return {
             "what": "scope",

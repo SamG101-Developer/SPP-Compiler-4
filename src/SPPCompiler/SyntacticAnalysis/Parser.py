@@ -76,7 +76,7 @@ class Parser:
     @parser_rule
     def parse_module_prototype(self) -> ModulePrototypeAst:
         c1 = self.current_pos()
-        p1 = self.parse_annotation().parse_zero_or_more()
+        p1 = []  # self.parse_annotation().parse_zero_or_more()
         p2 = self.parse_module_implementation().parse_once()
         return ModulePrototypeAst(c1, p1, p2)
 
@@ -395,8 +395,8 @@ class Parser:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.TkAt).parse_once()
         p2 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
-        p3 = self.parse_postfix_op_function_call().parse_once()
-        return AnnotationAst(c1, p1, p2, p3)
+        # p3 = self.parse_postfix_op_function_call().parse_once()
+        return AnnotationAst(c1, p1, p2)  # , p3)
 
     # ===== EXPRESSIONS =====
 

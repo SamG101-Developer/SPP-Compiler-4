@@ -819,3 +819,16 @@ class SemanticErrors:
             msg="Missing implementation of abstract method.",
             tip="Ensure the abstract method is implemented.")
         return exception
+
+    @staticmethod
+    def INVALID_ACCESS_MODIFIER_APPLICATION(annotation: Ast, context: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=context.pos,
+            tag=f"Context '{context}' found here.")
+        exception.add_error(
+            pos=annotation.pos,
+            tag=f"Invalid access modifier '{annotation}' applied here.",
+            msg="Access modifier cannot be applied.",
+            tip="Ensure the access modifier is applied to a valid context.")
+        return exception

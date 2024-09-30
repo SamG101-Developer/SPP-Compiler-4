@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import copy, operator
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fastenum import Enum
 from typing import Dict, List, Optional, Tuple, Type
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, NamespaceSymbol, TypeAliasSymbol
@@ -408,6 +407,21 @@ class SupInheritanceIdentifier(SupNormalIdentifier):
 
     def __json__(self) -> str:
         return f"sup {self.this_class} ext {self.super_class}"
+
+
+class Visibility(Enum):
+    Public = 0
+    Protected = 1
+    Packaged = 2
+    Private = 3
+
+    def __json__(self) -> str:
+        return self.name.lower()
+
+
+@dataclass(kw_only=True)
+class VisibilityEnabled:
+    _visibility: Visibility = field(default=Visibility.Private, init=False, repr=False)
 
 
 class TypeInfer:

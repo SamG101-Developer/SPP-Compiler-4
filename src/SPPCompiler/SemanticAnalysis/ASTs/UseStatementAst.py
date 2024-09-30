@@ -4,13 +4,13 @@ from typing import NoReturn
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, PreProcessor, SymbolGenerator, SupScopeLoader
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import AstPrinter, ast_printer_method
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, VisibilityEnabled
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 
 
 @dataclass
-class UseStatementAst(Ast, PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser, TypeInfer):
+class UseStatementAst(Ast, PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser, TypeInfer, VisibilityEnabled):
     use_keyword: "TokenAst"
     body: "UseStatementImportAst | UseStatementTypeAliasAst"
 

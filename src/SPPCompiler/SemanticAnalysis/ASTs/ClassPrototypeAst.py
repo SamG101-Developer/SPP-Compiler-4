@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SymbolGenerator, SupScopeLoader
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import VisibilityEnabled
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -12,7 +13,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
+class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader, VisibilityEnabled):
     """
     The ClassPrototypeAst node is used to represent the definition of a class. The class's type is created as a type
     symbol in the "generate" stage, or a type-alias symbol if the class is being created as a mock representation of an

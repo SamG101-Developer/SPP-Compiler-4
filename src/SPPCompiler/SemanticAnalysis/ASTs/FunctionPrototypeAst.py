@@ -6,7 +6,7 @@ from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SymbolGenerator, SupScopeLoader, SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import check_for_conflicting_methods, FunctionConflictCheckType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import check_for_conflicting_methods, FunctionConflictCheckType, VisibilityEnabled
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
@@ -14,7 +14,7 @@ from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader):
+class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, SupScopeLoader, VisibilityEnabled):
     """
     The FunctionPrototypeAst node is an AST node that represents a function prototype. This includes the function's
     annotations, identifier, generic parameters, parameters, return type, where block, and body. The function prototype

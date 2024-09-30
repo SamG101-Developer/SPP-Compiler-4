@@ -4,13 +4,14 @@ from typing import List
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import VisibilityEnabled
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.Utils.Sequence import Seq
 
 
 @dataclass
-class ClassAttributeAst(Ast, SemanticAnalyser):
+class ClassAttributeAst(Ast, SemanticAnalyser, VisibilityEnabled):
     """
     The ClassAttributeAst node is used to represent an attribute in a ClassPrototypeAst node. The attribute contains the
     name and its type, and any annotations that are attached to the attribute.
