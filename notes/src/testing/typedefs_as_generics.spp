@@ -1,0 +1,12 @@
+mod testing::typedefs_as_generics
+
+use std::{Vec, Bool}
+
+
+fun test_typedefs_as_generics() -> Void {
+    let mut v = Vec[Bool]()
+    v.push_head(false)
+
+    let w = Vec[std::Bool]()
+    v = w
+}
