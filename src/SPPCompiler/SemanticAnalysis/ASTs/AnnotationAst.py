@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser, PreProcessor
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
@@ -52,10 +51,6 @@ class AnnotationAst(Ast, PreProcessor, SemanticAnalyser):
             case ["protected"]:
                 if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)
                 context.visibility = Visibility.Protected
-
-            case ["packaged"]:
-                if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)
-                context.visibility = Visibility.Packaged
 
             case ["private"]:
                 if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)

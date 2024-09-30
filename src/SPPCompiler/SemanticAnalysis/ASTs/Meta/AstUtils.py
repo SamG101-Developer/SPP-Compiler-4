@@ -412,8 +412,7 @@ class SupInheritanceIdentifier(SupNormalIdentifier):
 class Visibility(Enum):
     Public = 0
     Protected = 1
-    Packaged = 2
-    Private = 3
+    Private = 2
 
     def __json__(self) -> str:
         return self.name.lower()
