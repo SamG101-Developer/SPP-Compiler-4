@@ -550,7 +550,7 @@ class Parser:
 
     @parser_rule
     def parse_gen_expression(self) -> GenExpressionAst:
-        # Todo: alter the parsing to add convention+expression in own method (currently can do "gen &mut" nothing)
+        # Todo: alter the parsing to add convention+expression in own method. currently can do "gen &mut" nothing. can also do "gen with" nothing. => 2 separate parsing methods?
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwGen).parse_once()
         p2 = self.parse_token(TokenType.KwWith).parse_optional()
@@ -583,16 +583,9 @@ class Parser:
         p2 = self.parse_expression().parse_optional()
         return ReturnStatementAst(c1, p1, p2)
 
-    @parser_rule
-    def parse_loop_control_flow_statement(self) -> LoopControlFlowStatementAst:
-        p1 = self.parse_loop_control_flow_statement_exit().for_alt()
-        p2 = self.parse_loop_control_flow_statement_skip().for_alt()
-        p3 = (p1 | p2).parse_once()
-        return p3
-
     # Todo: Consider "break(2)" instead of "break break"
     @parser_rule
-    def parse_loop_control_flow_statement_exit(self) -> LoopControlFlowStatementAst:
+    def parse_exit_statement(self) -> LoopControlFlowStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwExit).parse_one_or_more()
         p2 = self.parse_token(TokenType.KwSkip).for_alt()
@@ -601,7 +594,7 @@ class Parser:
         return LoopControlFlowStatementAst(c1, p1, p4)
 
     @parser_rule
-    def parse_loop_control_flow_statement_skip(self) -> LoopControlFlowStatementAst:
+    def parse_skip_statement(self) -> LoopControlFlowStatementAst:
         c1 = self.current_pos()
         p1 = self.parse_token(TokenType.KwSkip).parse_once()
         return LoopControlFlowStatementAst(c1, [], p1)
@@ -633,13 +626,14 @@ class Parser:
         p1 = self.parse_use_statement().for_alt()
         p2 = self.parse_let_statement().for_alt()
         p3 = self.parse_return_statement().for_alt()
-        p4 = self.parse_loop_control_flow_statement().for_alt()
-        p5 = self.parse_pin_statement().for_alt()
-        p6 = self.parse_rel_statement().for_alt()
-        p7 = self.parse_assignment_statement().for_alt()
-        p8 = self.parse_expression().for_alt()
-        p9 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8).parse_once()
-        return p9
+        p4 = self.parse_exit_statement().for_alt()
+        p5 = self.parse_skip_statement().for_alt()
+        p6 = self.parse_pin_statement().for_alt()
+        p7 = self.parse_rel_statement().for_alt()
+        p8 = self.parse_assignment_statement().for_alt()
+        p9 = self.parse_expression().for_alt()
+        p10 = (p1 | p2 | p3 | p4 | p5 | p6 | p7 | p8 | p9).parse_once()
+        return p10
 
     # ===== TYPEDEFS =====
 
@@ -671,7 +665,7 @@ class Parser:
     def parse_use_statement_import_single_type(self) -> UseStatementImportSingleTypeAst:
         c1 = self.current_pos()
         p1 = self.parse_identifier().parse_zero_or_more(TokenType.TkDblColon)
-        p2 = self.parse_generic_identifier().parse_one_or_more(TokenType.TkDblColon)
+        p2 = self.parse_generic_identifier().parse_one_or_more(TokenType.TkDblColon)  # No generics allowed here
         p3 = self.parse_use_statement_import_alias().parse_optional()
         return UseStatementImportSingleTypeAst(c1, p1, p2, p3)
 
@@ -820,6 +814,7 @@ class Parser:
 
     @parser_rule
     def parse_assignment_statement(self) -> AssignmentStatementAst:
+        # Todo: Investigate multi-assignment: is it work it?
         c1 = self.current_pos()
         p1 = self.parse_expression().parse_one_or_more(TokenType.TkComma)
         p2 = self.parse_token(TokenType.TkAssign).parse_once()
