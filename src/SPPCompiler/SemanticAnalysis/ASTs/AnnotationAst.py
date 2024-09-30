@@ -32,7 +32,7 @@ class AnnotationAst(Ast, PreProcessor, SemanticAnalyser):
         # Print the AnnotationAst.
         s = ""
         s += f"{self.at_token.print(printer)}"
-        s += f"{Seq(self.identifier).join("::")}"
+        s += f"{Seq(self.identifier).join("::")}\n"
         # s += f"{self.function_call.print(printer)}"
         return s
 
@@ -46,15 +46,15 @@ class AnnotationAst(Ast, PreProcessor, SemanticAnalyser):
 
             case ["public"]:
                 if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)
-                context.visibility = Visibility.Public
+                context._visibility = Visibility.Public
 
             case ["protected"]:
                 if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)
-                context.visibility = Visibility.Protected
+                context._visibility = Visibility.Protected
 
             case ["private"]:
                 if not isinstance(context, VisibilityEnabled): raise SemanticErrors.INVALID_ACCESS_MODIFIER_APPLICATION(self.pos, context)
-                context.visibility = Visibility.Private
+                context._visibility = Visibility.Private
 
             case _:
                 raise NotImplementedError()

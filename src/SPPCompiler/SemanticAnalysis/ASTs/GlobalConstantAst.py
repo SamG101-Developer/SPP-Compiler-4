@@ -52,6 +52,9 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, Sym
         s += f"{self.value.print(printer)}"
         return s
 
+    def pre_process(self, context) -> None:
+        Seq(self.annotations).for_each(lambda a: a.pre_process(self))
+
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Global constants cannot be redefined.
         if existing_symbol := scope_handler.current_scope.parent_module.get_symbol(self.assign_to.identifier, exclusive=True):
@@ -61,6 +64,7 @@ class GlobalConstantAst(Ast, PreProcessor, SupScopeLoader, SemanticAnalyser, Sym
         symbol = VariableSymbol(name=self.assign_to.identifier, type=self.type_declaration, visibility=self._visibility)
         symbol.memory_info.ast_pins.append(symbol.name)
         symbol.memory_info.ast_initialized = self
+        symbol.memory_info.is_globally_static = True
         scope_handler.current_scope.parent_module.add_symbol(symbol)
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:

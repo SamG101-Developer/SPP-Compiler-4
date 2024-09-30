@@ -4,6 +4,7 @@ from typing import Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import Visibility
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol, MemoryStatus
 
 
@@ -42,7 +43,8 @@ class LocalVariableSingleIdentifierAst(Ast, SemanticAnalyser):
             name=self.identifier,
             type=value.infer_type(scope_handler, **kwargs).type,
             is_mutable=self.is_mutable is not None,
-            memory_info=MemoryStatus(ast_initialized=self.identifier))
+            memory_info=MemoryStatus(ast_initialized=self.identifier),
+            visibility=Visibility.Public)
         scope_handler.current_scope.add_symbol(symbol)
 
 

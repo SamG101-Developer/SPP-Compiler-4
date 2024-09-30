@@ -8,12 +8,11 @@ from typing import Iterable, List, Optional
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import SemanticAnalyser
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, \
-    infer_generics_types, create_generic_scope
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import TypeInfer, InferredType, convert_generic_arguments_to_named, infer_generics_types, create_generic_scope
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope, ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, VariableSymbol, NamespaceSymbol, TypeAliasSymbol
+from SPPCompiler.SemanticAnalysis.Utils.Symbols import NamespaceSymbol, TypeAliasSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 

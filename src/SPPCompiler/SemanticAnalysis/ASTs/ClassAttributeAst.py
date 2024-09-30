@@ -40,7 +40,7 @@ class ClassAttributeAst(Ast, SemanticAnalyser, VisibilityEnabled, PreProcessor, 
         return s
 
     def pre_process(self, context) -> None:
-        Seq(self.annotations).for_each(lambda a: a.pre_process(context))
+        Seq(self.annotations).for_each(lambda a: a.pre_process(self))
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         from SPPCompiler.SemanticAnalysis.Utils.Symbols import VariableSymbol

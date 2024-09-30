@@ -73,7 +73,7 @@ class UseStatementImportAst(Ast, SymbolGenerator, SupScopeLoader, SemanticAnalys
 
         self._generated = True
 
-    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Packaged) -> None:
+    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Private) -> None:
         self.convert(scope_handler)
         for new_ast in self._new_asts:
             new_ast.generate(scope_handler, visibility)

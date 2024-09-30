@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SupScopeLoader, SymbolGenerator
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstPrinter import *
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity, TypeInfer, InferredType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import ensure_memory_integrity, TypeInfer, InferredType, Visibility
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -47,7 +47,7 @@ class LetStatementInitializedAst(Ast, PreProcessor, SymbolGenerator, SemanticAna
 
     def generate(self, scope_handler: ScopeHandler) -> None:
         # Generate the symbol for the variable being assigned to. This is only used for function preprocessing.
-        variable_symbol = VariableSymbol(name=self.assign_to.identifier, type=self._sup_let_type)
+        variable_symbol = VariableSymbol(name=self.assign_to.identifier, type=self._sup_let_type, visibility=Visibility.Public)
         scope_handler.current_scope.add_symbol(variable_symbol)
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:

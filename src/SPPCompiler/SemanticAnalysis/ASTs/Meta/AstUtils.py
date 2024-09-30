@@ -417,6 +417,9 @@ class Visibility(Enum):
     def __json__(self) -> str:
         return self.name.lower()
 
+    def __str__(self):
+        return self.name.lower()
+
 
 @dataclass(kw_only=True)
 class VisibilityEnabled:
@@ -508,10 +511,10 @@ def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Sco
         new_symbol_type = copy.deepcopy(type_symbol.type)
 
         # Add the new "Self" type, and add the new scope to the parent scope.
-        new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
+        new_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, visibility=Visibility.Public))
         match type_symbol:
-            case TypeAliasSymbol(): type_scope.parent.add_symbol(TypeAliasSymbol(name=new_scope.name.types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, old_type=type_symbol.old_type, old_associated_scope=type_symbol.old_associated_scope))
-            case TypeSymbol()     : type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable))
+            case TypeAliasSymbol(): type_scope.parent.add_symbol(TypeAliasSymbol(name=new_scope.name.types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, old_type=type_symbol.old_type, old_associated_scope=type_symbol.old_associated_scope, visibility=type_symbol.visibility))
+            case TypeSymbol()     : type_scope.parent.add_symbol(TypeSymbol(name=new_scope.name.types[-1], type=new_symbol_type, associated_scope=new_scope, is_copyable=type_symbol.is_copyable, visibility=type_symbol.visibility))
         type_scope = new_scope
 
     # Register the new generic arguments against the generic parameters in the new scope.

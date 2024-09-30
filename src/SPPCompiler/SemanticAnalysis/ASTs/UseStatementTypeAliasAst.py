@@ -34,7 +34,7 @@ class UseStatementTypeAliasAst(Ast, SymbolGenerator, SemanticAnalyser, SupScopeL
         s += f"{self.old_type.print(printer)}"
         return s
 
-    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Packaged, scope_override: bool = False) -> None:
+    def generate(self, scope_handler: ScopeHandler, visibility: Visibility = Visibility.Private, scope_override: bool = False) -> None:
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, TokenAst, GenericParameterGroupAst
 
         generic_parameters = GenericParameterGroupAst.from_list(copy.deepcopy(self.generic_parameters.parameters))

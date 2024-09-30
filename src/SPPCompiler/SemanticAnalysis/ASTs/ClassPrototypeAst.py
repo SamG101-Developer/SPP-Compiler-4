@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstMixins import PreProcessor, SemanticAnalyser, SymbolGenerator, SupScopeLoader
-from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import VisibilityEnabled
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import VisibilityEnabled, Visibility
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler
 from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
@@ -61,6 +61,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         return s
 
     def pre_process(self, context) -> None:
+        Seq(self.annotations).for_each(lambda a: a.pre_process(self))
         Seq(self.body.members).for_each(lambda m: m.pre_process(self))
 
     def generate(self, scope_handler: ScopeHandler, *, type_alias: bool = False) -> None:
@@ -94,7 +95,7 @@ class ClassPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser, Su
         self._is_alias = type_alias
 
         # Generate type symbols for the generic parameters, and variable symbols for the attributes.
-        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=self, associated_scope=scope_handler.current_scope))
+        scope_handler.current_scope.add_symbol(TypeSymbol(name=CommonTypes.self().types[-1], type=self, associated_scope=scope_handler.current_scope, visibility=Visibility.Public))
         Seq(self.generic_parameters.parameters).for_each(lambda p: scope_handler.current_scope.add_symbol(TypeSymbol(name=p.identifier.types[-1], type=None, is_generic=True)))
         Seq(self.body.members).for_each(lambda m: m.generate(scope_handler))
 
