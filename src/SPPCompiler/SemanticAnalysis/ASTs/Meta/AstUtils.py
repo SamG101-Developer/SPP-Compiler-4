@@ -9,8 +9,6 @@ from typing import Dict, List, Optional, Tuple, Type
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
 from SPPCompiler.SemanticAnalysis.ASTs.Meta.Ast import Ast
 from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
-from SPPCompiler.SemanticAnalysis.Utils.Scopes import ScopeHandler, Scope
-from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, NamespaceSymbol, TypeAliasSymbol
 from SPPCompiler.Utils.Sequence import Seq
 
 
@@ -120,6 +118,7 @@ def ensure_memory_integrity(
 
     from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, PostfixExpressionAst, TypeAst, TupleLiteralAst, ArrayLiteralNElementAst
     from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
+    from SPPCompiler.SemanticAnalysis.Utils.Symbols import NamespaceSymbol
 
     # Get the symbol, for Identifiers and PostfixExpressions. If the value isn't either of these, then the memory rules
     # don't apply, so all the checks are skipped.
@@ -270,7 +269,8 @@ def convert_function_arguments_to_named(
 def get_all_function_scopes(type_scope: Scope, identifier: "IdentifierAst", exclusive: bool = False) -> Seq[Tuple[Scope, "SupPrototypeNormalAst", List["GenericArgumentAst"]]]:
     from SPPCompiler.LexicalAnalysis.Lexer import Lexer
     from SPPCompiler.SyntacticAnalysis.Parser import Parser
-    from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, IdentifierAst, GenericArgumentNamedAst, ClassPrototypeAst, SupPrototypeInheritanceAst
+    from SPPCompiler.SemanticAnalysis.ASTs import IdentifierAst, GenericArgumentNamedAst, ClassPrototypeAst, SupPrototypeInheritanceAst
+    from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol
 
     converted_identifier = Parser(Lexer(f"MOCK_{identifier}").lex(), "").parse_type_single().parse_once()
     sup_scopes = []
@@ -461,6 +461,8 @@ def substitute_sup_scopes(sup_scopes: List[Tuple[Scope, SupPrototypeAst]], gener
 def create_generic_scope(type: TypeAst, type_symbol: TypeSymbol, type_scope: Scope, generics: List[GenericArgumentAst], scope_handler: ScopeHandler) -> Scope:
     # Todo: Simplify in adding vs replacing generics in TypeAst-identifier scopes.
     from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, GenericArgumentNamedAst
+    from SPPCompiler.SemanticAnalysis.Utils.Scopes import Scope
+    from SPPCompiler.SemanticAnalysis.Utils.Symbols import TypeSymbol, TypeAliasSymbol
 
     # Duplicate the scope, using a copy of the existing name, the same parent, and link the non-generic scope.
     new_scope = Scope(copy.deepcopy(type_scope.name), parent_scope=type_scope.parent, non_generic_scope=type_scope, handler=scope_handler)
