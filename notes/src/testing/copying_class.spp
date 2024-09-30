@@ -1,5 +1,5 @@
 cls TestCopyingClass[T] {
-    a: T
+    @public a: T
 }
 
 sup [T] TestCopyingClass[T] ext std::Copy { }

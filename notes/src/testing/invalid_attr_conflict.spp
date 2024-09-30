@@ -11,7 +11,7 @@ sup [T] InvalidAttrConflict[T] {
 
 
 cls DerivedInvalidAttrConflict {
-    biscuit: std::Bool
+    @public biscuit: std::Bool
 }
 
 

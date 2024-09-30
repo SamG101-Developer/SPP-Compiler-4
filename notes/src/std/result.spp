@@ -5,5 +5,5 @@ cls Fail[E] { }
 use Res[T, E] = Pass[T] | Fail[E]
 ##
 
-
+@public
 cls Res[T, E] { }

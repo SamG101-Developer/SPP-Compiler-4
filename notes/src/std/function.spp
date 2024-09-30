@@ -1,5 +1,8 @@
+@public
 cls FunRef[Ret, In] { }
 
+@public
 cls FunMut[Ret, In] { }
 
+@public
 cls FunMov[Ret, In] { }

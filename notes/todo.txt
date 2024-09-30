@@ -18,8 +18,6 @@ Other:
 -- Check "Type" isn't used invalid places (it is an expression) => apply same for TkVariadic.
 
 Inheritance:
--- Annotations for @public, @private, @protected, @friend => check "self" in relation to scope being accessed.
--- Default visibility is private.
 -- Sup scopes for certain generics only (specialisation): "sup std::Vec[std::Bool] {}".
 
 
@@ -40,6 +38,7 @@ Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Errors are the wrong way around for generic inference and attributes during object initialization. An incorrectly
 named attribute will cause the generic inference to fail, rather than report the attribute error.
+-- Maybe a `friend` annotation?
 
 
 FILES TO UPGRADE

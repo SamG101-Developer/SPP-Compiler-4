@@ -80,6 +80,9 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
         super_class_symbol = scope_handler.current_scope.get_symbol(self.super_class)
         cls_symbol.associated_scope._sup_scopes.append((super_class_symbol.associated_scope, super_class_symbol.type))
 
+        super_class_symbol.associated_scope._sub_scopes.append(scope_handler.current_scope)
+        super_class_symbol.associated_scope._sub_scopes.append(cls_symbol.associated_scope)
+
         # Mark the class-type as "copyable" if the superclass std::Copy.
         if self.super_class.symbolic_eq(CommonTypes.copy(), scope_handler.current_scope):
             cls_symbol.is_copyable = True

@@ -1,7 +1,7 @@
 cls Point {
-    x: std::BigInt
-    y: std::BigInt
-    z: std::BigInt
+    @public x: std::BigInt
+    @public y: std::BigInt
+    @public z: std::BigInt
 }
 
 cls Joint {
@@ -11,8 +11,8 @@ cls Joint {
 
 
 cls DirVec {
-    point: Point
-    dir: std::BigInt
+    @public point: Point
+    @public dir: std::BigInt
 }
 
 

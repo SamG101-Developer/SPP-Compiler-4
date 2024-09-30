@@ -1,14 +1,14 @@
 # use MyUnionType = std::Str | std::U64 | std::U32
 
 
-cls VariantA { a: std::Str }
-cls VariantB { b: std::Str }
-cls VariantC { c: std::Str }
-cls VariantD { d: std::Str }
+cls VariantA { @public a: std::Str }
+cls VariantB { @public b: std::Str }
+cls VariantC { @public c: std::Str }
+cls VariantD { @public d: std::Str }
 
 
 cls VariantE {
-    x: std::Str
+    @public x: std::Str
     y: std::Str
 }
 

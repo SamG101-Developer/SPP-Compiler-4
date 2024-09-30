@@ -1,6 +1,8 @@
+@public
 cls BigInt { }
-cls BigDec { }
 
+@public
+cls BigDec { }
 
 sup BigInt ext std::ops::Sub[Rhs=BigInt, Ret=BigInt] {
     fun sub(self, that: BigInt) -> BigInt { }
@@ -24,7 +26,20 @@ sup BigInt ext std::ops::Eq[Rhs=BigInt] {
 
 sup BigInt ext Copy { }
 
+@public
+cls U8 { }
 
+@public
 cls U16 { }
+
+@public
 cls U32 { }
+
+@public
 cls U64 { }
+
+@public
+cls U128 { }
+
+@public
+cls U256 { }

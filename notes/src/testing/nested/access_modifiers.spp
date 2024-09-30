@@ -1,0 +1,37 @@
+fun test_nested_access_modifiers(v: VisibilityObject, d: DerivedVisibilityObject) -> std::Void {
+    let a = v.c
+}
+
+
+cls NestedClassTesterA {
+    @protected a: std::BigInt
+    @protected b: std::BigInt
+}
+
+cls NestedClassTesterB {
+    @protected c: std::BigInt
+    @protected d: std::BigInt
+}
+
+cls NestedClassTesterC {
+    @protected e: std::BigInt
+    @protected f: std::BigInt
+}
+
+
+# A inherits B
+sup NestedClassTesterA ext NestedClassTesterB { }
+
+
+# B inherits C
+sup NestedClassTesterB ext NestedClassTesterC { }
+
+
+sup NestedClassTesterA {
+    fun protected_test(self) -> std::Void {
+        let f = self.f
+    }
+}
+
+
+fun rando_rando(n: NestedClassTesterA) -> std::Void {}

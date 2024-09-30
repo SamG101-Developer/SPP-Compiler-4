@@ -1,4 +1,4 @@
-let constant_1: std::Str = "1"
+@public let constant_1: std::Str = "1"
 let constant_2: std::BigInt = 2
 let constant_3: std::BigInt = 3
 let constant_4: TestGlobalType = TestGlobalType(a=1)

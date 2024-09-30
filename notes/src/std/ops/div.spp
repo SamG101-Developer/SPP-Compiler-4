@@ -1,3 +1,4 @@
+@public
 cls Div[Rhs, Ret] { }
 
 sup [Rhs, Ret] Div[Rhs, Ret] {

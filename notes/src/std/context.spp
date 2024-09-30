@@ -1,12 +1,16 @@
+@public
 cls CtxRef[Out] { }
+
+
+@public
+cls CtxMut[Out] { }
+
 
 sup [Out] CtxRef[Out] {
     @virtual_method fun enter(&self) -> Out { }
     @virtual_method fun leave(&self) -> Void { }
 }
 
-
-cls CtxMut[Out] { }
 
 sup [Out] CtxMut[Out] {
     @virtual_method fun enter(&mut self) -> Out { }

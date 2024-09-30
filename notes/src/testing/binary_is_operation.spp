@@ -1,5 +1,5 @@
-cls BinA { c: std::Bool }
-cls BinB { d: std::Bool }
+cls BinA { @public c: std::Bool }
+cls BinB { @public d: std::Bool }
 
 
 fun test_bin_is_op(a: BinA | BinB, b: BinA | BinB) -> std::Void {

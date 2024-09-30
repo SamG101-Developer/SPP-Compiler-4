@@ -1,3 +1,4 @@
+@public
 cls Sub[Rhs, Ret] {}
 
 sup [Rhs, Ret] Sub[Rhs, Ret] {

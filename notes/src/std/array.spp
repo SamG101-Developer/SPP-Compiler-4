@@ -1,5 +1,7 @@
 cls BoundsError { }
 
+
+@public
 cls Arr[Element] {
     length: U64
 }

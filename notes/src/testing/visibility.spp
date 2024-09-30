@@ -5,15 +5,34 @@ Test the visibility annotations on module and class members
 
 @public
 cls VisibilityObject {
-    @private a: std::BigInt
+    @protected a: std::BigInt
     @private b: std::BigInt
+    @public c: std::BigInt
 }
 
 
 sup VisibilityObject {
-    @packaged
-    fun test1(&self) -> std::Void { }
+    @public
+    @virtual_method
+    fun test1(self) -> std::Void {
+        let b = self.b
+        let a = self.a
+    }
 
-    @packaged
+    @public
     fun test2(&self) -> std::Void { }
+}
+
+
+@protected
+cls DerivedVisibilityObject {
+    @private c: std::BigInt
+    @private d: std::BigInt
+}
+
+
+sup DerivedVisibilityObject ext VisibilityObject {
+    fun test1(self) -> std::Void {
+        let a = self.a
+    }
 }
