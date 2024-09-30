@@ -39,9 +39,6 @@ class TokenType(Enum):
     TkBraceL = "{"
     TkBraceR = "}"
 
-    # Try-Types (COA)
-    TkCoalesce = "??"
-
     # Other symbols
     TkQst = "?"
     TkVariadic = ".."
