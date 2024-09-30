@@ -137,6 +137,8 @@ class TypeSymbol(Symbol):
             return TypeAst(self.name.pos, [], [self.name])
         if not self.type:
             return TypeAst(self.name.pos, [], [self.name])
+        if isinstance(self, TypeAliasSymbol):
+            return self.old_type
 
         associated_scope = self.associated_scope.parent
         fq_type = TypeAst(self.name.pos, [], [self.name])

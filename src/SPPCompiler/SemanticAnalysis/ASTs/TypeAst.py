@@ -94,6 +94,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
                     raise SemanticErrors.UNKNOWN_IDENTIFIER(type_part.without_generics(), [], "type")
 
                 type_symbol = type_scope.get_symbol(type_part.without_generics(), ignore_alias=True)
+                type_scope_bypass = type_scope.get_symbol(type_part.without_generics()).associated_scope
                 type_scope = type_symbol.associated_scope
 
                 # Generic parameters won't have a scope, so skip them.
@@ -149,7 +150,7 @@ class TypeAst(Ast, SemanticAnalyser, TypeInfer):
         if type_scope and isinstance(type_scope.parent.name, IdentifierAst):
             if not type_symbol.is_generic:
                 if not self.types[-1].value == "Self":
-                    self.namespace = type_scope.scopes_as_namespace
+                    self.namespace = type_scope_bypass.scopes_as_namespace
 
     def infer_type(self, scope_handler: ScopeHandler, **kwargs) -> InferredType:
         from SPPCompiler.SemanticAnalysis.ASTs import ConventionMovAst
