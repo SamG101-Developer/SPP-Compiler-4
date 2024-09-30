@@ -1,6 +1,6 @@
 cls Eq[Rhs] { }
 
 sup [Rhs] Eq[Rhs] {
-    @virtual_method()
+    @virtual_method
     fun eq(&self, that: Rhs) -> Bool { }
 }

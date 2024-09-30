@@ -5,9 +5,9 @@ cls MyAnnotatedObject {
 
 
 sup MyAnnotatedObject {
-    @virtual_method() fun method_a(&self) -> std::Str { }
-    @virtual_method() fun method_b(&self) -> std::Str { }
-    @virtual_method() fun method_c(&self) -> std::Str { }
+    @virtual_method fun method_a(&self) -> std::Str { }
+    @virtual_method fun method_b(&self) -> std::Str { }
+    @virtual_method fun method_c(&self) -> std::Str { }
 }
 
 

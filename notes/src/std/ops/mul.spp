@@ -1,6 +1,6 @@
 cls Mul[Rhs, Ret] { }
 
 sup [Rhs, Ret] Mul[Rhs, Ret] {
-    @virtual_method()
+    @virtual_method
     fun mul(self, that: Rhs) -> Ret { }
 }

@@ -1,6 +1,6 @@
 cls Sub[Rhs, Ret] {}
 
 sup [Rhs, Ret] Sub[Rhs, Ret] {
-    @virtual_method()
+    @virtual_method
     fun sub(self, that: Rhs) -> Ret { }
 }

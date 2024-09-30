@@ -3,7 +3,7 @@ use std::Void
 
 cls AbstractMethodClassContainer { }
 sup AbstractMethodClassContainer {
-    @abstract_method()
+    @abstract_method
     fun abstract_method(&self) -> Void { }
 }
 

@@ -1,0 +1,19 @@
+##
+Test the visibility annotations on module and class members
+##
+
+
+@public
+cls VisibilityObject {
+    @private a: std::BigInt
+    @private b: std::BigInt
+}
+
+
+sup VisibilityObject {
+    @packaged
+    fun test1(&self) -> std::Void { }
+
+    @packaged
+    fun test2(&self) -> std::Void { }
+}
