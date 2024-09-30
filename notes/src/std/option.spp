@@ -11,6 +11,21 @@ cls Some[T] { val: T }
 cls None { }
 use Opt[T] = Some[T] | None
 
+##
+sup Opt[T] {
+    fun unwrap_or(self, default: T) -> T {
+        ret case self then
+            is None() { default }
+            is Some(val) { val }
+    }
+
+    fun unwrap_or_else(self, default: FunMov[T, ()]) -> T {
+        ret case self then
+            is None() { default() }
+            is Some(val) { val }
+    }
+}
+##
 
 ##
 sup Opt[T] {

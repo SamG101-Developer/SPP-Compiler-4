@@ -19,16 +19,14 @@ Case blocks:
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
 -- Expand `gen with` to `loop` and `gen`.
--- Null coalescing operator `??` support.
 -- Look at variadic-type variadic parameters (probably won't work).
--- Maybe re-write the symbol/scoping system: get_all => get_all_vars, get_all_types etc.
 -- Errors are the wrong way around for generic inference and attributes during object initialization. An incorrectly
 named attribute will cause the generic inference to fail, rather than report the attribute error.
 
 Inheritance:
 -- Annotations for @public, @private, @protected, @friend
 -- Default visibility is private.
--- Sup scopes for certain generics only: "sup std::Vec[std::Bool] {}".
+-- Sup scopes for certain generics only (specialisation): "sup std::Vec[std::Bool] {}".
 
 FUTURE
 
@@ -46,3 +44,10 @@ Lambdas:
 
 Annotations:
 -- Compiler output (@deprecated etc) and llvm annotations (@inline, @cold, @hot etc).
+
+Other:
+-- Null coalescing operator `??` support.
+
+Injection:
+-- Give AST attributes default values for easy injection creation.
+-- Change all Parser/Lexer injections to AST (faster).
