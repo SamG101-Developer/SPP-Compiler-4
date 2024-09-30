@@ -38,7 +38,7 @@ class PatternBlockAst(Ast, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the PatternBlockAst.
         s = ""
-        s += f"{self.comp_operator.print(printer)}"
+        s += f"{self.comp_operator.print(printer)} "
         s += f"{Seq(self.patterns).print(printer, ", ")}"
         s += f"{self.guard.print(printer)}" if self.guard else ""
         s += f" {self.body.print(printer)}"

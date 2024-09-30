@@ -20,23 +20,23 @@ class LocalVariableObjectDestructureAst(Ast, SemanticAnalyser):
 
     Attributes:
         class_type: The type being destructured.
-        bracket_l_token: The left bracket token.
+        paren_l_token: The left bracket token.
         items: The local variables in the destructure.
-        bracket_r_token: The right bracket token.
+        paren_r_token: The right bracket token.
     """
 
     class_type: "TypeAst"
-    bracket_l_token: "TokenAst"
+    paren_l_token: "TokenAst"
     items: List["LocalVariableSingleAst"]
-    bracket_r_token: "TokenAst"
+    paren_r_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         s = ""
         s += f"{self.class_type.print(printer)}"
-        s += f"{self.bracket_l_token.print(printer)}"
+        s += f"{self.paren_l_token.print(printer)}"
         s += f"{Seq(self.items).print(printer, ", ")}"
-        s += f"{self.bracket_r_token.print(printer)}"
+        s += f"{self.paren_r_token.print(printer)}"
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:

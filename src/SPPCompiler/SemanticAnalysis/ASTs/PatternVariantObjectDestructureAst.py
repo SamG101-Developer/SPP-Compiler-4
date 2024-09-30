@@ -21,24 +21,24 @@ class PatternVariantObjectDestructureAst(Ast, SemanticAnalyser, TypeInfer):
 
     Attributes:
         class_type: The class type being destructured.
-        bracket_l_token: The left bracket token.
+        paren_l_token: The left bracket token.
         items: The items being destructured.
-        bracket_r_token: The right bracket token.
+        paren_r_token: The right bracket token.
     """
 
     class_type: "TypeAst"
-    bracket_l_token: "TokenAst"
+    paren_l_token: "TokenAst"
     items: List["PatternVariantNestedForObjectDestructureAst"]
-    bracket_r_token: "TokenAst"
+    paren_r_token: "TokenAst"
 
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the PatternVariantDestructureAst.
         s = ""
         s += f"{self.class_type.print(printer)}"
-        s += f"{self.bracket_l_token.print(printer)}"
+        s += f"{self.paren_l_token.print(printer)}"
         s += f"{Seq(self.items).print(printer, ", ")}" if self.items else ""
-        s += f"{self.bracket_r_token.print(printer)}"
+        s += f"{self.paren_r_token.print(printer)}"
         return s
 
     def convert_to_variable(self) -> "LocalVariableObjectDestructureAst":
@@ -54,9 +54,9 @@ class PatternVariantObjectDestructureAst(Ast, SemanticAnalyser, TypeInfer):
         bindings = LocalVariableObjectDestructureAst(
             pos=self.pos,
             class_type=self.class_type,
-            bracket_l_token=self.bracket_l_token,
+            paren_l_token=self.paren_l_token,
             items=converted_items.list(),
-            bracket_r_token=self.bracket_r_token)
+            paren_r_token=self.paren_r_token)
 
         return bindings
 

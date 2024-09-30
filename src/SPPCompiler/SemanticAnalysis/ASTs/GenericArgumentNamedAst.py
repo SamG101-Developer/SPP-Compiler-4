@@ -36,7 +36,7 @@ class GenericArgumentNamedAst(Ast, SemanticAnalyser):
     def print(self, printer: AstPrinter) -> str:
         # Print the FunctionArgumentNamedAst.
         s = ""
-        s += f"{self.raw_identifier.print(printer)}"
+        s += f"{self.identifier.print(printer)}"
         s += f"{self.assignment_token.print(printer)}"
         s += f"{self.type.print(printer)}"
         return s

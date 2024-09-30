@@ -36,7 +36,7 @@ class CaseExpressionAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the IfExpressionAst.
         s = ""
-        s += f"{self.case_keyword.print(printer)}"
+        s += f"{self.case_keyword.print(printer)} "
         s += f"{self.condition.print(printer)}"
         s += f" {self.then_keyword.print(printer)}\n"
         s += f"{Seq(self.branches).print(printer, "\n")}"

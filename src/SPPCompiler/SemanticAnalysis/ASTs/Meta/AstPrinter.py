@@ -1,4 +1,6 @@
+import copy
 import functools
+import re
 from typing import Final
 
 
@@ -13,7 +15,7 @@ class AstPrinter:
 
     def format_line(self, line: str):
         # Insert tabs after \n characters in parts of the code.
-        return line.replace("\n", "\n" + " " * self._indent)
+        return line.replace("\n", "\n" + " " * (AstPrinter.TAB_SIZE // 2), line.count("\n") - 1)
 
     def increment_indent(self):
         # Increase the indent by the tab size.

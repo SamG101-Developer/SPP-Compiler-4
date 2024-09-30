@@ -34,8 +34,8 @@ class InnerScopeAst[T](Ast, Default, SemanticAnalyser, TypeInfer):
         # Print the InnerScopeAst.
         s = ""
         s += f"{self.brace_l_token.print(printer)}"
-        s += f"\n{Seq(self.members).print(printer, "\n")}\n" if self.members else ""
-        s += f"{self.brace_r_token.print(printer)}"
+        s += f"\n{Seq(self.members).print(printer, "\n")}" if self.members else ""
+        s += f"\n{self.brace_r_token.print(printer)}"
         return s
 
     @staticmethod

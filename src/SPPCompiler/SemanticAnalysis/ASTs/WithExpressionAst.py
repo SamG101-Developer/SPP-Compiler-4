@@ -36,7 +36,8 @@ class WithExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         s = ""
         s += f"{self.with_keyword.print(printer)} "
         s += f"{self.alias.print(printer)}" if self.alias else ""
-        s += f"{self.expression.print(printer)} {self.body.print(printer)}"
+        s += f"{self.expression.print(printer)} "
+        s += f"{self.body}"
         return s
 
     def do_semantic_analysis(self, scope_handler: ScopeHandler, **kwargs) -> None:

@@ -43,10 +43,10 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
     def print(self, printer: AstPrinter) -> str:
         # Print the SupPrototypeNormalAst.
         s = ""
-        s += f"{self.sup_keyword.print(printer)}"
-        s += f"{self.generic_parameters.print(printer)} " if self.generic_parameters else ""
-        s += f"{self.identifier.print(printer)}"
-        s += f" {self.where_block.print(printer)} " if self.where_block else ""
+        s += f"{self.sup_keyword.print(printer)} "
+        s += f"{self.generic_parameters.print(printer)} " if self.generic_parameters.parameters else ""
+        s += f"{self.identifier.print(printer)} "
+        s += f"{self.where_block.print(printer)} " if self.where_block.constraint_group.constraints else ""
         s += f"{self.body.print(printer)}"
         return s
 
