@@ -26,7 +26,7 @@ class PatternVariantSingleIdentifierAst(Ast, SemanticAnalyser, TypeInfer):
     def print(self, printer: AstPrinter) -> str:
         # Print the PatternVariantVariableAst.
         s = ""
-        s += f"{self.is_mutable.print(printer)}" if self.is_mutable else ""
+        s += f"{self.is_mutable.print(printer)} " if self.is_mutable else ""
         s += f"{self.identifier.print(printer)}"
         return s
 

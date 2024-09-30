@@ -1,32 +1,46 @@
-NOW
+NOW (MAJOR)
+
+Function:
+-- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
+
+Types:
+-- Too many generics or invalid name generics throw a Python error.
+-- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
+-- Numerical type indexing.
+
+Case blocks:
+-- Flow typing: should be able to use the symbol if no destructuring took place.
+
+Other:
+-- Look at variadic-type variadic parameters (probably won't work).
+-- Expand `gen with` to `loop` and `gen`.
+-- Fix the `is` expression for variant types (which is their entire point).
+
+Inheritance:
+-- Annotations for @public, @private, @protected, @friend => check "self" in relation to scope being accessed.
+-- Default visibility is private.
+-- Sup scopes for certain generics only (specialisation): "sup std::Vec[std::Bool] {}".
+
+
+Now (MINOR)
 
 Functions:
--- Tuple function folding ie "function(a).." needs to call "function" continuously with each element of "a".
 -- Overriding a function doesn't remove the base overload from consideration.
 
 Types:
--- Numerical type indexing.
 -- Add `Self` back into parsing once typedefs are done, and inject typedef's analysis (=> symbol) into correct scope.
--- Too many generics or invalid name generics throw a Python error.
--- Typedefs don't work as generic arguments (comparison-wise), probably need converting to "old_symbol" first.
+-- Some type aliasing bug that fully qualifies types with the current not source module (maybe auto-fq on import).
 -- Using generics for an identifier (in sup) different to the cls-level generics doesn't work (could be a feature?).
 
 Case blocks:
 -- Look at anonymous branching? Allowing for a non-pattern pattern block.
 -- Alias attributes: would need some sort of syntax like `is Some(val => alias)`?
--- Flow typing: should be able to use the symbol if no destructuring took place.
 
 Other:
 -- Errors across files (ie conflicting overloads in global scopes of different files), use tokens of the same file - confusing error message.
--- Expand `gen with` to `loop` and `gen`.
--- Look at variadic-type variadic parameters (probably won't work).
 -- Errors are the wrong way around for generic inference and attributes during object initialization. An incorrectly
 named attribute will cause the generic inference to fail, rather than report the attribute error.
 
-Inheritance:
--- Annotations for @public, @private, @protected, @friend
--- Default visibility is private.
--- Sup scopes for certain generics only (specialisation): "sup std::Vec[std::Bool] {}".
 
 FUTURE
 
