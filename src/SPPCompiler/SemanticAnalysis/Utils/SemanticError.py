@@ -832,3 +832,16 @@ class SemanticErrors:
             msg="Access modifier cannot be applied.",
             tip="Ensure the access modifier is applied to a valid context.")
         return exception
+
+    @staticmethod
+    def ACCESS_MODIFIER_VIOLATION(symbol: TypeSymbol | VariableSymbol) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            symbol.type.pos,
+            tag=f"{"Type" if isinstance(symbol, TypeSymbol) else "Variable"} '{symbol.name}' defined here as '{symbol.visibility}'.")
+        exception.add_error(
+            pos=symbol.name.pos,
+            tag=f"Access modifier violation for '{symbol.name}'.",
+            msg=f"Cannot access '{symbol.name}' with '{symbol.visibility}' access modifier.",
+            tip="Ensure the access modifier is correct.")
+        return exception

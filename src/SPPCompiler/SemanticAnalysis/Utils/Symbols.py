@@ -14,6 +14,7 @@ from SPPCompiler.SemanticAnalysis.Utils.CommonTypes import CommonTypes
 class MemoryStatus:
     is_borrow_ref: bool = field(default=False)
     is_borrow_mut: bool = field(default=False)
+    is_globally_static: bool = field(default=False)
 
     ast_initialized: Optional[Ast] = field(default=None)
     ast_consumed: Optional[Ast] = field(default=None)
@@ -91,7 +92,8 @@ class VariableSymbol(Symbol):
             name=copy.deepcopy(self.name),
             type=copy.deepcopy(self.type),
             is_mutable=copy.deepcopy(self.is_mutable),
-            memory_info=copy.deepcopy(self.memory_info))
+            memory_info=copy.deepcopy(self.memory_info),
+            visibility=self.visibility)
 
 
 @dataclass(kw_only=True)
@@ -101,7 +103,7 @@ class TypeSymbol(Symbol):
     associated_scope: Optional["Scope"] = field(default=None)
     is_generic: bool = field(default=False)
     is_copyable: bool = field(default=False)
-    visibility: Visibility = field(default=Visibility.Packaged)
+    visibility: Visibility = field(default=Visibility.Private)
 
     def __post_init__(self):
         from SPPCompiler.SemanticAnalysis.ASTs import ClassPrototypeAst, GenericIdentifierAst, TypeAst
@@ -117,6 +119,7 @@ class TypeSymbol(Symbol):
             "name": self.name,
             "type": self.type,
             "associated_scope": self.associated_scope.name if self.associated_scope else None,
+            "visibility": self.visibility,
         }
 
     def __str__(self) -> str:
@@ -128,7 +131,8 @@ class TypeSymbol(Symbol):
             type=copy.deepcopy(self.type),
             associated_scope=self.associated_scope,
             is_generic=self.is_generic,
-            is_copyable=self.is_copyable)
+            is_copyable=self.is_copyable,
+            visibility=self.visibility)
 
     @property
     def fq_type(self) -> "TypeAst":

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import copy
+import operator
 from typing import Any, Final, Optional, Iterator, List, Tuple
 
 from SPPCompiler.LexicalAnalysis.Tokens import TokenType
+from SPPCompiler.SemanticAnalysis.ASTs.Meta.AstUtils import Visibility
+from SPPCompiler.SemanticAnalysis.Utils.SemanticError import SemanticErrors
 from SPPCompiler.SemanticAnalysis.Utils.Symbols import SymbolTable, TypeSymbol, VariableSymbol, NamespaceSymbol, TypeAliasSymbol, Symbol
 from SPPCompiler.Utils.Sequence import Seq
 
@@ -14,6 +17,7 @@ class Scope:
     _children_scopes: List[Scope]
     _symbol_table: SymbolTable
     _sup_scopes: List[Tuple[Scope, SupPrototypeNormalAst | SupPrototypeInheritanceAst]]
+    _sub_scopes: List[Scope]
     _associated_type_symbol: Optional[TypeSymbol]
     _non_generic_scope: Scope
     _handler: ScopeHandler
@@ -26,12 +30,42 @@ class Scope:
         self._children_scopes = []
         self._symbol_table = SymbolTable()
         self._sup_scopes = []
+        self._sub_scopes = []
         self._associated_type_symbol = None
         self._non_generic_scope = non_generic_scope or self
         self._handler = handler
 
     def __confirm_symbol(self, symbol: Symbol, ignore_alias: bool) -> Symbol:
-        # return symbol
+        from SPPCompiler.SemanticAnalysis.ASTs import SupPrototypeNormalAst
+
+        # Check against visibility
+        current_scope = self._handler.current_scope
+        owner_scope = self
+
+        if isinstance(symbol, TypeSymbol) and not symbol.is_generic or isinstance(symbol, VariableSymbol) and symbol.memory_info.is_globally_static:
+            # Module members (classes / typedefs / global constants)
+            match symbol.visibility:
+                case Visibility.Private if owner_scope.parent_module is not current_scope.parent_module:
+                    raise SemanticErrors.ACCESS_MODIFIER_VIOLATION(symbol)
+                case Visibility.Protected if owner_scope.parent_module not in current_scope.ancestors:
+                    raise SemanticErrors.ACCESS_MODIFIER_VIOLATION(symbol)
+                case Visibility.Public:
+                    pass
+
+        elif isinstance(symbol, VariableSymbol):
+            direct_implementation_scopes = Seq(owner_scope._sup_scopes).filter(lambda s: isinstance(s[1], SupPrototypeNormalAst)).map(operator.itemgetter(0))
+            all_sub_class_scopes = Seq(owner_scope.sub_scopes).map(lambda s: Seq(s._sup_scopes).filter(lambda s: isinstance(s[1], SupPrototypeNormalAst)).map(operator.itemgetter(0))).flat()
+
+            # Class members (attributes)
+            match symbol.visibility:
+                case Visibility.Private if not any(scope in direct_implementation_scopes for scope in current_scope.ancestors):
+                    raise SemanticErrors.ACCESS_MODIFIER_VIOLATION(symbol)
+                case Visibility.Protected if not any(scope in direct_implementation_scopes + all_sub_class_scopes for scope in current_scope.ancestors):
+                    raise SemanticErrors.ACCESS_MODIFIER_VIOLATION(symbol)
+                case Visibility.Public:
+                    pass
+
+        # Pull the old type from the alias if it exists.
         match symbol:
             case TypeAliasSymbol() if symbol.old_type and not ignore_alias: return self.get_symbol(symbol.old_type)
             case _: return symbol
@@ -221,6 +255,14 @@ class Scope:
             all_sup_scopes.append((sup_scope, ast))
             all_sup_scopes.extend(sup_scope.sup_scopes)
         return all_sup_scopes
+
+    @property
+    def sub_scopes(self) -> List[Scope]:
+        all_sub_scopes = []
+        for sub_scope in self._sub_scopes:
+            all_sub_scopes.append(sub_scope)
+            all_sub_scopes.extend(sub_scope.sub_scopes)
+        return all_sub_scopes
 
     @property
     def name(self) -> Any:
