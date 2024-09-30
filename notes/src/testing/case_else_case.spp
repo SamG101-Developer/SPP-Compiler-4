@@ -1,6 +1,3 @@
-mod testing::case_else_case
-
-
 fun dummy_1() -> std::Bool { }
 fun dummy_2() -> std::Bool { }
 

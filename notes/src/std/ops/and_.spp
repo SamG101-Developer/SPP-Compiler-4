@@ -1,6 +1,3 @@
-mod std::ops::and_
-
-
 cls And[Rhs] {}
 
 sup [Rhs] And[Rhs] {

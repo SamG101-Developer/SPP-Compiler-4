@@ -1,6 +1,3 @@
-mod testing::type_and_obj_destructure
-
-
 cls InnerA { a: std::Str }
 cls InnerB { b: std::Str }
 

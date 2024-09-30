@@ -1,6 +1,3 @@
-mod testing::sup_method_exist_on_parent
-
-
 cls SuperClass { }
 
 sup SuperClass {

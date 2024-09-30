@@ -17,14 +17,10 @@ class ModulePrototypeAst(Ast, SemanticAnalyser, LLVMGeneration):
 
     Attributes:
         annotations: The annotations attached to the module.
-        module_keyword: The "mod" keyword token.
-        identifier: The module identifier.
         body: The module implementation.
     """
 
     annotations: List["AnnotationAst"]
-    module_keyword: "TokenAst"
-    identifier: "ModuleIdentifierAst"
     body: "ModuleImplementationAst"
 
     @ast_printer_method
@@ -32,22 +28,12 @@ class ModulePrototypeAst(Ast, SemanticAnalyser, LLVMGeneration):
         # Print the ModulePrototypeAst.
         s = ""
         s += f"{Seq(self.annotations).print(printer, '\n')}\n"
-        s += f"{self.module_keyword.print(printer)}"
-        s += f"{self.identifier.print(printer)}\n"
         s += f"{self.body.print(printer)}"
         return s
 
     def do_semantic_analysis(self, scope_handler, **kwargs) -> None:
         # Semantically analyse the module identifier and implementation.
-        self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.body.do_semantic_analysis(scope_handler, **kwargs)
-
-    def do_llvm_generation(self, module: llvm_ir.Module, **kwargs) -> Any:
-        # Determine the module name and create the llvm module.
-        llvm_module_name = Seq(self.identifier.parts).map(lambda p: p.value).join("::")
-        llvm_module = llvm_ir.Module(name=llvm_module_name)
-        self.body.do_llvm_generation(llvm_module, **kwargs)
-        return llvm_module
 
 
 __all__ = ["ModulePrototypeAst"]

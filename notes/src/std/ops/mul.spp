@@ -1,6 +1,3 @@
-mod std::ops::mul
-
-
 cls Mul[Rhs, Ret] { }
 
 sup [Rhs, Ret] Mul[Rhs, Ret] {

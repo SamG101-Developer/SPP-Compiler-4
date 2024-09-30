@@ -1,6 +1,3 @@
-mod testing::looping
-
-
 fun test_loop_analysis() -> std::BigInt {
     let x = 123
     let y = std::Vec[std::BigInt]()

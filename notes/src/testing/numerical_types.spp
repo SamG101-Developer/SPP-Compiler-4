@@ -1,6 +1,3 @@
-mod testing::numerical_types
-
-
 fun test_numerical_types(mut a: (std::BigInt, std::Str)) -> std::Void {
     a = (3, "3")
 }

@@ -1,6 +1,3 @@
-mod testing::case_block_mem_status
-
-
 cls Point {
     x: std::BigInt
     y: std::BigInt

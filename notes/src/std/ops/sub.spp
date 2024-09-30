@@ -1,6 +1,3 @@
-mod std::ops::sub
-
-
 cls Sub[Rhs, Ret] {}
 
 sup [Rhs, Ret] Sub[Rhs, Ret] {

@@ -1,0 +1,7 @@
+fun test_is_expression(o: std::Opt[std::Bool]) -> std::Void {
+    ##
+    loop o is std::Some[std::Bool](mut val) {
+        value = 123
+    }
+    ##
+}

@@ -1,6 +1,3 @@
-mod testing::conflict_overloads
-
-
 fun overload_conflict_1[T](a: T) -> std::Void { }
 fun overload_conflict_1(a: std::Str) -> std::Void { }
 

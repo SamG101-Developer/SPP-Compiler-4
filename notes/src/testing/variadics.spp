@@ -1,5 +1,3 @@
-mod testing::variadics
-
 fun other_function_quick_test[T](a: T) -> T { }
 
 fun variadic_function_test[T](a: std::Bool, ..b: T) -> T { }

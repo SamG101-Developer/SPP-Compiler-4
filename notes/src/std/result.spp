@@ -1,7 +1,9 @@
-mod std::result
+cls Pass[T] { }
+cls Fail[E] { }
+
+##
+use Res[T, E] = Pass[T] | Fail[E]
+##
 
 
 cls Res[T, E] { }
-
-cls Pass[T] { }
-cls Fail[T] { }

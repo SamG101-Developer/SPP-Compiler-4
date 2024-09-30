@@ -1,6 +1,3 @@
-mod testing::optional_testing
-
-
 fun test_optional_type(o: std::Opt[std::BigInt]) -> std::Void {
     case o then
         is std::Some[std::BigInt](..) { }

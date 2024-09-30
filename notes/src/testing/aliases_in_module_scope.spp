@@ -1,5 +1,3 @@
-mod testing::aliases_in_module_scope
-
 use MyNewType = std::Str
 use MyNewerType = MyNewType
 

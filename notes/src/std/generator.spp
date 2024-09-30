@@ -1,6 +1,3 @@
-mod std::generator
-
-
 cls GenMov[Yield, Send=Void] { }
 
 cls GenRef[Yield, Send=Void] { }

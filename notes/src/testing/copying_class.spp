@@ -1,6 +1,3 @@
-mod testing::copying_class
-
-
 cls TestCopyingClass[T] {
     a: T
 }

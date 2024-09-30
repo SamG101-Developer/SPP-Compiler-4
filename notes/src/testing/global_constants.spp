@@ -1,6 +1,3 @@
-mod testing::global_constants
-
-
 let constant_1: std::Str = "1"
 let constant_2: std::BigInt = 2
 let constant_3: std::BigInt = 3

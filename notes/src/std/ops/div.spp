@@ -1,6 +1,3 @@
-mod std::ops::div
-
-
 cls Div[Rhs, Ret] { }
 
 sup [Rhs, Ret] Div[Rhs, Ret] {

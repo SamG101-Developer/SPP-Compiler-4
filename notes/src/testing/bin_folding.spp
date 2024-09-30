@@ -1,6 +1,3 @@
-mod testing::bin_folding
-
-
 fun test_bin_folding() -> std::Void {
     let tuple = (1, 2, 3, 4)
     let (a, ..mut b) = tuple

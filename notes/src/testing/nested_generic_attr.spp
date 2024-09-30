@@ -1,6 +1,3 @@
-mod testing::nested_generic_attr
-
-
 cls GenericAttrClass[T] {
     attr: T
 }

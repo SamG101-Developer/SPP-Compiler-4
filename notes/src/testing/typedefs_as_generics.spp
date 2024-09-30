@@ -1,5 +1,3 @@
-mod testing::typedefs_as_generics
-
 use std::{Vec, Bool}
 
 

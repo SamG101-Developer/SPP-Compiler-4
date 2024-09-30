@@ -1,6 +1,3 @@
-mod testing::case_variants
-
-
 fun test_case_variants(mut wopa: std::U32 | std::U64 | std::Str) -> std::Void {
     case wopa then
         is std::U32() { }

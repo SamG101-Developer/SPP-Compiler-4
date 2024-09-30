@@ -1,6 +1,3 @@
-mod std::number
-
-
 cls BigInt { }
 cls BigDec { }
 

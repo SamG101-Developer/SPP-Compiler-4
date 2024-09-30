@@ -1,6 +1,3 @@
-mod testing::static_function_test
-
-
 cls StaticClass { }
 
 

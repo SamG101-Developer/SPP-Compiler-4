@@ -1,6 +1,3 @@
-mod testing::sup_specialization
-
-
 cls TestSupSpecialization[T] {
     a: T
 }

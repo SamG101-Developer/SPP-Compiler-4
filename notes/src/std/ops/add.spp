@@ -1,6 +1,3 @@
-mod std::ops::add
-
-
 cls Add[Rhs, Ret] {}
 
 sup [Rhs, Ret] Add[Rhs, Ret] {

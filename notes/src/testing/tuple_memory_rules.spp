@@ -1,6 +1,3 @@
-mod testing::tuple_memory_rules
-
-
 fun test_tuple_memory_rules() -> std::Void {
     let x = "hello"
     let t = (x, )

@@ -1,6 +1,3 @@
-mod std::boolean
-
-
 cls Bool { }
 
 

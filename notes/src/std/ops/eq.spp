@@ -1,6 +1,3 @@
-mod std::ops::eq
-
-
 cls Eq[Rhs] { }
 
 sup [Rhs] Eq[Rhs] {

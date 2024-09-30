@@ -1,6 +1,3 @@
-mod testing::tuple_unpacking
-
-
 fun function_tuple_unpacking(x: std::Str, a: std::BigInt, b: std::Str, c: std::BigInt, y: std::Bool) -> std::BigInt {
     ret a
 }

@@ -1,6 +1,3 @@
-mod testing::sup_generics_dif_names
-
-
 cls TesterBaseClass[T, U, V] { }
 
 sup [T, U, V] TesterBaseClass[T, U, V] {

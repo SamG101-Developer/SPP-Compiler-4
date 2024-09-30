@@ -1,6 +1,3 @@
-mod testing::tuple_memory_tests
-
-
 fun test_tuple_memory_stuff() -> std::Void {
     let desk = "1"
     let b = "2"

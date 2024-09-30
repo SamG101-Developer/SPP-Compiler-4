@@ -1,6 +1,3 @@
-mod testing::annotations
-
-
 cls MyAnnotatedObject {
     a: std::BigInt
     b: std::BigInt

@@ -1,6 +1,3 @@
-mod testing::type_destructure_with_tuple
-
-
 # use MyUnionType = std::Str | std::U64 | std::U32
 
 

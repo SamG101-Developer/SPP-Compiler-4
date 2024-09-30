@@ -1,6 +1,3 @@
-mod testing::async_function
-
-
 fun test_function_99(a: &std::BigInt) -> std::Bool { }
 
 

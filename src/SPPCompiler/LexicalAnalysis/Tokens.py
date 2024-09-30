@@ -62,7 +62,6 @@ class TokenType(Enum):
 
     # Keywords
     # Module level declarations
-    KwMod = "mod"
     KwCls = "cls"
     KwSup = "sup"
     KwFun = "fun"

@@ -1,12 +1,3 @@
-mod std::option
-
-
-##
-cls Opt[T] {
-    value: Some[T] | None
-}
-##
-
 cls Some[T] { val: T }
 cls None { }
 use Opt[T] = Some[T] | None

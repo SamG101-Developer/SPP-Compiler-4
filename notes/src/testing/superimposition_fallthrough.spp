@@ -1,6 +1,3 @@
-mod testing::superimposition_fallthrough
-
-
 cls TestClass[T] {
     a: T
 }

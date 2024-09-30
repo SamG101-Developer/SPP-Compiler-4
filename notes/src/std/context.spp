@@ -1,6 +1,3 @@
-mod std::context
-
-
 cls CtxRef[Out] { }
 
 sup [Out] CtxRef[Out] {

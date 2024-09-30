@@ -1,6 +1,3 @@
-mod std::vector
-
-
 cls Vec[T] {
     # data: Arr[T]
     # length: U64

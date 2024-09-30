@@ -55,7 +55,6 @@ from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSingleIdentifierAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableSkipArgumentsAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.LocalVariableTupleDestructureAst import *
-from SPPCompiler.SemanticAnalysis.ASTs.ModuleIdentifierAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.ModuleImplementationAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.ModuleMemberAst import *
 from SPPCompiler.SemanticAnalysis.ASTs.ModulePrototypeAst import *

@@ -77,10 +77,8 @@ class Parser:
     def parse_module_prototype(self) -> ModulePrototypeAst:
         c1 = self.current_pos()
         p1 = self.parse_annotation().parse_zero_or_more()
-        p2 = self.parse_token(TokenType.KwMod).parse_once()
-        p3 = self.parse_module_identifier().parse_once()
-        p4 = self.parse_module_implementation().parse_once()
-        return ModulePrototypeAst(c1, p1, p2, p3, p4)
+        p2 = self.parse_module_implementation().parse_once()
+        return ModulePrototypeAst(c1, p1, p2)
 
     @parser_rule
     def parse_module_implementation(self) -> ModuleImplementationAst:
@@ -98,12 +96,6 @@ class Parser:
         p6 = self.parse_global_constant().for_alt()
         p7 = (p1 | p2 | p3 | p4 | p5 | p6).parse_once()
         return p7
-
-    @parser_rule
-    def parse_module_identifier(self) -> ModuleIdentifierAst:
-        c1 = self.current_pos()
-        p1 = self.parse_identifier().parse_one_or_more(TokenType.TkDblColon)
-        return ModuleIdentifierAst(c1, p1)
 
     # ===== CLASSES =====
 

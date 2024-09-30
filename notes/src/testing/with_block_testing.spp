@@ -1,6 +1,3 @@
-mod testing::with_block_testing
-
-
 cls MyContextualType { }
 
 

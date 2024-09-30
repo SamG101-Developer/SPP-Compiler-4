@@ -1,6 +1,3 @@
-mod testing::invalid_attr_conflict
-
-
 cls InvalidAttrConflict[T] {
     biscuit: T
 }

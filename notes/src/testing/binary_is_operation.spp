@@ -1,6 +1,3 @@
-mod testing::binary_is_operation
-
-
 cls BinA { c: std::Bool }
 cls BinB { d: std::Bool }
 

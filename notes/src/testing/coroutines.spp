@@ -1,6 +1,3 @@
-mod testing::coroutines
-
-
 cor coroutine(a: &std::BigInt) -> std::GenMut[Yield=std::BigInt, Send=std::Str] {
     let x = 123
     let mut y = gen &mut 123
