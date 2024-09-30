@@ -442,13 +442,13 @@ class Parser:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_4,
             self.parse_binary_op_precedence_level_3,
-            self.parse_binary_expression_precedence_level_3)
+            self.parse_pattern_variant_object_destructure)
 
     def parse_binary_expression_precedence_level_4(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
             self.parse_binary_expression_precedence_level_5,
             self.parse_binary_op_precedence_level_4,
-            self.parse_pattern_variant_object_destructure)
+            self.parse_binary_expression_precedence_level_4)
 
     def parse_binary_expression_precedence_level_5(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
@@ -458,15 +458,9 @@ class Parser:
 
     def parse_binary_expression_precedence_level_6(self) -> ParserRuleHandler:
         return self.parse_binary_expression_precedence_level_n(
-            self.parse_binary_expression_precedence_level_7,
+            self.parse_unary_expression,
             self.parse_binary_op_precedence_level_6,
             self.parse_binary_expression_precedence_level_6)
-
-    def parse_binary_expression_precedence_level_7(self) -> ParserRuleHandler:
-        return self.parse_binary_expression_precedence_level_n(
-            self.parse_unary_expression,
-            self.parse_binary_op_precedence_level_7,
-            self.parse_binary_expression_precedence_level_7)
 
     @parser_rule
     def parse_unary_expression(self) -> ExpressionAst:
@@ -999,26 +993,21 @@ class Parser:
 
     @parser_rule
     def parse_binary_op_precedence_level_1(self) -> TokenAst:
-        p1 = self.parse_token(TokenType.TkCoalesce).parse_once()
-        return p1
-
-    @parser_rule
-    def parse_binary_op_precedence_level_2(self) -> TokenAst:
         p1 = self.parse_token(TokenType.KwOr).parse_once()
         return p1
 
     @parser_rule
-    def parse_binary_op_precedence_level_3(self) -> TokenAst:
+    def parse_binary_op_precedence_level_2(self) -> TokenAst:
         p1 = self.parse_token(TokenType.KwAnd).parse_once()
         return p1
 
     @parser_rule
-    def parse_binary_op_precedence_level_4(self) -> TokenAst:
+    def parse_binary_op_precedence_level_3(self) -> TokenAst:
         p1 = self.parse_token(TokenType.KwIs).parse_once()
         return p1
 
     @parser_rule
-    def parse_binary_op_precedence_level_5(self) -> TokenAst:
+    def parse_binary_op_precedence_level_4(self) -> TokenAst:
         p1 = self.parse_token(TokenType.TkEq).for_alt()
         p2 = self.parse_token(TokenType.TkNe).for_alt()
         p3 = self.parse_token(TokenType.TkLe).for_alt()
@@ -1030,7 +1019,7 @@ class Parser:
         return p8
 
     @parser_rule
-    def parse_binary_op_precedence_level_6(self) -> TokenAst:
+    def parse_binary_op_precedence_level_5(self) -> TokenAst:
         p1 = self.parse_token(TokenType.TkAdd).for_alt()
         p2 = self.parse_token(TokenType.TkSub).for_alt()
         p3 = self.parse_token(TokenType.TkAddAssign).for_alt()
@@ -1039,7 +1028,7 @@ class Parser:
         return p5
 
     @parser_rule
-    def parse_binary_op_precedence_level_7(self) -> TokenAst:
+    def parse_binary_op_precedence_level_6(self) -> TokenAst:
         p1 = self.parse_token(TokenType.TkMul).for_alt()
         p2 = self.parse_token(TokenType.TkDiv).for_alt()
         p3 = self.parse_token(TokenType.TkRem).for_alt()

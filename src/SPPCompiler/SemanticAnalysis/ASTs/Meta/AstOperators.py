@@ -29,7 +29,6 @@ BIN_OP_FUNCS = {
 
 
 OP_PREC = {
-    TokenType.TkCoalesce: 1,
     TokenType.KwOr: 2,
     TokenType.KwAnd: 3,
     TokenType.TkEq: 4,
