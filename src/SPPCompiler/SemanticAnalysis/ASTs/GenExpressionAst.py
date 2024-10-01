@@ -36,12 +36,15 @@ class GenExpressionAst(Ast, SemanticAnalyser, TypeInfer):
 
     _coro_type: Optional["TypeAst"] = field(default=None, init=False, repr=False)
 
+    def __post_init__(self):
+        self.convention = self.convention or ConventionMovAst(self.with_keyword.pos)  # Bypass for "gen with"
+
     @ast_printer_method
     def print(self, printer: AstPrinter) -> str:
         # Print the YieldExpressionAst.
         s = ""
-        s += f"{self.gen_keyword.print(printer)}"
-        s += f"{self.with_keyword.print(printer)}" if self.with_keyword else ""
+        s += f"{self.gen_keyword.print(printer)} "
+        s += f"{self.with_keyword.print(printer)} " if self.with_keyword else ""
         s += f"{self.convention.print(printer)}"
         s += f"{self.expression.print(printer)}"
         return s
@@ -55,26 +58,36 @@ class GenExpressionAst(Ast, SemanticAnalyser, TypeInfer):
         if "is-subroutine" in kwargs:
             raise SemanticErrors.YIELD_OUTSIDE_COROUTINE(self, kwargs["is-subroutine"])
 
-        # Analyse the expression.
-        self.expression.do_semantic_analysis(scope_handler, **kwargs)
+        # Analyse the expression and determine its type.
+        if self.expression:
+            self.expression.do_semantic_analysis(scope_handler, **kwargs)
+            expression_type = self.expression.infer_type(scope_handler, **kwargs)
+        else:
+            if not isinstance(self.convention, ConventionMovAst):
+                raise SemanticErrors.GENERATOR_CONVENTION_NO_VALUE(self.convention)
+            expression_type = InferredType(convention=ConventionMovAst, type=CommonTypes.void(self.pos))
+
         coroutine_ret_type = kwargs["target-return-type"]
 
         # Determine the yield's convention and type.
-        match self.convention, self.expression.infer_type(scope_handler, **kwargs).convention:
+        match self.convention, expression_type.convention:
             case ConventionMovAst(), that_convention: given_yield_convention = that_convention
             case self_convention, _: given_yield_convention = type(self.convention)
 
-        given_yield_type = InferredType(
-            convention=given_yield_convention,
-            type=self.expression.infer_type(scope_handler, **kwargs).type)
+        # Get the given yield type. Generating from another coroutine uses that coroutine's "gen" type.
+        if not self.with_keyword:
+            given_yield_type = InferredType(convention=given_yield_convention, type=expression_type.type)
+        else:
+            given_yield_type = InferredType(convention=given_yield_convention, type=expression_type.type.types[-1].generic_arguments["Yield"].type)
 
-        # Check the yielded convention and type matches the coroutine's return type.
+        # Get the expected generated value's convention and type (based on coroutine return type). Todo: do this symbolically
         expected_yield_type = InferredType(
             convention=CommonTypes.type_variant_to_convention(coroutine_ret_type.types[-1]),
             type=coroutine_ret_type.types[-1].generic_arguments["Yield"].type)
 
+        # Check the given yield type matches the expected yield type.
         if not given_yield_type.symbolic_eq(expected_yield_type, scope_handler.current_scope):
-            raise SemanticErrors.TYPE_MISMATCH_2(None, self.expression, expected_yield_type, given_yield_type, scope_handler)
+            raise SemanticErrors.TYPE_MISMATCH_2(None, self.expression or self.gen_keyword, expected_yield_type, given_yield_type, scope_handler)
 
         # Apply the FunctionArgumentGroup memory checks to the yielded values.
         mock_function_argument_group = Parser(Lexer("()").lex(), "").parse_function_call_arguments().parse_once()

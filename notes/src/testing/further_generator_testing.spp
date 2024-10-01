@@ -1,0 +1,14 @@
+cor generator_1() -> std::GenMov[std::BigInt] {
+    gen 1
+    gen 2
+    gen 3
+}
+
+
+cor generator_2() -> std::GenMov[std::BigInt] {
+    gen 4
+    gen 5
+    gen 6
+
+    gen with generator_1()
+}

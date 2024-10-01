@@ -12,7 +12,6 @@ Case blocks:
 
 Other:
 -- Look at variadic-type variadic parameters (probably won't work).
--- Expand `gen with` to `loop` and `gen`.
 -- Fix the `is` expression for variant types (which is their entire point).
 -- Test optional parameters, and optional + variadic together.
 -- Check "Type" isn't used invalid places (it is an expression) => apply same for TkVariadic.

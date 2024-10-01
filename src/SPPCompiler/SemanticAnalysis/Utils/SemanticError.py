@@ -845,3 +845,13 @@ class SemanticErrors:
             msg=f"Cannot access '{symbol.name}' with '{symbol.visibility}' access modifier.",
             tip="Ensure the access modifier is correct.")
         return exception
+
+    @staticmethod
+    def GENERATOR_CONVENTION_NO_VALUE(gen_expression: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_error(
+            pos=gen_expression.pos,
+            tag=f"Convention found here.",
+            msg="Cannot use a borrow convention with no associated expression.",
+            tip="Use 'GenMov[Void]' as the coroutine return type.")
+        return exception
