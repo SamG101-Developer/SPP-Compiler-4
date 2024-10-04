@@ -11,13 +11,14 @@ Case blocks:
 -- Flow typing: should be able to use the symbol if no destructuring took place.
 
 Other:
--- Look at variadic-type variadic parameters (probably won't work).
+-- Look at variadic-type variadic parameters (..Ts needs to be a tuple on its own, not a tuple of ..Ts tuples).
 -- Fix the `is` expression for variant types (which is their entire point).
 -- Test optional parameters, and optional + variadic together.
 -- Check "Type" isn't used invalid places (it is an expression) => apply same for TkVariadic.
 
 Inheritance:
 -- Sup scopes for certain generics only (specialisation): "sup std::Vec[std::Bool] {}".
+-- Access modifiers on methods, as overloads resolve to the same symbol.
 
 
 Now (MINOR)

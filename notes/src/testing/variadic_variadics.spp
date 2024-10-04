@@ -1,0 +1,12 @@
+fun fixed_variadic(a: std::Bool, ..b: std::BigInt) -> std::Void { }
+
+fun fixed_generic_variadic[U](a: std::Str, ..b: U) -> std::Void { }
+
+fun variadic_generic_variadic[..Ts](a: std::Str, ..b: Ts) -> std::Void { }
+
+
+fun variadic_caller() -> std::Void {
+    fixed_variadic(true, 1, 2, 3, 4, 5)
+    fixed_generic_variadic("hello", false, false, true)
+    # variadic_generic_variadic("hello", 1, "2", false, false, 2)
+}
