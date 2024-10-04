@@ -52,21 +52,14 @@ class UseStatementTypeAliasAst(Ast, SymbolGenerator, SemanticAnalyser, SupScopeL
             scope_handler.exit_cur_scope()
 
     def load_sup_scopes(self, scope_handler: ScopeHandler, scope_override: bool = False) -> None:
-        # print("[A] MOVED INTO", scope_handler.current_scope, "for", self)
-        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst
+        from SPPCompiler.SemanticAnalysis.ASTs import TypeAst, SupPrototypeInheritanceAst, TokenAst, GenericParameterGroupAst
+
         if not scope_override:
             scope_handler.move_to_next_scope()
 
         # Skip the mock-class scopes introduced.
         while isinstance(scope_handler.current_scope.name, TypeAst):
             scope_handler.move_to_next_scope()
-
-        """
-        Take the example "use MyVector[T] = std::Vec[T]". This will create a "cls MyVector[T] { }" and
-        "sup std::Vec[T] on MyVector[T]".
-        """
-
-        from SPPCompiler.SemanticAnalysis.ASTs import SupPrototypeInheritanceAst, TokenAst, GenericParameterGroupAst
 
         # Create a temporary inner scope to load generics into.
         self.old_type.do_semantic_analysis(scope_handler)
@@ -80,6 +73,7 @@ class UseStatementTypeAliasAst(Ast, SymbolGenerator, SemanticAnalyser, SupScopeL
         ast.generate(scope_handler)
         scope_handler.current_scope.parent.get_symbol(self.new_type).associated_scope._sup_scopes.append((scope_handler.current_scope.children[-1], ast))
 
+        # Todo: this needs to be done before the load sup scope stage.
         # Associate the new type symbol with the old type symbol as an alias.
         new_symbol = scope_handler.current_scope.get_symbol(self.new_type)
         new_symbol.old_type = old_symbol.fq_type

@@ -180,9 +180,6 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
         scope_handler.move_to_next_scope()
 
-        # Load generic-version of a type in for comparisons.
-        self.return_type.do_semantic_analysis(scope_handler)
-
         # Get the owner type or namespace scope, to check for conflicting function overloads.
         match self._ctx:
             case ModulePrototypeAst(): owner_type = scope_handler.current_scope.parent_module.name
@@ -197,6 +194,10 @@ class FunctionPrototypeAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser,
 
     def load_sup_scopes_gen(self, scope_handler: ScopeHandler) -> None:
         scope_handler.move_to_next_scope()
+
+        # Load generic-version of a type in for comparisons.
+        self.return_type.do_semantic_analysis(scope_handler)
+
         scope_handler.exit_cur_scope()
 
     def _deduce_function_class_type(self, context: "ModulePrototypeAst | SupPrototypeAst") -> "TypeAst":
