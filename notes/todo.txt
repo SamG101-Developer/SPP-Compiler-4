@@ -15,7 +15,6 @@ Other:
 -- Fix the `is` expression for variant types (which is their entire point).
 -- Test optional parameters, and optional + variadic together.
 -- Check "Type" isn't used invalid places (it is an expression) => apply same for TkVariadic.
--- Class generics cannot be "variadic" (only "required" or "optional") => sup generics must all be "required"
 
 Memory:
 -- Allow moving from borrowed context if attribute is a copyable type

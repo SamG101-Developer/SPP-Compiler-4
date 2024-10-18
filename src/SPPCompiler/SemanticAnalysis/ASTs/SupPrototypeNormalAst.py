@@ -108,6 +108,10 @@ class SupPrototypeNormalAst(Ast, PreProcessor, SymbolGenerator, SemanticAnalyser
             if not self.identifier.contains_generic(generic_parameter):
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
+        # Ensure there are no optional generic parameters.
+        if self.generic_parameters.get_opt():
+            raise SemanticErrors.OPTIONAL_GENERIC_PARAMETERS_IN_SUP(self, self.generic_parameters.get_opt()[0])
+
         # Make sure the identifier (the type being superimposed over), exists. If it does, analyse each member of the
         # body.
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)

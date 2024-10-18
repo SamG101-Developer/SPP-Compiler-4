@@ -855,3 +855,16 @@ class SemanticErrors:
             msg="Cannot use a borrow convention with no associated expression.",
             tip="Use 'GenMov[Void]' as the coroutine return type.")
         return exception
+
+    @staticmethod
+    def OPTIONAL_GENERIC_PARAMETERS_IN_SUP(sup: Ast, generic_parameter: Ast) -> SemanticError:
+        exception = SemanticError()
+        exception.add_info(
+            pos=sup.pos,
+            tag=f"Superimposition found here.")
+        exception.add_error(
+            pos=generic_parameter.pos,
+            tag=f"Optional generic parameter '{generic_parameter}' found here.",
+            msg="Optional generic parameters cannot be used in superimpositions.",
+            tip="Remove the default value.")
+        return exception

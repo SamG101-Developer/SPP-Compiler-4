@@ -107,6 +107,10 @@ class SupPrototypeInheritanceAst(SupPrototypeNormalAst, SupScopeLoader):
                     continue
                 raise SemanticErrors.UNCONSTRAINED_GENERIC_PARAMETER(self, generic_parameter)
 
+        # Ensure there are no optional generic parameters.
+        if self.generic_parameters.get_opt():
+            raise SemanticErrors.OPTIONAL_GENERIC_PARAMETERS_IN_SUP(self, self.generic_parameters.get_opt()[0])
+
         # Ensure the identifier and superclass exist, then analyse the body.
         self.identifier.do_semantic_analysis(scope_handler, **kwargs)
         self.super_class.do_semantic_analysis(scope_handler, **kwargs)
