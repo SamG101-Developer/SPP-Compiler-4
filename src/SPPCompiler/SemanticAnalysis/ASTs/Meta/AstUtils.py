@@ -541,4 +541,7 @@ __all__ = [
     "convert_function_arguments_to_named",
     "get_all_function_scopes",
     "get_owner_type_of_sup_block",
+    "create_generic_scope",
+    "Visibility",
+    "VisibilityEnabled",
 ]
